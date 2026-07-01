@@ -36,7 +36,7 @@ export default async function MyPage() {
     <div className="mx-auto max-w-2xl space-y-10">
       <header className="space-y-2 border-b border-line pb-8">
         <p className="font-mono text-step--1 uppercase tracking-widest text-fg-muted">{user.email}</p>
-        <h1 className="font-display text-hero font-bold tracking-tight text-fg">{user.name}</h1>
+        <h1 className="font-display text-step-3 font-bold tracking-tight text-fg">{user.name}</h1>
       </header>
 
       <section className="space-y-5">
