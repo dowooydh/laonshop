@@ -1,4 +1,4 @@
-export const metadata = { title: "이용약관 · RYU SHOP" };
+export const metadata = { title: "이용약관 · LAON SHOP" };
 
 export default function TermsPage() {
   return (
@@ -7,7 +7,7 @@ export default function TermsPage() {
 
       <section>
         <h2 className="mt-4 font-semibold text-gray-900">제1조 (목적)</h2>
-        <p>본 약관은 RYU SHOP(이하 “회사”)이 운영하는 온라인 쇼핑몰에서 제공하는 서비스의 이용조건 및 절차, 회사와 회원 간의 권리·의무 및 책임사항을 규정함을 목적으로 합니다.</p>
+        <p>본 약관은 LAON SHOP(이하 “회사”)이 운영하는 온라인 쇼핑몰에서 제공하는 서비스의 이용조건 및 절차, 회사와 회원 간의 권리·의무 및 책임사항을 규정함을 목적으로 합니다.</p>
       </section>
       <section>
         <h2 className="mt-4 font-semibold text-gray-900">제2조 (정의)</h2>

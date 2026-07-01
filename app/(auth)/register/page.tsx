@@ -2,7 +2,7 @@ import { Card, CardContent } from "@/lib/ui";
 import Link from "next/link";
 import { RegisterForm } from "./register-form";
 
-export const metadata = { title: "회원가입 · RYU SHOP" };
+export const metadata = { title: "회원가입 · LAON SHOP" };
 
 export default function RegisterPage() {
   return (

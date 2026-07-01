@@ -5,8 +5,8 @@ import { getShopUser } from "@/lib/auth";
 import { logoutAction } from "./(auth)/actions";
 
 export const metadata: Metadata = {
-  title: "RYU SHOP — 데일리 의류 쇼핑몰",
-  description: "RYU SHOP 의류 쇼핑몰. 데일리룩·아우터·상의·하의.",
+  title: "LAON SHOP — 데일리 의류 쇼핑몰",
+  description: "LAON SHOP 의류 쇼핑몰. 데일리룩·아우터·상의·하의.",
 };
 
 export default async function ShopLayout({ children }: { children: React.ReactNode }) {
@@ -18,7 +18,7 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
         <header className="sticky top-0 z-40 border-b border-gray-200 bg-white/90 backdrop-blur">
           <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
             <Link href="/" className="text-xl font-extrabold tracking-tight text-gray-900">
-              RYU<span className="text-blue-600">SHOP</span>
+              LAON<span className="text-blue-600">SHOP</span>
             </Link>
             <nav className="flex items-center gap-4 text-sm">
               <Link href="/cart" className="text-gray-600 hover:text-gray-900">
@@ -68,7 +68,7 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
                 청약철회·교환·환불 안내
               </Link>
             </div>
-            <p className="font-semibold text-gray-700">RYU SHOP</p>
+            <p className="font-semibold text-gray-700">LAON SHOP</p>
             <p className="mt-1">
               상호: ㈜커스텀오더 | 대표: 유동혁 | 사업자등록번호: 000-00-00000
             </p>
@@ -77,7 +77,7 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
             <p className="mt-2 text-[11px] text-gray-400">
               ⓘ 본 사업자 정보는 통신판매업 신고 완료 후 실제 정보로 교체됩니다(카드사 심사용).
             </p>
-            <p className="mt-1 text-[11px] text-gray-400">© RYU SHOP. 결제는 KSPAY(KSNET)로 안전하게 처리됩니다.</p>
+            <p className="mt-1 text-[11px] text-gray-400">© LAON SHOP. 결제는 KSPAY(KSNET)로 안전하게 처리됩니다.</p>
           </div>
         </footer>
       </body>

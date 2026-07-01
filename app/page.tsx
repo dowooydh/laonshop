@@ -1,4 +1,4 @@
-// RYU SHOP 홈 — 의류 상품 그리드
+// LAON SHOP 홈 — 의류 상품 그리드
 import { prisma } from "@/lib/db";
 import { formatKrw } from "@/lib/format";
 import Link from "next/link";
@@ -14,7 +14,7 @@ export default async function HomePage() {
   return (
     <div className="space-y-8">
       <section className="rounded-2xl bg-gradient-to-br from-blue-600 to-blue-800 px-6 py-10 text-white">
-        <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">데일리룩, RYU SHOP</h1>
+        <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">데일리룩, LAON SHOP</h1>
         <p className="mt-2 text-sm text-blue-100">상의 · 하의 · 아우터 — 매일 입기 좋은 옷</p>
       </section>
 

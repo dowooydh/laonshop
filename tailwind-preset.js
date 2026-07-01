@@ -1,4 +1,4 @@
-/** 라온페이 공용 Tailwind 테마 — 두 앱(seller/admin)이 preset으로 공유 */
+/** LAON SHOP Tailwind 테마 preset (라온페이 공용 테마에서 이관) */
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   theme: {

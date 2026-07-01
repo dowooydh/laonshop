@@ -1,4 +1,4 @@
-export const metadata = { title: "청약철회·교환·환불 안내 · RYU SHOP" };
+export const metadata = { title: "청약철회·교환·환불 안내 · LAON SHOP" };
 
 export default function RefundPage() {
   return (

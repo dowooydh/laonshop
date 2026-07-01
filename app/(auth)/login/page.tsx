@@ -2,7 +2,7 @@ import { Card, CardContent } from "@/lib/ui";
 import Link from "next/link";
 import { LoginForm } from "./login-form";
 
-export const metadata = { title: "로그인 · RYU SHOP" };
+export const metadata = { title: "로그인 · LAON SHOP" };
 
 export default function LoginPage() {
   return (

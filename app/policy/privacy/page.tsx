@@ -1,4 +1,4 @@
-export const metadata = { title: "개인정보처리방침 · RYU SHOP" };
+export const metadata = { title: "개인정보처리방침 · LAON SHOP" };
 
 export default function PrivacyPage() {
   return (

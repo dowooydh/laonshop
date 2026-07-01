@@ -8,7 +8,7 @@ export interface CartItem {
   imageUrl: string | null;
 }
 
-const KEY = "ryushop-cart";
+const KEY = "laonshop-cart";
 
 export function getCart(): CartItem[] {
   if (typeof window === "undefined") return [];
@@ -21,7 +21,7 @@ export function getCart(): CartItem[] {
 
 export function saveCart(items: CartItem[]): void {
   localStorage.setItem(KEY, JSON.stringify(items));
-  window.dispatchEvent(new Event("ryushop-cart-change"));
+  window.dispatchEvent(new Event("laonshop-cart-change"));
 }
 
 export function addToCart(item: CartItem): void {
@@ -34,7 +34,7 @@ export function addToCart(item: CartItem): void {
 
 export function clearCart(): void {
   localStorage.removeItem(KEY);
-  window.dispatchEvent(new Event("ryushop-cart-change"));
+  window.dispatchEvent(new Event("laonshop-cart-change"));
 }
 
 export function cartTotal(items: CartItem[]): number {
