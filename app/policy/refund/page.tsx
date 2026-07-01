@@ -27,7 +27,7 @@ export default function RefundPage() {
       </section>
       <section>
         <h2 className="mt-4 font-semibold text-gray-900">5. 문의</h2>
-        <p>고객센터(0000-0000) 또는 help@ryushop.kr 로 문의해 주세요. (사업자 정보 확정 후 갱신)</p>
+        <p>고객센터(준비중) 또는 이메일(준비중)로 문의해 주세요. (연락처 확정 후 갱신)</p>
       </section>
     </div>
   );

@@ -27,7 +27,7 @@ export default function PrivacyPage() {
       </section>
       <section>
         <h2 className="mt-4 font-semibold text-gray-900">6. 개인정보보호책임자</h2>
-        <p>성명: 유동혁 / 연락처: help@ryushop.kr (사업자 정보 확정 후 갱신)</p>
+        <p>성명: 유준혁 / 연락처: 준비중 (고객센터 연락처 확정 후 갱신)</p>
       </section>
     </div>
   );

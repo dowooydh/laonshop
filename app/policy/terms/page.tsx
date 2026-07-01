@@ -34,7 +34,7 @@ export default function TermsPage() {
         <p>천재지변 등 불가항력으로 인한 서비스 제공 불가 시 회사는 책임을 지지 않습니다.</p>
       </section>
 
-      <p className="pt-4 text-xs text-gray-400">시행일: 2026년 (사업자 정보 확정 후 명시)</p>
+      <p className="pt-4 text-xs text-gray-400">시행일: 2026년 7월 1일</p>
     </div>
   );
 }
