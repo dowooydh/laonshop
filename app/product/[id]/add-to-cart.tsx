@@ -31,7 +31,7 @@ export function AddToCart({ product, sizes }: Props) {
     <div className="space-y-4">
       {sizes.length > 0 && (
         <div>
-          <div className="mb-1.5 text-sm font-medium text-gray-700">사이즈</div>
+          <div className="mb-1.5 text-sm font-medium text-fg">사이즈</div>
           <div className="flex flex-wrap gap-2">
             {sizes.map((s) => (
               <button
@@ -41,8 +41,8 @@ export function AddToCart({ product, sizes }: Props) {
                 className={cn(
                   "h-10 min-w-12 rounded-lg border px-3 text-sm font-medium",
                   size === s
-                    ? "border-blue-600 bg-blue-50 text-blue-700"
-                    : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50",
+                    ? "border-accent-cyan bg-[color-mix(in_oklab,var(--accent-cyan)_12%,transparent)] text-fg"
+                    : "border-line bg-raised text-fg-muted hover:bg-overlay",
                 )}
               >
                 {s}
@@ -53,13 +53,13 @@ export function AddToCart({ product, sizes }: Props) {
       )}
 
       <div>
-        <div className="mb-1.5 text-sm font-medium text-gray-700">수량</div>
-        <div className="inline-flex items-center rounded-lg border border-gray-300">
-          <button type="button" onClick={() => setQty((q) => Math.max(1, q - 1))} className="h-10 w-10 text-lg text-gray-600">
+        <div className="mb-1.5 text-sm font-medium text-fg">수량</div>
+        <div className="inline-flex items-center rounded-lg border border-line">
+          <button type="button" onClick={() => setQty((q) => Math.max(1, q - 1))} className="h-10 w-10 text-lg text-fg-muted">
             −
           </button>
           <span className="w-10 text-center text-sm font-medium tabular-nums">{qty}</span>
-          <button type="button" onClick={() => setQty((q) => q + 1)} className="h-10 w-10 text-lg text-gray-600">
+          <button type="button" onClick={() => setQty((q) => q + 1)} className="h-10 w-10 text-lg text-fg-muted">
             +
           </button>
         </div>

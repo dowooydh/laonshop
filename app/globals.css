@@ -74,9 +74,20 @@
 }
 
 @layer base {
-  /* Phase 1: 전역 배경은 아직 라이트(미이관 페이지·정책·footer 가독 유지). Phase 2 셸에서 다크 전환. */
+  /* Phase 2: 전역 다크 셸. 모든 페이지가 이 페이즈에서 다크 토큰으로 이관됨. */
+  :root {
+    color-scheme: dark;
+  }
+  html {
+    background: var(--bg-void);
+  }
   body {
-    @apply bg-white text-gray-900 antialiased;
+    @apply bg-void text-fg antialiased;
+  }
+  /* 선택 텍스트 발광 */
+  ::selection {
+    background: color-mix(in oklab, var(--accent-cyan) 30%, transparent);
+    color: var(--fg-primary);
   }
 
   /* a11y 포커스 기본기 — 발광 시안 링, 항상 노출 (§7) */

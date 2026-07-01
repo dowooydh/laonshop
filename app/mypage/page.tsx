@@ -25,29 +25,29 @@ export default async function MyPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-4">
       <div>
-        <h1 className="text-lg font-bold text-gray-900">마이페이지</h1>
-        <p className="mt-0.5 text-sm text-gray-500">{user.name}님 · {user.email}</p>
+        <h1 className="font-display text-2xl font-bold tracking-tight text-fg">마이페이지</h1>
+        <p className="mt-0.5 text-step--1 text-fg-muted">{user.name}님 · {user.email}</p>
       </div>
 
-      <h2 className="text-sm font-semibold text-gray-900">주문 내역</h2>
+      <h2 className="text-step-0 font-semibold text-fg">주문 내역</h2>
       {orders.length === 0 ? (
         <EmptyState title="주문 내역이 없습니다" description="첫 주문을 해보세요" />
       ) : (
         <ul className="space-y-3">
           {orders.map((o) => (
             <li key={o.id}>
-              <Link href={`/order/${o.id}`} className="block rounded-xl border border-gray-200 bg-white p-4 hover:bg-gray-50">
+              <Link href={`/order/${o.id}`} className="block rounded-[var(--radius-lg)] border border-line bg-raised p-4 shadow-elev1 transition-colors duration-fast hover:bg-overlay">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-400">{o.createdAt.toLocaleString("ko-KR")}</span>
+                  <span className="text-step--1 text-fg-subtle">{o.createdAt.toLocaleString("ko-KR")}</span>
                   <Badge variant={o.status === "PAID" ? "green" : o.status === "FAILED" ? "red" : "gray"}>
                     {STATUS_LABEL[o.status] ?? o.status}
                   </Badge>
                 </div>
-                <div className="mt-1.5 text-sm text-gray-700">
+                <div className="mt-1.5 text-step-0 text-fg-muted">
                   {o.items[0]?.name}
                   {o.items.length > 1 ? ` 외 ${o.items.length - 1}건` : ""}
                 </div>
-                <div className="mt-0.5 text-sm font-bold text-gray-900">{formatKrw(o.totalAmount)}</div>
+                <div className="mt-0.5 font-mono text-step-0 font-bold text-fg">{formatKrw(o.totalAmount)}</div>
               </Link>
             </li>
           ))}

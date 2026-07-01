@@ -15,20 +15,20 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
 
   return (
     <div>
-      <Link href="/" className="text-sm text-gray-400 hover:text-gray-600">
+      <Link href="/" className="text-sm text-fg-subtle hover:text-fg-muted">
         ← 전체 상품
       </Link>
       <div className="mt-3 grid gap-8 md:grid-cols-2">
-        <div className="aspect-[4/5] overflow-hidden rounded-2xl bg-gray-100">
+        <div className="aspect-[4/5] overflow-hidden rounded-2xl bg-overlay">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={product.imageUrl ?? ""} alt={product.name} className="h-full w-full object-cover" />
         </div>
         <div>
-          <div className="text-sm font-medium text-gray-400">{product.category}</div>
-          <h1 className="mt-1 text-xl font-bold text-gray-900">{product.name}</h1>
-          <div className="mt-2 text-2xl font-extrabold text-gray-900">{formatKrw(product.price)}</div>
+          <div className="text-sm font-medium text-accent-cyan">{product.category}</div>
+          <h1 className="mt-1 text-xl font-bold text-fg">{product.name}</h1>
+          <div className="mt-2 text-2xl font-extrabold text-fg">{formatKrw(product.price)}</div>
           {product.description && (
-            <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-gray-600">
+            <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-fg-muted">
               {product.description}
             </p>
           )}
