@@ -34,3 +34,4 @@ yarn-error.log*
 
 # 심사 참고자료 (타사 실제 서류 샘플 — 로컬 참고용, 저장소에 커밋 금지)
 /reference/
+.env*
