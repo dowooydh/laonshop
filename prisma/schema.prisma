@@ -29,7 +29,8 @@ model Product {
   description String?
   price       Int // 원 단위 정수
   imageUrl    String?
-  category    String? // 의류 카테고리 (상의/하의/아우터 등)
+  category    String? // 의류 카테고리 (상의/하의/신발)
+  gender      String? // 성별 라인 (men/women)
   sizes       String? // 콤마구분 사이즈 (예: "S,M,L,XL")
   stock       Int             @default(999)
   active      Boolean         @default(true)

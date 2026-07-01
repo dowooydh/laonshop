@@ -22,12 +22,28 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
           <header className="sticky top-0 z-40 border-b border-line">
             <div className="glass">
               <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-                <Link
-                  href="/"
-                  className="font-display text-xl font-bold tracking-tight text-fg transition-[text-shadow] duration-base hover:[text-shadow:0_0_22px_color-mix(in_oklab,var(--accent-cyan)_60%,transparent)]"
-                >
-                  LAON<span className="text-accent-cyan">SHOP</span>
-                </Link>
+                <div className="flex items-center gap-6">
+                  <Link
+                    href="/"
+                    className="font-display text-xl font-bold tracking-tight text-fg transition-[text-shadow] duration-base hover:[text-shadow:0_0_22px_color-mix(in_oklab,var(--accent-cyan)_60%,transparent)]"
+                  >
+                    LAON<span className="text-accent-cyan">SHOP</span>
+                  </Link>
+                  <nav className="hidden items-center gap-1 text-step--1 sm:flex">
+                    <Link
+                      href="/shop/men"
+                      className="rounded-[var(--radius-sm)] px-3 py-2 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg"
+                    >
+                      남성의류
+                    </Link>
+                    <Link
+                      href="/shop/women"
+                      className="rounded-[var(--radius-sm)] px-3 py-2 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg"
+                    >
+                      여성의류
+                    </Link>
+                  </nav>
+                </div>
                 <nav className="flex items-center gap-1 text-step--1 sm:gap-2">
                   <Link
                     href="/cart"
