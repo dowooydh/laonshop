@@ -1,0 +1,80 @@
+// LAON SHOP — ㈜커스텀오더 의류 쇼핑몰 (KSNET 카드결제 카드사 심사용 + 실판매)
+// 라온페이 모노레포 apps/shop에서 이관한 독립 스키마.
+
+generator client {
+  provider      = "prisma-client-js"
+  // native = 로컬(mac)/빌드 OS, rhel-openssl-3.0.x = Vercel serverless(Node 20+) 런타임
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL") // 런타임: Neon pooled 연결
+  directUrl = env("DIRECT_URL") // 마이그레이션/push: 직접 연결
+}
+
+model ShopUser {
+  id           String      @id @default(cuid())
+  email        String      @unique
+  passwordHash String
+  name         String
+  phone        String?
+  orders       ShopOrder[]
+  createdAt    DateTime    @default(now())
+}
+
+model Product {
+  id          String          @id @default(cuid())
+  name        String
+  description String?
+  price       Int // 원 단위 정수
+  imageUrl    String?
+  category    String? // 의류 카테고리 (상의/하의/아우터 등)
+  sizes       String? // 콤마구분 사이즈 (예: "S,M,L,XL")
+  stock       Int             @default(999)
+  active      Boolean         @default(true)
+  sortOrder   Int             @default(0)
+  orderItems  ShopOrderItem[]
+  createdAt   DateTime        @default(now())
+}
+
+enum ShopOrderStatus {
+  PENDING // 결제대기
+  PAID // 결제완료
+  FAILED // 결제실패
+  CANCELED // 취소
+}
+
+model ShopOrder {
+  id            String          @id @default(cuid())
+  user          ShopUser        @relation(fields: [userId], references: [id])
+  userId        String
+  status        ShopOrderStatus @default(PENDING)
+  totalAmount   Int
+  moid          String          @unique // 주문번호 (KSPAY 결제 연동)
+  approvalNo    String?
+  pgTrno        String?
+  paidAt        DateTime?
+  receiverName  String?
+  receiverPhone String?
+  address       String?
+  items         ShopOrderItem[]
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@index([userId, createdAt])
+}
+
+model ShopOrderItem {
+  id        String    @id @default(cuid())
+  order     ShopOrder @relation(fields: [orderId], references: [id])
+  orderId   String
+  product   Product   @relation(fields: [productId], references: [id])
+  productId String
+  name      String // 주문 시점 상품명 스냅샷
+  price     Int // 주문 시점 단가
+  qty       Int
+  size      String? // 선택 사이즈
+
+  @@index([orderId])
+}
