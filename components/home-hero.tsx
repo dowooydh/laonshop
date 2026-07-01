@@ -46,9 +46,11 @@ export function HomeHero() {
           initial={reduce ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.8, delay: 0.55 }}
-          className="mt-5 max-w-md text-step-1 text-fg-muted"
+          className="mt-5 max-w-xl text-step-1 leading-relaxed text-fg-muted"
         >
-          남성 · 여성, 상의부터 신발까지. 매일의 코디를 공간에서 완성하는 셀렉트샵.
+          남성 · 여성, 상의부터 신발까지.
+          <br />
+          매일의 코디를 공간에서 완성하는 셀렉트샵.
         </motion.p>
 
         <motion.div

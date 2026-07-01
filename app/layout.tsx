@@ -125,9 +125,7 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
               </div>
 
               <div className="mt-10 border-t border-line pt-6 text-step--1 leading-relaxed text-fg-subtle">
-                <p>상호: ㈜커스텀오더 &nbsp;|&nbsp; 대표: 유준혁 &nbsp;|&nbsp; 사업자등록번호: 864-88-03054</p>
-                <p>통신판매업신고: 신고 예정 &nbsp;|&nbsp; 개인정보보호책임자: 유준혁</p>
-                <p>주소: 경기도 성남시 수정구 청계산로 686, 415호 (판교반도아이비밸리)</p>
+                <p>상호: ㈜커스텀오더 &nbsp;|&nbsp; 사업자등록번호: 864-88-03054 &nbsp;|&nbsp; 통신판매업신고: 신고 예정</p>
                 <p>
                   고객센터:{" "}
                   <a href="tel:070-4044-7008" className="text-fg-muted hover:text-accent-cyan">
