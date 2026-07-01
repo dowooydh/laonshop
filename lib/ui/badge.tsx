@@ -1,15 +1,17 @@
 import * as React from "react";
 import { cn } from "./cn";
 
-/** 지시서 6장 상태 배지 색: PAID=파랑, PENDING=회색, CANCEL_REQUESTED=주황, CANCELED=빨강, EXPIRED=연회색, FAILED=빨강 외곽선 */
+// 주문 상태 배지 — 다크 토큰 틴트(color-mix). 키 유지: PAID=blue(시안), PENDING=gray, FAILED=red, CANCELED=redOutline 등.
 const VARIANT_CLASS: Record<string, string> = {
-  blue: "bg-brand-50 text-brand-700 ring-brand-600/20",
-  gray: "bg-gray-100 text-gray-600 ring-gray-500/20",
-  orange: "bg-orange-50 text-orange-700 ring-orange-600/20",
-  red: "bg-red-50 text-red-700 ring-red-600/20",
-  lightgray: "bg-gray-50 text-gray-400 ring-gray-400/20",
-  redOutline: "bg-white text-red-600 ring-red-500/60",
-  green: "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
+  blue: "bg-[color-mix(in_oklab,var(--accent-cyan)_16%,transparent)] text-accent-cyan ring-[color-mix(in_oklab,var(--accent-cyan)_38%,transparent)]",
+  gray: "bg-[color-mix(in_oklab,var(--fg-primary)_10%,transparent)] text-fg-muted ring-line",
+  orange:
+    "bg-[color-mix(in_oklab,var(--warning)_16%,transparent)] text-warning ring-[color-mix(in_oklab,var(--warning)_38%,transparent)]",
+  red: "bg-[color-mix(in_oklab,var(--danger)_16%,transparent)] text-danger ring-[color-mix(in_oklab,var(--danger)_38%,transparent)]",
+  green:
+    "bg-[color-mix(in_oklab,var(--success)_16%,transparent)] text-success ring-[color-mix(in_oklab,var(--success)_38%,transparent)]",
+  lightgray: "bg-[color-mix(in_oklab,var(--fg-primary)_6%,transparent)] text-fg-subtle ring-line",
+  redOutline: "bg-transparent text-danger ring-[color-mix(in_oklab,var(--danger)_60%,transparent)]",
 };
 
 export function Badge({
@@ -20,7 +22,7 @@ export function Badge({
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset",
+        "inline-flex items-center rounded-[var(--radius-sm)] px-2 py-0.5 text-step--1 font-medium ring-1 ring-inset",
         VARIANT_CLASS[variant] ?? VARIANT_CLASS.gray,
         className,
       )}

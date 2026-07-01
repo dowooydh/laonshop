@@ -1,32 +1,33 @@
 import * as React from "react";
 import { cn } from "./cn";
 
+// 글래스 서피스 (§4.3) — 헤어라인 보더 + 백드롭 블러 + 낮은 엘리베이션.
 export function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn("rounded-xl border border-gray-200 bg-white shadow-sm", className)}
+      className={cn("glass rounded-[var(--radius-lg)] border border-line text-fg shadow-elev1", className)}
       {...props}
     />
   );
 }
 
 export function CardHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("flex flex-col gap-1 p-4 sm:p-5", className)} {...props} />;
+  return <div className={cn("flex flex-col gap-1 p-5 sm:p-6", className)} {...props} />;
 }
 
 export function CardTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
-  return <h3 className={cn("text-base font-semibold text-gray-900", className)} {...props} />;
+  return <h3 className={cn("text-step-1 font-semibold tracking-tight text-fg", className)} {...props} />;
 }
 
 export function CardDescription({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {
-  return <p className={cn("text-sm text-gray-500", className)} {...props} />;
+  return <p className={cn("text-step--1 text-fg-muted", className)} {...props} />;
 }
 
 export function CardContent({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("p-4 pt-0 sm:p-5 sm:pt-0", className)} {...props} />;
+  return <div className={cn("p-5 pt-0 sm:p-6 sm:pt-0", className)} {...props} />;
 }
 
-/** KPI 카드 (매출 카드/합계 카드 줄 공용) */
+/** KPI/합계 카드 */
 export function StatCard({
   label,
   value,
@@ -41,17 +42,17 @@ export function StatCard({
   className?: string;
 }) {
   const tones: Record<string, string> = {
-    default: "text-gray-900",
-    blue: "text-brand-600",
-    red: "text-red-600",
-    green: "text-emerald-600",
-    orange: "text-orange-600",
+    default: "text-fg",
+    blue: "text-accent-cyan",
+    red: "text-danger",
+    green: "text-success",
+    orange: "text-warning",
   };
   return (
-    <div className={cn("rounded-xl border border-gray-200 bg-white p-4 shadow-sm", className)}>
-      <div className="text-xs font-medium text-gray-500">{label}</div>
-      <div className={cn("mt-1 text-xl font-bold tabular-nums", tones[tone])}>{value}</div>
-      {sub && <div className="mt-0.5 text-xs text-gray-400">{sub}</div>}
+    <div className={cn("glass rounded-[var(--radius-lg)] border border-line p-5 shadow-elev1", className)}>
+      <div className="text-step--1 font-medium text-fg-muted">{label}</div>
+      <div className={cn("mt-1 font-mono text-2xl font-bold tabular-nums", tones[tone])}>{value}</div>
+      {sub && <div className="mt-0.5 text-step--1 text-fg-subtle">{sub}</div>}
     </div>
   );
 }

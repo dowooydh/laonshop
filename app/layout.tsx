@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getShopUser } from "@/lib/auth";
 import { logoutAction } from "./(auth)/actions";
+import { fontDisplay, fontMono } from "./fonts";
+import { GrainOverlay } from "@/components/grain-overlay";
 
 export const metadata: Metadata = {
   title: "LAON SHOP — 데일리 의류 쇼핑몰",
@@ -13,7 +15,7 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
   const user = await getShopUser();
 
   return (
-    <html lang="ko">
+    <html lang="ko" className={`${fontDisplay.variable} ${fontMono.variable}`}>
       <body className="flex min-h-dvh flex-col">
         <header className="sticky top-0 z-40 border-b border-gray-200 bg-white/90 backdrop-blur">
           <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
@@ -80,6 +82,8 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
             <p className="mt-1 text-[11px] text-gray-400">© LAON SHOP. 결제는 KSPAY(KSNET)로 안전하게 처리됩니다.</p>
           </div>
         </footer>
+
+        <GrainOverlay />
       </body>
     </html>
   );

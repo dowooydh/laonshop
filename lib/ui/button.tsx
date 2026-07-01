@@ -2,25 +2,27 @@ import { cva, type VariantProps } from "class-variance-authority";
 import * as React from "react";
 import { cn } from "./cn";
 
+// 다크 퍼스트 + 발광. 악센트는 CTA/글로우에만 좁게. (핸드오버 §4)
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/50 disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[var(--radius-md)] font-medium transition-[background-color,box-shadow,border-color,transform,filter] duration-fast ease-out-expo active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-cyan disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       variant: {
-        primary: "bg-brand-600 text-white hover:bg-brand-700 active:bg-brand-800",
-        secondary: "bg-gray-100 text-gray-900 hover:bg-gray-200",
-        outline: "border border-gray-300 bg-white text-gray-700 hover:bg-gray-50",
-        danger: "bg-red-600 text-white hover:bg-red-700",
-        dangerOutline: "border border-red-300 bg-white text-red-600 hover:bg-red-50",
-        ghost: "text-gray-600 hover:bg-gray-100",
-        link: "text-brand-600 underline-offset-4 hover:underline",
+        // 발광 시안 CTA — 이 앱의 시그니처 버튼
+        primary: "bg-accent-cyan text-void shadow-glow-cyan hover:brightness-110",
+        violet: "bg-accent-violet text-void shadow-glow-violet hover:brightness-110",
+        secondary: "bg-raised text-fg border border-line hover:bg-overlay",
+        outline: "border border-line bg-transparent text-fg hover:bg-raised hover:border-fg-subtle",
+        ghost: "bg-transparent text-fg-muted hover:bg-raised hover:text-fg",
+        danger: "bg-danger text-void hover:brightness-110",
+        link: "text-accent-cyan underline-offset-4 hover:underline",
       },
       size: {
-        sm: "h-8 px-3 text-sm",
-        md: "h-10 px-4 text-sm",
-        lg: "h-12 px-5 text-base",
-        xl: "h-14 px-6 text-lg w-full", // 모바일 풀폭 CTA
-        icon: "h-9 w-9",
+        sm: "h-8 px-3 text-step--1",
+        md: "h-10 px-4 text-step-0",
+        lg: "h-12 px-5 text-step-0",
+        xl: "h-14 w-full px-6 text-step-1", // 모바일 풀폭 CTA
+        icon: "h-10 w-10",
       },
     },
     defaultVariants: { variant: "primary", size: "md" },
