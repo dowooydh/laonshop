@@ -32,8 +32,11 @@ export default function CartPage() {
   if (!ready) return <div className="py-16 text-center text-fg-subtle">불러오는 중…</div>;
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-lg font-bold text-fg">장바구니</h1>
+    <div className="mx-auto max-w-2xl space-y-5">
+      <header className="space-y-1">
+        <p className="font-mono text-step--1 uppercase tracking-widest text-accent-cyan">Cart</p>
+        <h1 className="font-display text-step-2 font-bold tracking-tight text-fg">장바구니</h1>
+      </header>
 
       {items.length === 0 ? (
         <EmptyState title="장바구니가 비어 있습니다" description="마음에 드는 상품을 담아보세요" />
@@ -49,7 +52,7 @@ export default function CartPage() {
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-sm font-medium text-fg">{c.name}</div>
                   {c.size && <div className="text-xs text-fg-subtle">사이즈 {c.size}</div>}
-                  <div className="mt-1 text-sm font-bold text-fg">{formatKrw(c.price * c.qty)}</div>
+                  <div className="mt-1 font-mono text-sm font-bold text-fg">{formatKrw(c.price * c.qty)}</div>
                   <div className="mt-1.5 inline-flex items-center rounded-lg border border-line">
                     <button type="button" onClick={() => setQty(idx, c.qty - 1)} className="h-8 w-8 text-fg-muted">−</button>
                     <span className="w-8 text-center text-sm tabular-nums">{c.qty}</span>
@@ -63,9 +66,9 @@ export default function CartPage() {
             ))}
           </ul>
 
-          <div className="flex items-center justify-between rounded-xl bg-raised border border-line px-4 py-3">
-            <span className="text-sm text-fg-muted">총 결제금액</span>
-            <span className="text-lg font-extrabold text-fg">{formatKrw(total)}</span>
+          <div className="flex items-center justify-between rounded-[var(--radius-lg)] border border-line bg-overlay px-5 py-4">
+            <span className="text-step-0 text-fg-muted">총 결제금액</span>
+            <span className="font-mono text-step-1 font-extrabold text-fg">{formatKrw(total)}</span>
           </div>
 
           <Link href="/checkout">

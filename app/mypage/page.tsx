@@ -1,8 +1,8 @@
 import { prisma } from "@/lib/db";
 import { formatKrw } from "@/lib/format";
-import { Badge, EmptyState } from "@/lib/ui";
-import Link from "next/link";
+import { EmptyState } from "@/lib/ui";
 import { requireShopUser } from "@/lib/auth";
+import { OrderHistory, type OrderRow } from "./order-history";
 
 export const dynamic = "force-dynamic";
 
@@ -22,37 +22,36 @@ export default async function MyPage() {
     take: 50,
   });
 
-  return (
-    <div className="mx-auto max-w-2xl space-y-4">
-      <div>
-        <h1 className="font-display text-2xl font-bold tracking-tight text-fg">마이페이지</h1>
-        <p className="mt-0.5 text-step--1 text-fg-muted">{user.name}님 · {user.email}</p>
-      </div>
+  const rows: OrderRow[] = orders.map((o) => ({
+    id: o.id,
+    href: `/order/${o.id}`,
+    statusLabel: STATUS_LABEL[o.status] ?? o.status,
+    badgeVariant: o.status === "PAID" ? "green" : o.status === "FAILED" ? "red" : "gray",
+    dateLabel: o.createdAt.toLocaleString("ko-KR"),
+    itemSummary: `${o.items[0]?.name ?? ""}${o.items.length > 1 ? ` 외 ${o.items.length - 1}건` : ""}`,
+    totalLabel: formatKrw(o.totalAmount),
+  }));
 
-      <h2 className="text-step-0 font-semibold text-fg">주문 내역</h2>
-      {orders.length === 0 ? (
-        <EmptyState title="주문 내역이 없습니다" description="첫 주문을 해보세요" />
-      ) : (
-        <ul className="space-y-3">
-          {orders.map((o) => (
-            <li key={o.id}>
-              <Link href={`/order/${o.id}`} className="block rounded-[var(--radius-lg)] border border-line bg-raised p-4 shadow-elev1 transition-colors duration-fast hover:bg-overlay">
-                <div className="flex items-center justify-between">
-                  <span className="text-step--1 text-fg-subtle">{o.createdAt.toLocaleString("ko-KR")}</span>
-                  <Badge variant={o.status === "PAID" ? "green" : o.status === "FAILED" ? "red" : "gray"}>
-                    {STATUS_LABEL[o.status] ?? o.status}
-                  </Badge>
-                </div>
-                <div className="mt-1.5 text-step-0 text-fg-muted">
-                  {o.items[0]?.name}
-                  {o.items.length > 1 ? ` 외 ${o.items.length - 1}건` : ""}
-                </div>
-                <div className="mt-0.5 font-mono text-step-0 font-bold text-fg">{formatKrw(o.totalAmount)}</div>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
+  return (
+    <div className="mx-auto max-w-2xl space-y-10">
+      <header className="space-y-2 border-b border-line pb-8">
+        <p className="font-mono text-step--1 uppercase tracking-widest text-fg-muted">{user.email}</p>
+        <h1 className="font-display text-hero font-bold tracking-tight text-fg">{user.name}</h1>
+      </header>
+
+      <section className="space-y-5">
+        <div className="flex items-center justify-between">
+          <h2 className="font-mono text-step--1 uppercase tracking-widest text-accent-cyan">주문 내역</h2>
+          {rows.length > 0 ? (
+            <span className="font-mono text-step--1 text-fg-subtle">{rows.length}건</span>
+          ) : null}
+        </div>
+        {rows.length === 0 ? (
+          <EmptyState title="주문 내역이 없습니다" description="첫 주문을 해보세요" />
+        ) : (
+          <OrderHistory orders={rows} />
+        )}
+      </section>
     </div>
   );
 }

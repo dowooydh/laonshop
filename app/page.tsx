@@ -1,7 +1,7 @@
-// LAON SHOP 홈 — 의류 상품 그리드
+// LAON SHOP 홈 — WebGL 히어로 + 벤토 상품 그리드
 import { prisma } from "@/lib/db";
-import { formatKrw } from "@/lib/format";
-import Link from "next/link";
+import { HomeHero } from "@/components/home-hero";
+import { ProductGrid } from "@/components/product-grid";
 
 export const dynamic = "force-dynamic";
 
@@ -11,36 +11,29 @@ export default async function HomePage() {
     orderBy: { sortOrder: "asc" },
   });
 
-  return (
-    <div className="space-y-8">
-      <section className="mesh-hero rounded-[var(--radius-lg)] border border-line px-6 py-10 text-fg">
-        <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">데일리룩, LAON SHOP</h1>
-        <p className="mt-2 text-sm text-fg-muted">상의 · 하의 · 아우터 — 매일 입기 좋은 옷</p>
-      </section>
+  const cards = products.map((p) => ({
+    id: p.id,
+    name: p.name,
+    price: p.price,
+    imageUrl: p.imageUrl,
+    category: p.category,
+  }));
 
-      {products.length === 0 ? (
-        <p className="py-16 text-center text-fg-subtle">등록된 상품이 없습니다.</p>
-      ) : (
-        <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 lg:grid-cols-4">
-          {products.map((p) => (
-            <Link key={p.id} href={`/product/${p.id}`} className="group">
-              <div className="aspect-[4/5] overflow-hidden rounded-xl bg-raised border border-line">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={p.imageUrl ?? ""}
-                  alt={p.name}
-                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                />
-              </div>
-              <div className="mt-2.5">
-                <div className="text-[11px] font-medium text-fg-subtle">{p.category}</div>
-                <div className="truncate text-sm font-medium text-fg">{p.name}</div>
-                <div className="mt-0.5 text-sm font-bold text-fg">{formatKrw(p.price)}</div>
-              </div>
-            </Link>
-          ))}
+  return (
+    <div className="space-y-12">
+      <HomeHero />
+
+      <section id="collection" className="scroll-mt-24 space-y-5">
+        <div className="flex items-end justify-between">
+          <h2 className="font-display text-step-2 font-bold tracking-tight text-fg">컬렉션</h2>
+          <span className="font-mono text-step--1 text-fg-subtle">{cards.length} pieces</span>
         </div>
-      )}
+        {cards.length === 0 ? (
+          <p className="py-16 text-center text-fg-subtle">등록된 상품이 없습니다.</p>
+        ) : (
+          <ProductGrid products={cards} />
+        )}
+      </section>
     </div>
   );
 }

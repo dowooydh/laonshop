@@ -27,13 +27,13 @@ export default async function OrderResultPage({ params }: { params: Promise<{ id
       <h1 className={`mt-3 text-xl font-bold ${paid ? "text-success" : failed ? "text-danger" : "text-warning"}`}>
         {paid ? "결제가 완료되었습니다" : failed ? "결제에 실패했습니다" : "결제가 완료되지 않았습니다"}
       </h1>
-      <div className="mt-2 text-2xl font-extrabold text-fg">{formatKrw(order.totalAmount)}</div>
+      <div className="mt-2 font-mono text-2xl font-extrabold text-fg">{formatKrw(order.totalAmount)}</div>
 
       <div className="mt-5 rounded-xl border border-line bg-raised p-4 text-left text-sm shadow-elev1">
         <dl className="space-y-1.5 text-fg-muted">
           <div className="flex justify-between">
             <dt>주문번호</dt>
-            <dd className="font-medium text-fg">{order.moid}</dd>
+            <dd className="font-mono font-medium text-fg">{order.moid}</dd>
           </div>
           {order.approvalNo && (
             <div className="flex justify-between">

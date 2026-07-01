@@ -59,28 +59,37 @@ export default function CheckoutPage() {
     );
 
   return (
-    <div className="mx-auto max-w-lg space-y-5">
-      <h1 className="text-lg font-bold text-fg">주문/결제</h1>
+    <div className="mx-auto max-w-lg space-y-6">
+      <header className="space-y-1">
+        <p className="font-mono text-step--1 uppercase tracking-widest text-accent-cyan">Checkout</p>
+        <h1 className="font-display text-step-2 font-bold tracking-tight text-fg">주문/결제</h1>
+      </header>
 
-      {/* 주문 상품 */}
-      <section className="rounded-xl border border-line bg-raised p-4">
-        <div className="mb-2 text-sm font-semibold text-fg">주문 상품</div>
+      {/* 01 주문 상품 */}
+      <section className="rounded-[var(--radius-lg)] border border-line bg-raised p-5">
+        <div className="mb-3 flex items-baseline gap-2">
+          <span className="font-mono text-step--1 text-fg-subtle">01</span>
+          <span className="text-step-0 font-semibold text-fg">주문 상품</span>
+        </div>
         <ul className="divide-y divide-line">
           {items.map((c) => (
-            <li key={`${c.productId}-${c.size}`} className="flex justify-between py-2 text-sm">
+            <li key={`${c.productId}-${c.size}`} className="flex justify-between py-2.5 text-step--1">
               <span className="text-fg-muted">
                 {c.name}
                 {c.size ? ` (${c.size})` : ""} × {c.qty}
               </span>
-              <span className="font-medium">{formatKrw(c.price * c.qty)}</span>
+              <span className="font-mono font-medium text-fg">{formatKrw(c.price * c.qty)}</span>
             </li>
           ))}
         </ul>
       </section>
 
-      {/* 배송 정보 */}
-      <section className="space-y-3 rounded-xl border border-line bg-raised p-4">
-        <div className="text-sm font-semibold text-fg">배송 정보</div>
+      {/* 02 배송 정보 */}
+      <section className="space-y-3 rounded-[var(--radius-lg)] border border-line bg-raised p-5">
+        <div className="mb-1 flex items-baseline gap-2">
+          <span className="font-mono text-step--1 text-fg-subtle">02</span>
+          <span className="text-step-0 font-semibold text-fg">배송 정보</span>
+        </div>
         <div>
           <Label htmlFor="rn">받는 분</Label>
           <Input id="rn" value={form.receiverName} onChange={(e) => setForm({ ...form, receiverName: e.target.value })} />
@@ -95,9 +104,12 @@ export default function CheckoutPage() {
         </div>
       </section>
 
-      {/* 결제수단 */}
-      <section className="space-y-2 rounded-xl border border-line bg-raised p-4">
-        <div className="text-sm font-semibold text-fg">결제수단</div>
+      {/* 03 결제수단 */}
+      <section className="space-y-3 rounded-[var(--radius-lg)] border border-line bg-raised p-5">
+        <div className="flex items-baseline gap-2">
+          <span className="font-mono text-step--1 text-fg-subtle">03</span>
+          <span className="text-step-0 font-semibold text-fg">결제수단</span>
+        </div>
         <div className="grid grid-cols-2 gap-2">
           {METHODS.map((m) => (
             <button
@@ -106,30 +118,34 @@ export default function CheckoutPage() {
               disabled={!m.enabled}
               onClick={() => m.enabled && setMethod(m.id)}
               className={cn(
-                "rounded-lg border p-3 text-left",
+                "rounded-[var(--radius-md)] border p-3.5 text-left transition-colors duration-fast",
                 !m.enabled && "cursor-not-allowed border-line opacity-60",
                 method === m.id && m.enabled
-                  ? "border-accent-cyan bg-[color-mix(in_oklab,var(--accent-cyan)_12%,transparent)] text-fg"
-                  : "border-line bg-raised",
+                  ? "border-accent-cyan bg-[color-mix(in_oklab,var(--accent-cyan)_12%,transparent)] text-fg shadow-glow-cyan"
+                  : "border-line bg-raised hover:bg-overlay",
               )}
             >
-              <div className={cn("text-sm font-medium", m.enabled ? "text-fg" : "text-fg-subtle")}>{m.label}</div>
-              <div className="text-[11px] text-fg-subtle">{m.desc}</div>
+              <div className={cn("text-step-0 font-medium", m.enabled ? "text-fg" : "text-fg-subtle")}>{m.label}</div>
+              <div className="mt-0.5 text-step--1 text-fg-subtle">{m.desc}</div>
             </button>
           ))}
         </div>
-        <p className="text-[11px] text-fg-subtle">계좌이체·정기결제·수기결제는 PG 스펙 확정 후 오픈됩니다.</p>
+        <p className="text-step--1 text-fg-subtle">계좌이체·정기결제·수기결제는 PG 스펙 확정 후 오픈됩니다.</p>
       </section>
 
-      <div className="flex items-center justify-between rounded-xl bg-raised px-4 py-3">
-        <span className="text-sm text-fg-muted">총 결제금액</span>
-        <span className="text-lg font-extrabold">{formatKrw(total)}</span>
+      <div className="flex items-center justify-between rounded-[var(--radius-lg)] border border-line bg-overlay px-5 py-4">
+        <span className="text-step-0 text-fg-muted">총 결제금액</span>
+        <span className="font-mono text-step-1 font-extrabold text-fg">{formatKrw(total)}</span>
       </div>
 
       <FieldError>{error}</FieldError>
       <Button type="button" size="xl" loading={pending} onClick={submit}>
         {formatKrw(total)} 결제하기
       </Button>
+
+      <p className="text-center text-step--1 text-fg-subtle">
+        결제는 KSPAY(KSNET) 인증결제창에서 안전하게 진행됩니다.
+      </p>
     </div>
   );
 }
