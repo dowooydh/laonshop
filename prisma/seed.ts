@@ -107,9 +107,10 @@ const DESC: Record<Category, string> = {
 };
 
 async function main() {
-  // 초기화 (주문 → 상품 순)
+  // 초기화 (주문·찜 → 상품 순 — FK 제약)
   await prisma.shopOrderItem.deleteMany();
   await prisma.shopOrder.deleteMany();
+  await prisma.wishlist.deleteMany();
   await prisma.product.deleteMany();
 
   const genders: Gender[] = ["men", "women"];

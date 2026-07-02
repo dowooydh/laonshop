@@ -7,7 +7,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/cart", "/checkout", "/mypage", "/order/", "/api/", "/login", "/register", "/design-system"],
+        disallow: ["/cart", "/checkout", "/mypage", "/order/", "/api/", "/login", "/register", "/design-system", "/search"],
       },
     ],
     sitemap: "https://laonshop.com/sitemap.xml",

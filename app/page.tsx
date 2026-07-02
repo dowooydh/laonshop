@@ -1,6 +1,7 @@
-// LAON SHOP 홈 — 모델 히어로 + 남/여 게이트
+// LAON SHOP 홈 — 모델 히어로 + 남/여 게이트 + 최근 본 상품
 import { HomeHero } from "@/components/home-hero";
 import { GenderGate } from "@/components/gender-gate";
+import { RecentProducts } from "@/components/recent-products";
 
 export default function HomePage() {
   return (
@@ -14,6 +15,8 @@ export default function HomePage() {
         </div>
         <GenderGate />
       </section>
+
+      <RecentProducts />
     </div>
   );
 }

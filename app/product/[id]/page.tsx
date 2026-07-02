@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { formatKrw } from "@/lib/format";
+import { getShopUser } from "@/lib/auth";
 import { Amount } from "@/lib/ui";
 import type { Metadata } from "next";
 import Image from "next/image";
@@ -7,7 +8,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 import { ProductInfoSections } from "@/components/product-info";
+import { RecentProducts, RecordView } from "@/components/recent-products";
 import { AddToCart } from "./add-to-cart";
+import { WishlistButton } from "./wishlist-button";
 
 export const dynamic = "force-dynamic";
 
@@ -46,6 +49,13 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
     take: 4,
   });
 
+  const user = await getShopUser();
+  const wished = user
+    ? !!(await prisma.wishlist.findUnique({
+        where: { userId_productId: { userId: user.id, productId: product.id } },
+      }))
+    : false;
+
   // 검색 리치 스니펫 + '실제 커머스' 신호 (가격은 정수 원 그대로)
   const jsonLd = {
     "@context": "https://schema.org",
@@ -64,6 +74,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
   return (
     <div className="space-y-8">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <RecordView item={{ id: product.id, name: product.name, price: product.price, imageUrl: product.imageUrl }} />
 
       <Link
         href={`/shop/${gender}`}
@@ -103,9 +114,12 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
           <div className="font-mono text-step--1 uppercase tracking-widest text-accent-cyan">
             {product.category}
           </div>
-          <h1 className="mt-3 font-display text-step-3 font-bold leading-tight tracking-tight text-fg">
-            {product.name}
-          </h1>
+          <div className="mt-3 flex items-start justify-between gap-4">
+            <h1 className="font-display text-step-3 font-bold leading-tight tracking-tight text-fg">
+              {product.name}
+            </h1>
+            <WishlistButton productId={product.id} initialWished={wished} />
+          </div>
 
           <div className="mt-5 flex items-baseline gap-1">
             <Amount value={product.price} className="text-step-2 text-fg" />
@@ -167,6 +181,8 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
           </div>
         </section>
       )}
+
+      <RecentProducts excludeId={product.id} />
     </div>
   );
 }

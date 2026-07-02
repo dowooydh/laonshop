@@ -19,8 +19,23 @@ model ShopUser {
   passwordHash String
   name         String
   phone        String?
+  address      String? // 기본 배송지 (체크아웃 프리필 1순위)
+  deletedAt    DateTime? // 탈퇴 (주문이력 보존 위해 소프트 삭제 — 전자상거래법 기록 보존)
   orders       ShopOrder[]
+  wishlist     Wishlist[]
   createdAt    DateTime    @default(now())
+}
+
+// 위시리스트(찜) — 파생 데이터라 상품/회원 삭제 시 함께 정리 (재시드 FK 충돌 방지)
+model Wishlist {
+  id        String   @id @default(cuid())
+  user      ShopUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId])
 }
 
 model Product {
@@ -36,6 +51,7 @@ model Product {
   active      Boolean         @default(true)
   sortOrder   Int             @default(0)
   orderItems  ShopOrderItem[]
+  wishedBy    Wishlist[]
   createdAt   DateTime        @default(now())
 }
 

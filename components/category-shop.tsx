@@ -6,7 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion, useReducedMotion } from "motion/react";
 import { formatKrw } from "@/lib/format";
-import { EmptyState } from "@/lib/ui";
+import { EmptyState, Select } from "@/lib/ui";
 
 type Card = {
   id: string;
@@ -15,9 +15,19 @@ type Card = {
   imageUrl: string | null;
   category: string | null;
   soldOut: boolean;
+  createdAt: string; // ISO — 신상품순 정렬용
 };
 
 const CATS = ["상의", "하의", "신발"] as const;
+
+const SORTS = {
+  recommended: { label: "추천순", fn: () => 0 }, // 서버 sortOrder 유지
+  newest: { label: "신상품순", fn: (a: Card, b: Card) => b.createdAt.localeCompare(a.createdAt) },
+  priceAsc: { label: "낮은 가격순", fn: (a: Card, b: Card) => a.price - b.price },
+  priceDesc: { label: "높은 가격순", fn: (a: Card, b: Card) => b.price - a.price },
+} as const;
+
+type SortKey = keyof typeof SORTS;
 
 export function CategoryShop({
   gender,
@@ -30,7 +40,8 @@ export function CategoryShop({
 }) {
   const reduce = useReducedMotion();
   const [cat, setCat] = useState<string>("상의");
-  const list = products.filter((p) => p.category === cat);
+  const [sort, setSort] = useState<SortKey>("recommended");
+  const list = products.filter((p) => p.category === cat).sort(SORTS[sort].fn);
 
   return (
     <div className="space-y-7">
@@ -41,8 +52,9 @@ export function CategoryShop({
         <h1 className="font-display text-step-3 font-bold tracking-tight text-fg">{label}</h1>
       </header>
 
-      {/* 카테고리 탭 */}
-      <div className="flex flex-wrap gap-2 border-b border-line pb-4">
+      {/* 카테고리 탭 + 정렬 */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
+        <div className="flex flex-wrap gap-2">
         {CATS.map((c) => {
           const active = c === cat;
           const n = products.filter((p) => p.category === c).length;
@@ -66,6 +78,19 @@ export function CategoryShop({
             </button>
           );
         })}
+        </div>
+        <Select
+          value={sort}
+          onChange={(e) => setSort(e.target.value as SortKey)}
+          aria-label="정렬"
+          className="h-9 w-auto min-w-32 text-step--1"
+        >
+          {Object.entries(SORTS).map(([key, s]) => (
+            <option key={key} value={key}>
+              {s.label}
+            </option>
+          ))}
+        </Select>
       </div>
 
       {list.length === 0 ? (

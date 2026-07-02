@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { formatKrw } from "@/lib/format";
+import { getPgProvider } from "@/lib/kspay";
 import { Amount, Badge, buttonVariants } from "@/lib/ui";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -66,6 +67,16 @@ export default async function OrderResultPage({
   const paid = order.status === "PAID";
   const s = STATUS[order.status] ?? STATUS.PENDING;
 
+  // KSNET 매출전표(영수증) — 심사 캡처·소비자 증빙. env 미설정 시 링크만 생략.
+  let receiptUrl: string | null = null;
+  if ((paid || order.status === "CANCEL_REQUESTED") && order.pgTrno) {
+    try {
+      receiptUrl = getPgProvider().receiptUrl(order.pgTrno);
+    } catch {
+      receiptUrl = null;
+    }
+  }
+
   return (
     <div className="mx-auto max-w-lg py-8">
       {/* 결제 직후(receipt=1)에만 카트 클리어 — 과거 주문 재조회로 현재 카트가 지워지는 것 방지 */}
@@ -105,6 +116,21 @@ export default async function OrderResultPage({
                 <div className="flex justify-between gap-4">
                   <dt>결제일시</dt>
                   <dd className="font-medium text-fg">{order.paidAt.toLocaleString("ko-KR")}</dd>
+                </div>
+              )}
+              {receiptUrl && (
+                <div className="flex justify-between gap-4">
+                  <dt>매출전표</dt>
+                  <dd>
+                    <a
+                      href={receiptUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-medium text-accent-cyan hover:underline"
+                    >
+                      영수증 보기 →
+                    </a>
+                  </dd>
                 </div>
               )}
             </>

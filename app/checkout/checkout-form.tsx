@@ -113,7 +113,7 @@ export function CheckoutForm({ initial }: { initial: CheckoutInitial }) {
             <span className="text-step-0 font-semibold text-fg">배송 정보</span>
           </div>
           {initial.address && (
-            <span className="font-mono text-[11px] uppercase tracking-widest text-fg-subtle">최근 배송지</span>
+            <span className="font-mono text-[11px] uppercase tracking-widest text-fg-subtle">저장된 배송지</span>
           )}
         </div>
         <div>

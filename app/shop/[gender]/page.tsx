@@ -33,6 +33,7 @@ export default async function ShopGenderPage({ params }: { params: Promise<{ gen
     imageUrl: p.imageUrl,
     category: p.category,
     soldOut: p.stock <= 0,
+    createdAt: p.createdAt.toISOString(),
   }));
 
   return <CategoryShop gender={gender} label={LABEL[gender]} products={cards} />;

@@ -61,6 +61,12 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
                     >
                       여성의류
                     </Link>
+                    <Link
+                      href="/search"
+                      className="rounded-[var(--radius-sm)] px-3 py-2 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg"
+                    >
+                      검색
+                    </Link>
                   </nav>
                 </div>
                 <nav className="flex items-center gap-1 text-step--1 sm:gap-2">
@@ -120,6 +126,12 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
                 >
                   여성의류
                 </Link>
+                <Link
+                  href="/search"
+                  className="rounded-[var(--radius-sm)] px-3 py-1.5 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg"
+                >
+                  검색
+                </Link>
               </nav>
             </div>
           </header>
@@ -152,6 +164,9 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
                   </Link>
                   <Link href="/policy/shipping" className="text-fg-muted transition-colors hover:text-accent-cyan">
                     배송 안내
+                  </Link>
+                  <Link href="/support" className="text-fg-muted transition-colors hover:text-accent-cyan">
+                    자주 묻는 질문
                   </Link>
                   <a
                     href="https://pf.kakao.com/_UhNxdn/chat"
