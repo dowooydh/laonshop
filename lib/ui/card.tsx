@@ -51,7 +51,7 @@ export function StatCard({
   return (
     <div className={cn("glass rounded-[var(--radius-lg)] border border-line p-5 shadow-elev1", className)}>
       <div className="text-step--1 font-medium text-fg-muted">{label}</div>
-      <div className={cn("mt-1 font-mono text-2xl font-bold tabular-nums", tones[tone])}>{value}</div>
+      <div className={cn("mt-1 font-mono text-step-2 font-bold tabular-nums", tones[tone])}>{value}</div>
       {sub && <div className="mt-0.5 text-step--1 text-fg-subtle">{sub}</div>}
     </div>
   );

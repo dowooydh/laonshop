@@ -33,7 +33,7 @@ export function Modal({
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
-      <div className="absolute inset-0 bg-black/60 animate-fade-in" onClick={onClose} />
+      <div className="absolute inset-0 bg-void/70 animate-fade-in" onClick={onClose} />
       <div
         role="dialog"
         aria-modal="true"

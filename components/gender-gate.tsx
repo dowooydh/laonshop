@@ -22,6 +22,7 @@ export function GenderGate() {
           <ModelCrossfade
             images={s.images}
             interval={4200 + idx * 600}
+            sizes="(min-width: 640px) 50vw, 100vw"
             className="absolute inset-0 h-full w-full transition-transform duration-slow ease-out-expo group-hover:scale-[1.04]"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-void via-void/45 to-void/10" />
@@ -30,7 +31,7 @@ export function GenderGate() {
               <div className="font-mono text-step--1 uppercase tracking-[0.3em] text-accent-cyan">{s.en}</div>
               <div className="mt-1 font-display text-step-2 font-bold tracking-tight text-fg">{s.label}</div>
             </div>
-            <span className="mb-1 text-2xl text-fg transition-transform duration-base group-hover:translate-x-1 group-hover:text-accent-cyan">
+            <span className="mb-1 text-step-1 text-fg transition-transform duration-base group-hover:translate-x-1 group-hover:text-accent-cyan">
               →
             </span>
           </div>

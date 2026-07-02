@@ -3,6 +3,7 @@
 // 결제창 인증 후 /api/pg/kspay/callback(rcv)이 parent.eparamSet()→goResult() 호출 →
 // goResult()가 폼(snd*+re*+a=orderId)을 /api/pg/kspay/result 로 제출해 서버승인·주문확정.
 import { useEffect, useRef } from "react";
+import { Spinner } from "@/lib/ui";
 
 const KSPAY_JS = "https://kspay.ksnet.to/store/KSPayWebV1.4/js/kspay_web_ssl.js";
 const JQUERY_JS = "https://code.jquery.com/jquery-1.12.4.min.js"; // kspay_web_ssl.js의 $ 의존
@@ -70,9 +71,15 @@ export function KspayCheckout({
   }, []);
 
   return (
-    <div className="flex flex-col items-center gap-3 py-10 text-center">
-      <p className="text-sm text-gray-600">결제창을 여는 중입니다…</p>
-      <p className="text-xs text-gray-400">잠시만 기다려 주세요. 자동으로 결제창이 표시됩니다.</p>
+    <div className="mx-auto flex min-h-[50vh] max-w-sm flex-col items-center justify-center text-center">
+      <div className="glass w-full rounded-[var(--radius-lg)] border border-line p-8 shadow-elev2">
+        <p className="font-mono text-step--1 uppercase tracking-[0.3em] text-accent-cyan">Payment</p>
+        <div className="mt-6 flex justify-center">
+          <Spinner />
+        </div>
+        <p className="mt-5 text-step-0 font-medium text-fg">결제창을 여는 중입니다</p>
+        <p className="mt-1.5 text-step--1 text-fg-subtle">잠시만 기다려 주세요. 자동으로 결제창이 표시됩니다.</p>
+      </div>
       <form ref={formRef} name="KSPayWeb" method="post" action={formAction} className="hidden">
         {Object.entries(formFields).map(([k, v]) => (
           <input key={k} type="hidden" name={k} defaultValue={v} />

@@ -8,13 +8,15 @@ import { addToCart } from "@/lib/cart";
 interface Props {
   product: { id: string; name: string; price: number; imageUrl: string | null };
   sizes: string[];
+  soldOut?: boolean;
 }
 
-export function AddToCart({ product, sizes }: Props) {
+export function AddToCart({ product, sizes, soldOut = false }: Props) {
   const router = useRouter();
   const reduce = useReducedMotion();
   const [size, setSize] = useState(sizes[0] ?? "");
   const [qty, setQty] = useState(1);
+  const [added, setAdded] = useState(false);
 
   const add = (goCart: boolean) => {
     addToCart({
@@ -25,8 +27,12 @@ export function AddToCart({ product, sizes }: Props) {
       size,
       imageUrl: product.imageUrl,
     });
-    if (goCart) router.push("/cart");
-    else router.refresh();
+    if (goCart) {
+      router.push("/cart");
+    } else {
+      setAdded(true);
+      window.setTimeout(() => setAdded(false), 2000);
+    }
   };
 
   return (
@@ -79,7 +85,7 @@ export function AddToCart({ product, sizes }: Props) {
           </span>
           <button
             type="button"
-            onClick={() => setQty((q) => q + 1)}
+            onClick={() => setQty((q) => Math.min(99, q + 1))}
             className="flex h-11 w-11 items-center justify-center text-lg text-fg-muted transition-colors hover:text-fg"
             aria-label="수량 증가"
           >
@@ -89,11 +95,11 @@ export function AddToCart({ product, sizes }: Props) {
       </div>
 
       <div className="grid grid-cols-2 gap-3 pt-2">
-        <Button type="button" variant="outline" size="xl" onClick={() => add(false)}>
-          장바구니 담기
+        <Button type="button" variant="outline" size="xl" disabled={soldOut} onClick={() => add(false)}>
+          {added ? "담았습니다 ✓" : "장바구니 담기"}
         </Button>
-        <Button type="button" variant="primary" size="xl" onClick={() => add(true)}>
-          바로 구매
+        <Button type="button" variant="primary" size="xl" disabled={soldOut} onClick={() => add(true)}>
+          {soldOut ? "품절" : "바로 구매"}
         </Button>
       </div>
     </motion.div>
