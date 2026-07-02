@@ -7,11 +7,12 @@ import { KspayCheckout } from "@/components/kspay-checkout";
 import { cartTotal, getCart, type CartItem } from "@/lib/cart";
 import { createOrderAction } from "./actions";
 
+// 수기결제/구인증(카드정보 직접입력)은 가맹점용 도구 — 소비자 몰에 노출 금지(카드사 심사 감점 요소)
 const METHODS = [
   { id: "auth", label: "카드·간편결제", desc: "신용카드 / 카카오·네이버·삼성페이", enabled: true },
   { id: "bank", label: "계좌이체", desc: "준비 중", enabled: false },
-  { id: "billing", label: "정기결제(빌링)", desc: "준비 중", enabled: false },
-  { id: "manual", label: "수기결제", desc: "준비 중", enabled: false },
+  { id: "vbank", label: "무통장입금(가상계좌)", desc: "준비 중", enabled: false },
+  { id: "oneclick", label: "원클릭 결제(카드 등록)", desc: "준비 중", enabled: false },
 ];
 
 export type CheckoutInitial = { receiverName: string; receiverPhone: string; address: string };
@@ -155,7 +156,7 @@ export function CheckoutForm({ initial }: { initial: CheckoutInitial }) {
             </button>
           ))}
         </div>
-        <p className="text-step--1 text-fg-subtle">계좌이체·정기결제·수기결제는 PG 스펙 확정 후 오픈됩니다.</p>
+        <p className="text-step--1 text-fg-subtle">계좌이체·무통장입금·원클릭 결제는 순차 오픈 예정입니다.</p>
       </section>
 
       {/* 전자상거래법 제13조 — 재화 대금 외 배송비 고지 (전 상품 무료배송) */}
