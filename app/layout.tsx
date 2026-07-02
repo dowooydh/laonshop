@@ -4,12 +4,20 @@ import Link from "next/link";
 import { getShopUser } from "@/lib/auth";
 import { logoutAction } from "./(auth)/actions";
 import { fontDisplay, fontMono } from "./fonts";
+import { CartBadge } from "@/components/cart-badge";
 import { GrainOverlay } from "@/components/grain-overlay";
 import { SmoothScroll } from "@/components/smooth-scroll";
 
 export const metadata: Metadata = {
-  title: "LAON SHOP — 미래를 입다",
-  description: "㈜커스텀오더 LAON SHOP. 상의·하의·아우터를 공간에서 만나는 미래지향 셀렉트샵.",
+  metadataBase: new URL("https://laonshop.com"),
+  title: { default: "LAON SHOP — 미래를 입다", template: "%s · LAON SHOP" },
+  description: "㈜커스텀오더 LAON SHOP. 상의·하의·신발을 공간에서 만나는 미래지향 셀렉트샵. 전 상품 무료배송.",
+  openGraph: {
+    siteName: "LAON SHOP",
+    locale: "ko_KR",
+    type: "website",
+  },
+  twitter: { card: "summary_large_image" },
 };
 
 export default async function ShopLayout({ children }: { children: React.ReactNode }) {
@@ -17,7 +25,18 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang="ko" className={`${fontDisplay.variable} ${fontMono.variable}`}>
+      <head>
+        {/* Pretendard(globals.css @import) CDN 선연결 — 렌더 블로킹 체인 완화 */}
+        <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
+      </head>
       <body className="flex min-h-dvh flex-col">
+        {/* a11y — 키보드 사용자 본문 바로가기 (포커스 시에만 노출) */}
+        <a
+          href="#main"
+          className="sr-only z-50 focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:rounded-[var(--radius-md)] focus:bg-raised focus:px-4 focus:py-2 focus:text-step--1 focus:text-fg"
+        >
+          본문 바로가기
+        </a>
         <SmoothScroll>
           <header className="sticky top-0 z-40 border-b border-line">
             <div className="glass">
@@ -47,22 +66,23 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
                 <nav className="flex items-center gap-1 text-step--1 sm:gap-2">
                   <Link
                     href="/cart"
-                    className="rounded-[var(--radius-sm)] px-3 py-2 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg"
+                    className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-[var(--radius-sm)] px-2 py-2 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg sm:px-3"
                   >
                     장바구니
+                    <CartBadge />
                   </Link>
                   {user ? (
                     <>
                       <Link
                         href="/mypage"
-                        className="rounded-[var(--radius-sm)] px-3 py-2 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg"
+                        className="max-w-[7rem] truncate whitespace-nowrap rounded-[var(--radius-sm)] px-2 py-2 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg sm:px-3"
                       >
                         {user.name}님
                       </Link>
                       <form action={logoutAction}>
                         <button
                           type="submit"
-                          className="rounded-[var(--radius-sm)] px-3 py-2 text-fg-subtle transition-colors duration-fast hover:text-fg"
+                          className="whitespace-nowrap rounded-[var(--radius-sm)] px-2 py-2 text-fg-subtle transition-colors duration-fast hover:text-fg sm:px-3"
                         >
                           로그아웃
                         </button>
@@ -72,13 +92,13 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
                     <>
                       <Link
                         href="/login"
-                        className="rounded-[var(--radius-sm)] px-3 py-2 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg"
+                        className="whitespace-nowrap rounded-[var(--radius-sm)] px-2 py-2 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg sm:px-3"
                       >
                         로그인
                       </Link>
                       <Link
                         href="/register"
-                        className="rounded-[var(--radius-pill)] bg-accent-cyan px-4 py-2 font-medium text-void shadow-glow-cyan transition-[filter] duration-fast hover:brightness-110"
+                        className="whitespace-nowrap rounded-[var(--radius-pill)] bg-accent-cyan px-4 py-2 font-medium text-void shadow-glow-cyan transition-[filter] duration-fast hover:brightness-110"
                       >
                         회원가입
                       </Link>
@@ -86,10 +106,27 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
                   )}
                 </nav>
               </div>
+              {/* 모바일 — 젠더 카테고리 진입 경로 (데스크톱 nav가 hidden sm:flex라 뷰포트 절반에서 끊기는 동선 복원) */}
+              <nav className="flex h-10 items-center gap-1 border-t border-line px-3 text-step--1 sm:hidden">
+                <Link
+                  href="/shop/men"
+                  className="rounded-[var(--radius-sm)] px-3 py-1.5 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg"
+                >
+                  남성의류
+                </Link>
+                <Link
+                  href="/shop/women"
+                  className="rounded-[var(--radius-sm)] px-3 py-1.5 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg"
+                >
+                  여성의류
+                </Link>
+              </nav>
             </div>
           </header>
 
-          <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">{children}</main>
+          <main id="main" tabIndex={-1} className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 focus:outline-none sm:px-6">
+            {children}
+          </main>
 
           {/* 카드사 심사 필수 — 사업자정보 + 정책 링크 (통신판매번호는 신고 후 기재) */}
           <footer className="border-t border-line bg-base">
@@ -112,6 +149,9 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
                   </Link>
                   <Link href="/policy/refund" className="text-fg-muted transition-colors hover:text-accent-cyan">
                     청약철회·교환·환불 안내
+                  </Link>
+                  <Link href="/policy/shipping" className="text-fg-muted transition-colors hover:text-accent-cyan">
+                    배송 안내
                   </Link>
                   <a
                     href="https://pf.kakao.com/_UhNxdn/chat"

@@ -10,7 +10,11 @@ const LABEL: Record<string, string> = { men: "남성의류", women: "여성의�
 export async function generateMetadata({ params }: { params: Promise<{ gender: string }> }): Promise<Metadata> {
   const { gender } = await params;
   const label = LABEL[gender];
-  return { title: label ? `${label} · LAON SHOP` : "LAON SHOP" };
+  if (!label) return {};
+  return {
+    title: label,
+    description: `LAON SHOP ${label} — 상의·하의·신발 셀렉트. 전 상품 무료배송.`,
+  };
 }
 
 export default async function ShopGenderPage({ params }: { params: Promise<{ gender: string }> }) {
@@ -28,6 +32,7 @@ export default async function ShopGenderPage({ params }: { params: Promise<{ gen
     price: p.price,
     imageUrl: p.imageUrl,
     category: p.category,
+    soldOut: p.stock <= 0,
   }));
 
   return <CategoryShop gender={gender} label={LABEL[gender]} products={cards} />;

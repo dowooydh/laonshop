@@ -2,7 +2,7 @@ import Link from "next/link";
 import { AuthShell } from "../auth-shell";
 import { LoginForm } from "./login-form";
 
-export const metadata = { title: "로그인 · LAON SHOP" };
+export const metadata = { title: "로그인" };
 
 export default function LoginPage() {
   return (
