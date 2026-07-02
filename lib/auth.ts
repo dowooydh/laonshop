@@ -14,9 +14,15 @@ export async function requireShopUser(): Promise<ShopUser> {
   return user;
 }
 
-/** 선택 — 헤더 로그인 상태 표시용 (비로그인 둘러보기 허용) */
+/** 선택 — 헤더 로그인 상태 표시용 (비로그인 둘러보기 허용).
+ *  루트 레이아웃에서 호출되므로 절대 throw하지 않는다 — 빌드타임 프리렌더(/_not-found 등)나
+ *  env 미설정 환경에서도 비로그인으로 렌더하고 빌드는 통과해야 한다. */
 export async function getShopUser(): Promise<ShopUser | null> {
-  const session = await getSession();
-  if (!session.userId) return null;
-  return prisma.shopUser.findUnique({ where: { id: session.userId } });
+  try {
+    const session = await getSession();
+    if (!session.userId) return null;
+    return await prisma.shopUser.findUnique({ where: { id: session.userId } });
+  } catch {
+    return null;
+  }
 }
