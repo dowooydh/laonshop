@@ -97,7 +97,9 @@ export default async function OrderResultPage({
             <>
               <div className="flex justify-between gap-4">
                 <dt>결제수단</dt>
-                <dd className="font-medium text-fg">신용카드·간편결제 (KSPAY)</dd>
+                <dd className="font-medium text-fg">
+                  {order.cardName ? `${order.cardName} (KSPAY)` : "신용카드·간편결제 (KSPAY)"}
+                </dd>
               </div>
               {order.paidAt && (
                 <div className="flex justify-between gap-4">

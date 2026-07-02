@@ -29,11 +29,47 @@ const KSPAY_PWEB_URL = "https://kspay.ksnet.to/store/KSPayWebV1.4/KSPayPWeb.jsp"
 const KSPAY_WEBHOST_URL = "http://kspay.ksnet.to/store/KSPayWebV1.4/web_host/recv_post.jsp";
 const RECEIPT_URL = "https://ksta.ksnet.co.kr/mint/tsk/pgi01/mad/pgimad04m0.jsp";
 
-/** 승인 응답 요청 필드 (백틱 구분). 원본 샘플 + resultcd 추가 요청 */
+/**
+ * 승인 응답 요청 필드 (백틱 구분). 원본 샘플 + resultcd·halbu 추가 요청.
+ * sndRpyParams(요청)와 응답 파싱이 이 배열 하나에서 나오므로 순서만 일치하면 인덱스 안 밀림.
+ */
 const RPARAMS = [
   "authyn", "trno", "trddt", "trdtm", "amt", "authno",
-  "msg1", "msg2", "ordno", "isscd", "aqucd", "result", "resultcd",
+  "msg1", "msg2", "ordno", "isscd", "aqucd", "result", "resultcd", "halbu",
 ] as const;
+
+/**
+ * 발급사코드(isscd) → 카드사명 — 통합모듈관련안내문서(V1.4)(WEB).docx 부록 4) 카드사 코드표.
+ * 카드사코드는 2byte. 표에 없는 코드는 매핑하지 않고 undefined (cardName 미기록).
+ */
+const ISSUER_NAMES: Record<string, string> = {
+  "01": "비씨카드",
+  "02": "국민카드",
+  "03": "하나(구외환)카드",
+  "04": "삼성카드",
+  "05": "신한카드", // 신한-LG 카드사 통합
+  "08": "현대카드",
+  "09": "롯데카드", // 롯데아멕스카드 포함
+  "11": "한미은행",
+  "12": "수협",
+  "14": "우리은행",
+  "15": "농협",
+  "16": "제주은행",
+  "17": "광주은행",
+  "18": "전북은행",
+  "19": "조흥은행", // 신한 통합 — 취소 거래에서만 존재
+  "23": "주택은행", // 거절 시 발급사코드로 나올 수 있음 (승인 불가)
+  "24": "하나(구하나SK)카드",
+  "25": "해외카드사", // VISA/MASTER/JCB
+  "26": "씨티은행",
+  "99": "기타",
+};
+
+/** isscd(6자리 필드, 코드는 앞 2byte) → 카드사명. 신용카드 외 수단은 표에 없어 undefined */
+function issuerName(isscd: string | undefined): string | undefined {
+  const code = (isscd ?? "").trim();
+  return ISSUER_NAMES[code] ?? ISSUER_NAMES[code.slice(0, 2)];
+}
 
 export class KspayProvider implements PgProvider {
   readonly mode = "kspay" as const;
@@ -126,6 +162,7 @@ export class KspayProvider implements PgProvider {
       success,
       approvalNo: success ? r.authno : undefined, // 거절 시 authno=에러코드 — 노출 금지
       pgTrno: r.trno, // 영수증/취소 Key (성공/실패 무관 유니크)
+      cardName: success ? issuerName(r.isscd) : undefined, // cardLast4는 비저장 (cardno 미요청)
       installment: r.halbu ? Number(r.halbu) : undefined,
       amount: Number(r.amt || amount),
       paidAt: success ? new Date() : undefined,
