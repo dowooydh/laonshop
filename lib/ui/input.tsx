@@ -43,6 +43,23 @@ export function Label({ className, ...props }: React.LabelHTMLAttributes<HTMLLab
   return <label className={cn("mb-1.5 block text-step--1 font-medium text-fg-muted", className)} {...props} />;
 }
 
+/** 동의 체크 — 라벨 전체가 클릭 영역. children에 정책 링크 포함 가능. */
+export const Checkbox = React.forwardRef<
+  HTMLInputElement,
+  React.InputHTMLAttributes<HTMLInputElement> & { children: React.ReactNode }
+>(({ className, children, ...props }, ref) => (
+  <label className={cn("flex cursor-pointer items-start gap-2.5 text-step--1 leading-relaxed text-fg-muted", className)}>
+    <input
+      ref={ref}
+      type="checkbox"
+      className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-[var(--accent-cyan)]"
+      {...props}
+    />
+    <span>{children}</span>
+  </label>
+));
+Checkbox.displayName = "Checkbox";
+
 export function FieldHint({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {
   return <p className={cn("mt-1 text-step--1 text-fg-subtle", className)} {...props} />;
 }

@@ -1,15 +1,62 @@
 import { prisma } from "@/lib/db";
 import { formatKrw } from "@/lib/format";
+import { Amount, Badge, buttonVariants } from "@/lib/ui";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireShopUser } from "@/lib/auth";
 import { ClearCartOnPaid } from "./clear-cart";
+import { CancelRequest } from "./cancel-request";
 
 export const dynamic = "force-dynamic";
 
-export default async function OrderResultPage({ params }: { params: Promise<{ id: string }> }) {
+const STATUS: Record<
+  string,
+  { eyebrow: string; heading: string; tone: "success" | "danger" | "warning" | "muted" }
+> = {
+  PAID: { eyebrow: "Order Complete", heading: "결제가 완료되었습니다", tone: "success" },
+  FAILED: { eyebrow: "Payment Failed", heading: "결제에 실패했습니다", tone: "danger" },
+  PENDING: { eyebrow: "Payment Pending", heading: "결제가 완료되지 않았습니다", tone: "warning" },
+  CANCEL_REQUESTED: { eyebrow: "Cancel Requested", heading: "취소·반품 신청이 접수되었습니다", tone: "warning" },
+  CANCELED: { eyebrow: "Order Canceled", heading: "주문이 취소되었습니다", tone: "muted" },
+};
+
+const TONE_CLASS: Record<string, string> = {
+  success: "text-success ring-[color-mix(in_oklab,var(--success)_45%,transparent)]",
+  danger: "text-danger ring-[color-mix(in_oklab,var(--danger)_45%,transparent)]",
+  warning: "text-warning ring-[color-mix(in_oklab,var(--warning)_45%,transparent)]",
+  muted: "text-fg-subtle ring-line",
+};
+
+function StatusMark({ tone }: { tone: string }) {
+  return (
+    <div
+      className={`mx-auto flex h-14 w-14 items-center justify-center rounded-full ring-2 ${TONE_CLASS[tone] ?? TONE_CLASS.muted}`}
+    >
+      {tone === "success" ? (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <path d="M4 12.5 9.5 18 20 6.5" />
+        </svg>
+      ) : tone === "danger" ? (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden>
+          <path d="M6 6l12 12M18 6L6 18" />
+        </svg>
+      ) : (
+        <span className="h-2.5 w-2.5 animate-glow-pulse rounded-full bg-current" aria-hidden />
+      )}
+    </div>
+  );
+}
+
+export default async function OrderResultPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ receipt?: string }>;
+}) {
   const user = await requireShopUser();
   const { id } = await params;
+  const { receipt } = await searchParams;
   const order = await prisma.shopOrder.findFirst({
     where: { id, userId: user.id },
     include: { items: true },
@@ -17,60 +64,99 @@ export default async function OrderResultPage({ params }: { params: Promise<{ id
   if (!order) notFound();
 
   const paid = order.status === "PAID";
-  const failed = order.status === "FAILED";
+  const s = STATUS[order.status] ?? STATUS.PENDING;
 
   return (
-    <div className="mx-auto max-w-lg py-6 text-center">
-      {paid && <ClearCartOnPaid />}
+    <div className="mx-auto max-w-lg py-8">
+      {/* 결제 직후(receipt=1)에만 카트 클리어 — 과거 주문 재조회로 현재 카트가 지워지는 것 방지 */}
+      {paid && receipt === "1" && <ClearCartOnPaid />}
 
-      <div className="text-5xl">{paid ? "✅" : failed ? "⚠️" : "⏳"}</div>
-      <h1 className={`mt-3 text-xl font-bold ${paid ? "text-success" : failed ? "text-danger" : "text-warning"}`}>
-        {paid ? "결제가 완료되었습니다" : failed ? "결제에 실패했습니다" : "결제가 완료되지 않았습니다"}
-      </h1>
-      <div className="mt-2 font-mono text-2xl font-extrabold text-fg">{formatKrw(order.totalAmount)}</div>
+      <div className="text-center">
+        <StatusMark tone={s.tone} />
+        <p className="mt-5 font-mono text-step--1 uppercase tracking-[0.3em] text-fg-subtle">{s.eyebrow}</p>
+        <h1 className="mt-2 font-display text-step-2 font-bold tracking-tight text-fg">{s.heading}</h1>
+        <div className="mt-4">
+          <Amount value={order.totalAmount} className="text-step-2 text-fg" />
+        </div>
+      </div>
 
-      <div className="mt-5 rounded-xl border border-line bg-raised p-4 text-left text-sm shadow-elev1">
-        <dl className="space-y-1.5 text-fg-muted">
-          <div className="flex justify-between">
+      {/* 심사 캡처 요소 — 주문번호·승인번호·결제수단·결제일시가 한 화면에 (카드사 결제경로 캡처 기준) */}
+      <div className="mt-8 rounded-[var(--radius-lg)] border border-line bg-raised p-5 text-left shadow-elev1">
+        <dl className="space-y-2 text-step--1 text-fg-muted">
+          <div className="flex justify-between gap-4">
             <dt>주문번호</dt>
             <dd className="font-mono font-medium text-fg">{order.moid}</dd>
           </div>
           {order.approvalNo && (
-            <div className="flex justify-between">
+            <div className="flex justify-between gap-4">
               <dt>승인번호</dt>
-              <dd className="font-medium text-fg">{order.approvalNo}</dd>
+              <dd className="font-mono font-medium text-fg">{order.approvalNo}</dd>
             </div>
           )}
-          <div className="flex justify-between">
+          {(paid || order.status === "CANCEL_REQUESTED") && (
+            <>
+              <div className="flex justify-between gap-4">
+                <dt>결제수단</dt>
+                <dd className="font-medium text-fg">신용카드·간편결제 (KSPAY)</dd>
+              </div>
+              {order.paidAt && (
+                <div className="flex justify-between gap-4">
+                  <dt>결제일시</dt>
+                  <dd className="font-medium text-fg">{order.paidAt.toLocaleString("ko-KR")}</dd>
+                </div>
+              )}
+            </>
+          )}
+          <div className="flex justify-between gap-4">
             <dt>받는 분</dt>
             <dd className="font-medium text-fg">{order.receiverName}</dd>
           </div>
-          <div className="flex justify-between">
+          <div className="flex justify-between gap-4">
             <dt>배송지</dt>
             <dd className="max-w-60 text-right font-medium text-fg">{order.address}</dd>
           </div>
+          <div className="flex justify-between gap-4">
+            <dt>배송비</dt>
+            <dd className="font-medium text-success">무료</dd>
+          </div>
         </dl>
-        <ul className="mt-3 space-y-1 border-t border-line pt-3 text-xs text-fg-muted">
+
+        <ul className="mt-4 space-y-1.5 border-t border-line pt-4 text-step--1 text-fg-muted">
           {order.items.map((it) => (
-            <li key={it.id} className="flex justify-between">
+            <li key={it.id} className="flex justify-between gap-4">
               <span>
                 {it.name}
                 {it.size ? ` (${it.size})` : ""} × {it.qty}
               </span>
-              <span>{formatKrw(it.price * it.qty)}</span>
+              <span className="font-mono">{formatKrw(it.price * it.qty)}</span>
             </li>
           ))}
         </ul>
       </div>
 
-      <div className="mt-5 flex justify-center gap-2">
-        <Link href="/mypage" className="rounded-lg border border-line px-4 py-2.5 text-sm font-medium text-fg hover:bg-raised">
+      {order.status === "CANCEL_REQUESTED" && (
+        <div className="mt-4 flex items-center justify-between rounded-[var(--radius-md)] border border-line bg-raised px-4 py-3 text-step--1 text-fg-muted">
+          <span>
+            {order.cancelRequestedAt?.toLocaleDateString("ko-KR")} 접수 — 확인 후 고객센터에서 연락드립니다.
+          </span>
+          <Badge variant="orange">취소 접수</Badge>
+        </div>
+      )}
+
+      <div className="mt-6 flex justify-center gap-3">
+        <Link href="/mypage" className={buttonVariants({ variant: "outline", size: "lg" })}>
           주문내역
         </Link>
-        <Link href="/" className="rounded-lg bg-accent-cyan px-4 py-2.5 text-sm font-semibold text-void hover:opacity-90">
+        <Link href="/" className={buttonVariants({ variant: "primary", size: "lg" })}>
           계속 쇼핑하기
         </Link>
       </div>
+
+      {paid && (
+        <div className="mt-8 border-t border-line pt-6">
+          <CancelRequest orderId={order.id} />
+        </div>
+      )}
     </div>
   );
 }

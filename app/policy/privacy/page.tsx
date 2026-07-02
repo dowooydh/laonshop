@@ -1,34 +1,58 @@
-export const metadata = { title: "개인정보처리방침 · LAON SHOP" };
+import { PolicyShell } from "../policy-shell";
+
+export const metadata = { title: "개인정보처리방침" };
 
 export default function PrivacyPage() {
   return (
-    <div className="mx-auto max-w-3xl space-y-4 py-4 text-sm leading-relaxed text-fg-muted">
-      <h1 className="text-xl font-bold text-fg">개인정보처리방침</h1>
-
+    <PolicyShell eyebrow="Privacy" title="개인정보처리방침" effective="2026년 7월 1일">
       <section>
-        <h2 className="mt-4 font-semibold text-fg">1. 수집하는 개인정보 항목</h2>
+        <h2>1. 수집하는 개인정보 항목</h2>
         <p>회원가입 및 주문 처리를 위해 다음 정보를 수집합니다: 이름, 이메일, 휴대폰번호, 배송지 주소, 주문·결제 내역.</p>
       </section>
       <section>
-        <h2 className="mt-4 font-semibold text-fg">2. 개인정보의 수집 및 이용목적</h2>
+        <h2>2. 개인정보의 수집 및 이용목적</h2>
         <p>회원 관리, 상품 주문·배송, 결제 처리 및 대금 정산, 고객 문의 응대, 법령상 의무 이행을 위해 이용합니다.</p>
       </section>
       <section>
-        <h2 className="mt-4 font-semibold text-fg">3. 개인정보의 보유 및 이용기간</h2>
-        <p>회원 탈퇴 시 지체 없이 파기합니다. 단, 전자상거래법 등 관련 법령에 따라 계약·청약철회 기록(5년), 대금결제 기록(5년), 소비자 불만·분쟁처리 기록(3년)은 해당 기간 보관합니다.</p>
+        <h2>3. 개인정보의 보유 및 이용기간</h2>
+        <p>
+          회원 탈퇴 시 지체 없이 파기합니다. 단, 전자상거래법 등 관련 법령에 따라 계약·청약철회 기록(5년),
+          대금결제 기록(5년), 소비자 불만·분쟁처리 기록(3년)은 해당 기간 보관합니다.
+        </p>
       </section>
       <section>
-        <h2 className="mt-4 font-semibold text-fg">4. 개인정보의 제3자 제공</h2>
-        <p>결제 처리를 위해 결제대행사(KSNET)에 결제에 필요한 정보가 제공되며, 배송을 위해 배송업체에 수령인 정보가 제공됩니다. 그 외 본인 동의 없이 제3자에게 제공하지 않습니다.</p>
+        <h2>4. 개인정보 처리의 위탁</h2>
+        <p>회사는 서비스 제공을 위해 아래와 같이 개인정보 처리를 위탁합니다. 위탁 계약 시 개인정보 보호 관련 법규 준수를 명시합니다.</p>
+        <ul>
+          <li>KSNET㈜ — 결제 처리(신용카드·간편결제 승인 및 정산)</li>
+          <li>배송업체(택배사) — 상품 배송(수령인 성명·연락처·주소)</li>
+        </ul>
+        <p>그 외 이용자의 사전 동의 없이 개인정보를 제3자에게 제공하지 않습니다.</p>
       </section>
       <section>
-        <h2 className="mt-4 font-semibold text-fg">5. 개인정보의 파기</h2>
-        <p>보유기간이 경과하거나 처리목적이 달성된 개인정보는 지체 없이 안전하게 파기합니다.</p>
+        <h2>5. 정보주체의 권리와 행사 방법</h2>
+        <p>
+          이용자는 언제든지 자신의 개인정보에 대한 열람·정정·삭제·처리정지를 요구할 수 있습니다. 권리 행사는
+          고객센터(070-4044-7008) 또는 이메일(custom_sales@customorder.co.kr)로 요청할 수 있으며, 회사는 지체
+          없이 조치합니다.
+        </p>
       </section>
       <section>
-        <h2 className="mt-4 font-semibold text-fg">6. 개인정보보호책임자</h2>
+        <h2>6. 개인정보의 파기</h2>
+        <p>보유기간이 경과하거나 처리목적이 달성된 개인정보는 전자 파일은 복구 불가능한 방법으로, 출력물은 파쇄·소각으로 지체 없이 파기합니다.</p>
+      </section>
+      <section>
+        <h2>7. 안전성 확보조치</h2>
+        <ul>
+          <li>비밀번호 일방향 암호화(해시) 저장 — 원문 비밀번호는 저장하지 않습니다.</li>
+          <li>카드정보 비저장 — 결제 시 카드정보는 PG사(KSNET) 결제창에서 직접 처리되며 회사 서버에 저장되지 않습니다.</li>
+          <li>전 구간 HTTPS 암호화 통신, 개인정보 접근 권한 최소화.</li>
+        </ul>
+      </section>
+      <section>
+        <h2>8. 개인정보보호책임자</h2>
         <p>성명: 유준혁 / 연락처: 070-4044-7008 / 이메일: custom_sales@customorder.co.kr</p>
       </section>
-    </div>
+    </PolicyShell>
   );
 }

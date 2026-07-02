@@ -8,7 +8,13 @@ import { requireShopUser } from "@/lib/auth";
 
 const schema = z.object({
   items: z
-    .array(z.object({ productId: z.string(), qty: z.number().int().positive(), size: z.string().optional() }))
+    .array(
+      z.object({
+        productId: z.string(),
+        qty: z.number().int().positive().max(99, "수량은 1회 최대 99개까지 주문할 수 있습니다."),
+        size: z.string().optional(),
+      }),
+    )
     .min(1, "장바구니가 비어 있습니다."),
   receiverName: z.string().trim().min(1, "받는 분 이름을 입력해 주세요.").max(30),
   receiverPhone: z.string().trim().min(1, "연락처를 입력해 주세요.").max(20),
@@ -31,10 +37,20 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
   });
   const pmap = new Map(products.map((p) => [p.id, p]));
 
+  // throw 금지 — 서버액션 reject 시 클라이언트 pending이 안 풀린다. 항상 {ok:false}로 반환.
+  const gone = d.items.filter((it) => !pmap.get(it.productId));
+  if (gone.length > 0) {
+    return { ok: false, error: "판매가 종료된 상품이 장바구니에 있습니다. 장바구니를 정리한 뒤 다시 시도해 주세요." };
+  }
+  const soldOut = d.items.filter((it) => pmap.get(it.productId)!.stock < it.qty);
+  if (soldOut.length > 0) {
+    const name = pmap.get(soldOut[0].productId)!.name;
+    return { ok: false, error: `품절된 상품이 있습니다: ${name}` };
+  }
+
   let total = 0;
   const itemsData = d.items.map((it) => {
-    const p = pmap.get(it.productId);
-    if (!p) throw new Error("판매 종료된 상품이 포함되어 있습니다.");
+    const p = pmap.get(it.productId)!;
     total += p.price * it.qty;
     return { productId: p.id, name: p.name, price: p.price, qty: it.qty, size: it.size || null };
   });

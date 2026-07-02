@@ -10,6 +10,7 @@ const STATUS_LABEL: Record<string, string> = {
   PENDING: "결제대기",
   PAID: "결제완료",
   FAILED: "결제실패",
+  CANCEL_REQUESTED: "취소 접수",
   CANCELED: "취소",
 };
 
@@ -26,7 +27,14 @@ export default async function MyPage() {
     id: o.id,
     href: `/order/${o.id}`,
     statusLabel: STATUS_LABEL[o.status] ?? o.status,
-    badgeVariant: o.status === "PAID" ? "green" : o.status === "FAILED" ? "red" : "gray",
+    badgeVariant:
+      o.status === "PAID"
+        ? "green"
+        : o.status === "FAILED"
+          ? "red"
+          : o.status === "CANCEL_REQUESTED"
+            ? "orange"
+            : "gray",
     dateLabel: o.createdAt.toLocaleString("ko-KR"),
     itemSummary: `${o.items[0]?.name ?? ""}${o.items.length > 1 ? ` 외 ${o.items.length - 1}건` : ""}`,
     totalLabel: formatKrw(o.totalAmount),

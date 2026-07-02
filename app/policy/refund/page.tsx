@@ -1,34 +1,60 @@
-export const metadata = { title: "청약철회·교환·환불 안내 · LAON SHOP" };
+import { PolicyShell } from "../policy-shell";
+
+export const metadata = { title: "청약철회·교환·환불 안내" };
 
 export default function RefundPage() {
   return (
-    <div className="mx-auto max-w-3xl space-y-4 py-4 text-sm leading-relaxed text-fg-muted">
-      <h1 className="text-xl font-bold text-fg">청약철회·교환·환불 안내</h1>
-
+    <PolicyShell eyebrow="Refund" title="청약철회·교환·환불 안내" effective="2026년 7월 1일">
       <section>
-        <h2 className="mt-4 font-semibold text-fg">1. 청약철회 기간</h2>
-        <p>상품을 공급받은 날부터 7일 이내에 청약철회(반품)를 신청할 수 있습니다. (전자상거래 등에서의 소비자보호에 관한 법률 제17조)</p>
+        <h2>1. 청약철회 기간</h2>
+        <p>
+          상품을 공급받은 날부터 7일 이내에 청약철회(반품)를 신청할 수 있습니다. 상품이 표시·광고 내용과
+          다르거나 계약 내용과 다르게 이행된 경우에는 공급받은 날부터 3개월 이내, 그 사실을 안 날 또는 알 수
+          있었던 날부터 30일 이내에 청약철회를 할 수 있습니다. (전자상거래 등에서의 소비자보호에 관한 법률
+          제17조)
+        </p>
       </section>
       <section>
-        <h2 className="mt-4 font-semibold text-fg">2. 청약철회 제한 사유</h2>
-        <ul className="list-disc space-y-1 pl-5">
+        <h2>2. 청약철회 제한 사유</h2>
+        <ul>
           <li>소비자의 책임 있는 사유로 상품이 멸실·훼손된 경우</li>
           <li>소비자의 사용·착용으로 상품의 가치가 현저히 감소한 경우</li>
           <li>포장을 개봉하여 가치가 훼손된 경우(택 제거 등)</li>
         </ul>
       </section>
       <section>
-        <h2 className="mt-4 font-semibold text-fg">3. 환불 방법 및 시기</h2>
-        <p>반품 상품 회수 및 확인 후 3영업일 이내에 결제수단으로 환불합니다. 신용카드 결제의 경우 카드사 승인취소로 처리되며, 카드사 정책에 따라 환불 시점이 다를 수 있습니다.</p>
+        <h2>3. 신청 방법</h2>
+        <p>
+          마이페이지 → 주문 상세의 ‘취소·반품 신청’ 버튼, 고객센터(070-4044-7008, 평일 09:00–18:00) 또는
+          이메일(custom_sales@customorder.co.kr)로 신청할 수 있습니다. 접수 후 상품 회수 → 검수 → 환불 순으로
+          진행됩니다.
+        </p>
       </section>
       <section>
-        <h2 className="mt-4 font-semibold text-fg">4. 교환</h2>
-        <p>사이즈·색상 교환은 동일 상품 재고 보유 시 가능하며, 단순 변심에 의한 교환 시 왕복 배송비는 소비자가 부담합니다. 상품 불량·오배송의 경우 배송비는 회사가 부담합니다.</p>
+        <h2>4. 반품 배송비</h2>
+        <p>
+          단순 변심에 의한 반품 시 반환 배송비는 소비자가 부담합니다. 상품 하자·오배송의 경우 배송비 전액을
+          회사가 부담합니다.
+        </p>
       </section>
       <section>
-        <h2 className="mt-4 font-semibold text-fg">5. 문의</h2>
+        <h2>5. 환불 방법 및 시기</h2>
+        <p>
+          반품 상품 회수 및 확인 후 3영업일 이내에 결제수단으로 환불합니다. 신용카드 결제의 경우 카드사
+          승인취소로 처리되며, 카드사 정책에 따라 환불 시점이 다를 수 있습니다.
+        </p>
+      </section>
+      <section>
+        <h2>6. 교환</h2>
+        <p>
+          사이즈·색상 교환은 동일 상품 재고 보유 시 가능하며, 단순 변심에 의한 교환 시 왕복 배송비는 소비자가
+          부담합니다. 상품 불량·오배송의 경우 배송비는 회사가 부담합니다.
+        </p>
+      </section>
+      <section>
+        <h2>7. 문의</h2>
         <p>고객센터 070-4044-7008(평일 09:00–18:00) 또는 이메일 custom_sales@customorder.co.kr 로 문의해 주세요.</p>
       </section>
-    </div>
+    </PolicyShell>
   );
 }

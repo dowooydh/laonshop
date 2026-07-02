@@ -8,7 +8,7 @@ export type OrderRow = {
   id: string;
   href: string;
   statusLabel: string;
-  badgeVariant: "green" | "red" | "gray";
+  badgeVariant: "green" | "red" | "orange" | "gray";
   dateLabel: string;
   itemSummary: string;
   totalLabel: string;

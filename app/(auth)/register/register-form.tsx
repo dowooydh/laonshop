@@ -1,5 +1,6 @@
 "use client";
-import { Button, FieldError, FieldHint, Input, Label } from "@/lib/ui";
+import { Button, Checkbox, FieldError, FieldHint, Input, Label } from "@/lib/ui";
+import Link from "next/link";
 import { useActionState } from "react";
 import { registerAction, type AuthState } from "../actions";
 
@@ -18,12 +19,31 @@ export function RegisterForm() {
       <div className="space-y-1.5">
         <Label htmlFor="password">비밀번호</Label>
         <Input id="password" name="password" type="password" autoComplete="new-password" required />
-        <FieldHint>6자 이상 입력해 주세요.</FieldHint>
+        <FieldHint>8자 이상 입력해 주세요.</FieldHint>
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="phone">휴대폰 (선택)</Label>
         <Input id="phone" name="phone" inputMode="numeric" placeholder="010-0000-0000" />
       </div>
+
+      {/* 개인정보보호법 제15조 — 명시적 동의 (서버 액션에서도 검증) */}
+      <div className="space-y-2.5 border-t border-line pt-4">
+        <Checkbox name="agreeTerms" required>
+          [필수]{" "}
+          <Link href="/policy/terms" target="_blank" className="text-fg underline underline-offset-2 hover:text-accent-cyan">
+            이용약관
+          </Link>
+          에 동의합니다.
+        </Checkbox>
+        <Checkbox name="agreePrivacy" required>
+          [필수]{" "}
+          <Link href="/policy/privacy" target="_blank" className="text-fg underline underline-offset-2 hover:text-accent-cyan">
+            개인정보 수집·이용
+          </Link>
+          에 동의합니다.
+        </Checkbox>
+      </div>
+
       <FieldError>{state.error}</FieldError>
       <Button type="submit" variant="primary" size="xl" loading={pending}>
         가입하기

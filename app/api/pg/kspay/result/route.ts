@@ -22,8 +22,9 @@ export async function POST(req: NextRequest) {
       reCnclType,
       sndAmount: String(order.totalAmount), // DB 금액 사용 (위변조 차단)
     });
-    await prisma.shopOrder.update({
-      where: { id: order.id },
+    // 조건부 update — 승인 요청 중 상태가 바뀐 경우(중복 제출 등) 덮어쓰지 않는다
+    await prisma.shopOrder.updateMany({
+      where: { id: order.id, status: "PENDING" },
       data: result.success
         ? {
             status: "PAID",
@@ -35,5 +36,6 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  return NextResponse.redirect(`${base}/order/${order.id}`, 303);
+  // receipt=1: "방금 결제를 마친" 방문에만 장바구니 클리어 (과거 주문 재조회 시 카트 보존)
+  return NextResponse.redirect(`${base}/order/${order.id}?receipt=1`, 303);
 }

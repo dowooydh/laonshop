@@ -1,6 +1,6 @@
 "use client";
 import { formatKrw } from "@/lib/format";
-import { Button, FieldError, Input, Label, cn } from "@/lib/ui";
+import { Button, Checkbox, EmptyState, FieldError, Input, Label, Spinner, buttonVariants, cn } from "@/lib/ui";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { KspayCheckout } from "@/components/kspay-checkout";
@@ -22,6 +22,7 @@ export default function CheckoutPage() {
   const [pay, setPay] = useState<{ formAction: string; formFields: Record<string, string> } | null>(null);
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  const [agree, setAgree] = useState(false);
 
   useEffect(() => {
     setItems(getCart());
@@ -36,26 +37,43 @@ export default function CheckoutPage() {
       setError("배송 정보를 모두 입력해 주세요.");
       return;
     }
+    if (!agree) {
+      setError("주문 내용 확인 및 구매조건에 동의해 주세요.");
+      return;
+    }
     setPending(true);
-    const res = await createOrderAction({
-      items: items.map((i) => ({ productId: i.productId, qty: i.qty, size: i.size })),
-      ...form,
-    });
-    setPending(false);
-    if (res.ok) setPay({ formAction: res.formAction, formFields: res.formFields });
-    else setError(res.error);
+    try {
+      const res = await createOrderAction({
+        items: items.map((i) => ({ productId: i.productId, qty: i.qty, size: i.size })),
+        ...form,
+      });
+      if (res.ok) setPay({ formAction: res.formAction, formFields: res.formFields });
+      else setError(res.error);
+    } catch {
+      setError("주문 처리 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.");
+    } finally {
+      setPending(false);
+    }
   };
 
   if (pay) return <KspayCheckout formAction={pay.formAction} formFields={pay.formFields} />;
-  if (!ready) return <div className="py-16 text-center text-fg-subtle">불러오는 중…</div>;
+  if (!ready)
+    return (
+      <div className="flex justify-center py-24">
+        <Spinner />
+      </div>
+    );
   if (items.length === 0)
     return (
-      <div className="py-16 text-center">
-        <p className="text-fg-muted">장바구니가 비어 있습니다.</p>
-        <Link href="/" className="mt-3 inline-block text-accent-cyan hover:underline">
-          쇼핑하러 가기 →
-        </Link>
-      </div>
+      <EmptyState
+        title="장바구니가 비어 있습니다"
+        description="마음에 드는 상품을 담아보세요"
+        action={
+          <Link href="/" className={buttonVariants({ variant: "outline", size: "md" })}>
+            쇼핑하러 가기
+          </Link>
+        }
+      />
     );
 
   return (
@@ -133,13 +151,41 @@ export default function CheckoutPage() {
         <p className="text-step--1 text-fg-subtle">계좌이체·정기결제·수기결제는 PG 스펙 확정 후 오픈됩니다.</p>
       </section>
 
-      <div className="flex items-center justify-between rounded-[var(--radius-lg)] border border-line bg-overlay px-5 py-4">
-        <span className="text-step-0 text-fg-muted">총 결제금액</span>
-        <span className="font-mono text-step-1 font-extrabold text-fg">{formatKrw(total)}</span>
+      {/* 전자상거래법 제13조 — 재화 대금 외 배송비 고지 (전 상품 무료배송) */}
+      <div className="space-y-2.5 rounded-[var(--radius-lg)] border border-line bg-overlay px-5 py-4">
+        <div className="flex items-center justify-between text-step--1 text-fg-muted">
+          <span>상품 금액</span>
+          <span className="font-mono">{formatKrw(total)}</span>
+        </div>
+        <div className="flex items-center justify-between text-step--1 text-fg-muted">
+          <span>배송비</span>
+          <span className="font-mono text-success">무료</span>
+        </div>
+        <div className="flex items-center justify-between border-t border-line pt-2.5">
+          <span className="text-step-0 text-fg-muted">총 결제금액</span>
+          <span className="font-mono text-step-1 font-extrabold text-fg">{formatKrw(total)}</span>
+        </div>
       </div>
 
+      {/* 전자상거래법 제8조 — 결제 전 주문내용 확인·구매조건 동의 (심사 캡처 요소) */}
+      <Checkbox checked={agree} onChange={(e) => setAgree(e.target.checked)}>
+        [필수] 주문 상품·결제 정보를 확인하였으며,{" "}
+        <Link href="/policy/terms" target="_blank" className="text-fg underline underline-offset-2 hover:text-accent-cyan">
+          이용약관
+        </Link>
+        ,{" "}
+        <Link href="/policy/privacy" target="_blank" className="text-fg underline underline-offset-2 hover:text-accent-cyan">
+          개인정보처리방침
+        </Link>{" "}
+        및{" "}
+        <Link href="/policy/refund" target="_blank" className="text-fg underline underline-offset-2 hover:text-accent-cyan">
+          청약철회·환불 정책
+        </Link>
+        에 동의합니다.
+      </Checkbox>
+
       <FieldError>{error}</FieldError>
-      <Button type="button" size="xl" loading={pending} onClick={submit}>
+      <Button type="button" size="xl" loading={pending} disabled={!agree} onClick={submit}>
         {formatKrw(total)} 결제하기
       </Button>
 
