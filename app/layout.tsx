@@ -11,7 +11,7 @@ import { SmoothScroll } from "@/components/smooth-scroll";
 export const metadata: Metadata = {
   metadataBase: new URL("https://laonshop.com"),
   title: { default: "LAON SHOP — 미래를 입다", template: "%s · LAON SHOP" },
-  description: "㈜커스텀오더 LAON SHOP. 상의·하의·신발을 공간에서 만나는 미래지향 셀렉트샵. 전 상품 무료배송.",
+  description: "LAON SHOP — 상의·아우터·원피스부터 가방·액세서리까지, 공간에서 만나는 미래지향 셀렉트샵. 전 상품 무료배송.",
   openGraph: {
     siteName: "LAON SHOP",
     locale: "ko_KR",
@@ -179,8 +179,13 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
                 </div>
               </div>
 
+              {/* 전자상거래법 제10조 필수 표시 — 값은 ㈜커스텀오더 사업자등록증 서류와 글자까지 일치 (신고번호는 발급 후 기재) */}
               <div className="mt-10 border-t border-line pt-6 text-step--1 leading-relaxed text-fg-subtle">
-                <p>상호: ㈜커스텀오더 &nbsp;|&nbsp; 사업자등록번호: 864-88-03054 &nbsp;|&nbsp; 통신판매업신고: 신고 예정</p>
+                <p>
+                  상호: (주)커스텀오더 &nbsp;|&nbsp; 대표: 유준혁 &nbsp;|&nbsp; 사업자등록번호: 864-88-03054 &nbsp;|&nbsp;
+                  통신판매업신고: 신고 예정
+                </p>
+                <p>사업장 소재지: 경기도 성남시 수정구 청계산로 686, 415호 (판교반도아이비밸리)</p>
                 <p>
                   고객센터:{" "}
                   <a href="tel:070-4044-7008" className="text-fg-muted hover:text-accent-cyan">
@@ -191,10 +196,7 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
                     custom_sales@customorder.co.kr
                   </a>
                 </p>
-                <p className="mt-3">
-                  ⓘ 통신판매업 신고번호는 신고 완료 후 기재됩니다(카드사 심사용).
-                </p>
-                <p className="mt-1">© LAON SHOP · ㈜커스텀오더. 결제는 KSPAY(KSNET)로 안전하게 처리됩니다.</p>
+                <p className="mt-3">© LAON SHOP · ㈜커스텀오더. 결제는 KSPAY(KSNET)로 안전하게 처리됩니다.</p>
               </div>
             </div>
           </footer>

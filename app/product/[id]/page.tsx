@@ -125,6 +125,11 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
             <Amount value={product.price} className="text-step-2 text-fg" />
           </div>
 
+          {/* 전상법 제13조 — 계약 전 배송비·소요기간 고지 (아코디언 외 상시 노출) */}
+          <p className="mt-2 font-mono text-step--1 text-fg-subtle">
+            무료배송 · 결제 확인 후 영업일 2~3일 내 출고
+          </p>
+
           {product.description && (
             <p className="mt-6 whitespace-pre-wrap text-step-0 leading-relaxed text-fg-muted">
               {product.description}
