@@ -7,17 +7,28 @@ import { KspayCheckout } from "@/components/kspay-checkout";
 import { cartTotal, getCart, type CartItem } from "@/lib/cart";
 import { createOrderAction } from "./actions";
 
-// 수기결제/구인증(카드정보 직접입력)은 가맹점용 도구 — 소비자 몰에 노출 금지(카드사 심사 감점 요소)
-const METHODS = [
-  { id: "auth", label: "카드·간편결제", desc: "신용카드 / 카카오·네이버·삼성페이", enabled: true },
-  { id: "bank", label: "계좌이체", desc: "준비 중", enabled: false },
-  { id: "vbank", label: "무통장입금(가상계좌)", desc: "준비 중", enabled: false },
-  { id: "oneclick", label: "원클릭 결제(카드 등록)", desc: "준비 중", enabled: false },
-];
-
 export type CheckoutInitial = { receiverName: string; receiverPhone: string; address: string };
+export type BillingCardOption = { id: string; maskedCardNumb: string };
 
-export function CheckoutForm({ initial }: { initial: CheckoutInitial }) {
+export function CheckoutForm({
+  initial,
+  billingCards = [],
+}: {
+  initial: CheckoutInitial;
+  billingCards?: BillingCardOption[];
+}) {
+  // 수기결제/구인증(카드정보 직접입력)은 가맹점용 도구 — 소비자 몰에 노출 금지(카드사 심사 감점 요소)
+  const METHODS = [
+    { id: "auth", label: "카드·간편결제", desc: "신용카드 / 카카오·네이버·삼성페이", enabled: true },
+    { id: "bank", label: "계좌이체", desc: "준비 중", enabled: false },
+    { id: "vbank", label: "무통장입금(가상계좌)", desc: "준비 중", enabled: false },
+    {
+      id: "oneclick",
+      label: "원클릭 결제",
+      desc: billingCards.length > 0 ? `등록 카드 ${billingCards[0].maskedCardNumb}` : "설정에서 카드 등록 후 이용",
+      enabled: billingCards.length > 0,
+    },
+  ];
   const [items, setItems] = useState<CartItem[]>([]);
   const [ready, setReady] = useState(false);
   const [form, setForm] = useState(initial);
@@ -42,6 +53,11 @@ export function CheckoutForm({ initial }: { initial: CheckoutInitial }) {
     }
     if (!agree) {
       setError("주문 내용 확인 및 구매조건에 동의해 주세요.");
+      return;
+    }
+    // NEEDS_PG_SPEC: 원클릭(빌링) 실청구는 KSNET 사업부 계약 후 오픈 — 화면 경로만 우선 제공
+    if (method === "oneclick") {
+      setError("원클릭 결제는 서비스 준비 중입니다. 카드·간편결제를 이용해 주세요.");
       return;
     }
     setPending(true);
@@ -156,7 +172,29 @@ export function CheckoutForm({ initial }: { initial: CheckoutInitial }) {
             </button>
           ))}
         </div>
-        <p className="text-step--1 text-fg-subtle">계좌이체·무통장입금·원클릭 결제는 순차 오픈 예정입니다.</p>
+        {/* 원클릭 선택 시 — 등록 카드 표시 */}
+        {method === "oneclick" && billingCards.length > 0 && (
+          <div className="space-y-2 rounded-[var(--radius-md)] border border-line bg-overlay p-4">
+            {billingCards.map((c, i) => (
+              <div key={c.id} className="flex items-center justify-between gap-3 text-step--1">
+                <span className="font-mono font-semibold tabular-nums text-fg">{c.maskedCardNumb}</span>
+                {i === 0 && (
+                  <span className="rounded-[var(--radius-sm)] bg-[color-mix(in_oklab,var(--accent-cyan)_16%,transparent)] px-2 py-0.5 font-mono text-[11px] text-accent-cyan ring-1 ring-inset ring-[color-mix(in_oklab,var(--accent-cyan)_38%,transparent)]">
+                    결제 카드
+                  </span>
+                )}
+              </div>
+            ))}
+            <p className="text-step--1 text-fg-subtle">
+              카드 관리는{" "}
+              <Link href="/mypage/settings" className="underline underline-offset-2 hover:text-fg">
+                설정
+              </Link>
+              에서 할 수 있습니다.
+            </p>
+          </div>
+        )}
+        <p className="text-step--1 text-fg-subtle">계좌이체·무통장입금은 순차 오픈 예정입니다.</p>
       </section>
 
       {/* 전자상거래법 제13조 — 재화 대금 외 배송비 고지 (전 상품 무료배송) */}

@@ -23,7 +23,19 @@ model ShopUser {
   deletedAt    DateTime? // 탈퇴 (주문이력 보존 위해 소프트 삭제 — 전자상거래법 기록 보존)
   orders       ShopOrder[]
   wishlist     Wishlist[]
+  billingCards ShopBillingCard[]
   createdAt    DateTime    @default(now())
+}
+
+// 원클릭 결제 등록 카드 — NEEDS_PG_SPEC: KSNET 빌링(/billing/regist)은 사업부 계약 전이라 mock 토큰.
+// 카드번호 원문은 저장·로그 금지(절대 규칙 2) — 마스킹 번호와 토큰만 보관.
+model ShopBillingCard {
+  id             String   @id @default(cuid())
+  user           ShopUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String
+  billingToken   String   @unique
+  maskedCardNumb String
+  createdAt      DateTime @default(now())
 }
 
 // 위시리스트(찜) — 파생 데이터라 상품/회원 삭제 시 함께 정리 (재시드 FK 충돌 방지)

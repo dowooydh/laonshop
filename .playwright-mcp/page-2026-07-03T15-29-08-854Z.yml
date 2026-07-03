@@ -1,0 +1,72 @@
+- generic [active] [ref=e1]:
+  - link "본문 바로가기" [ref=e2] [cursor=pointer]:
+    - /url: "#main"
+  - banner [ref=e3]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - link "LAONSHOP" [ref=e7] [cursor=pointer]:
+          - /url: /
+        - navigation [ref=e8]:
+          - link "남성의류" [ref=e9] [cursor=pointer]:
+            - /url: /shop/men
+          - link "여성의류" [ref=e10] [cursor=pointer]:
+            - /url: /shop/women
+          - link "검색" [ref=e11] [cursor=pointer]:
+            - /url: /search
+      - navigation [ref=e12]:
+        - link "장바구니 1" [ref=e13] [cursor=pointer]:
+          - /url: /cart
+          - text: 장바구니
+          - generic [ref=e14]: "1"
+        - link "로그인" [ref=e15] [cursor=pointer]:
+          - /url: /login
+        - link "회원가입" [ref=e16] [cursor=pointer]:
+          - /url: /register
+  - main [ref=e17]:
+    - generic [ref=e19]:
+      - paragraph [ref=e20]: Login
+      - heading "로그인" [level=1] [ref=e21]
+      - generic [ref=e24]:
+        - generic [ref=e25]:
+          - generic [ref=e26]:
+            - generic [ref=e27]: 이메일
+            - textbox "이메일" [ref=e28]
+          - generic [ref=e29]:
+            - generic [ref=e30]: 비밀번호
+            - textbox "비밀번호" [ref=e31]
+          - button "로그인" [ref=e32] [cursor=pointer]
+        - paragraph [ref=e33]:
+          - text: 아직 회원이 아니신가요?
+          - link "회원가입" [ref=e34] [cursor=pointer]:
+            - /url: /register
+  - contentinfo [ref=e35]:
+    - generic [ref=e36]:
+      - generic [ref=e37]:
+        - generic [ref=e38]:
+          - paragraph [ref=e39]: LAONSHOP
+          - paragraph [ref=e40]: 입는 것을 공간에서 만나는 ㈜커스텀오더의 미래지향 셀렉트샵.
+        - generic [ref=e41]:
+          - link "이용약관" [ref=e42] [cursor=pointer]:
+            - /url: /policy/terms
+          - link "개인정보처리방침" [ref=e43] [cursor=pointer]:
+            - /url: /policy/privacy
+          - link "청약철회·교환·환불 안내" [ref=e44] [cursor=pointer]:
+            - /url: /policy/refund
+          - link "배송 안내" [ref=e45] [cursor=pointer]:
+            - /url: /policy/shipping
+          - link "자주 묻는 질문" [ref=e46] [cursor=pointer]:
+            - /url: /support
+          - link "카카오톡 문의" [ref=e47] [cursor=pointer]:
+            - /url: https://pf.kakao.com/_UhNxdn/chat
+      - generic [ref=e48]:
+        - paragraph [ref=e49]: "상호: ㈜커스텀오더 | 사업자등록번호: 864-88-03054 | 통신판매업신고: 신고 예정"
+        - paragraph [ref=e50]:
+          - text: "고객센터:"
+          - link "070-4044-7008" [ref=e51] [cursor=pointer]:
+            - /url: tel:070-4044-7008
+          - text: "(평일 09:00–18:00) | 이메일:"
+          - link "custom_sales@customorder.co.kr" [ref=e52] [cursor=pointer]:
+            - /url: mailto:custom_sales@customorder.co.kr
+        - paragraph [ref=e53]: ⓘ 통신판매업 신고번호는 신고 완료 후 기재됩니다(카드사 심사용).
+        - paragraph [ref=e54]: © LAON SHOP · ㈜커스텀오더. 결제는 KSPAY(KSNET)로 안전하게 처리됩니다.
+  - alert [ref=e55]

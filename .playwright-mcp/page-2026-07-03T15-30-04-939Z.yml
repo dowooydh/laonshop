@@ -1,0 +1,130 @@
+- generic [active] [ref=f2e1]:
+  - link "본문 바로가기" [ref=f2e2] [cursor=pointer]:
+    - /url: "#main"
+  - banner [ref=f2e3]:
+    - generic [ref=f2e5]:
+      - generic [ref=f2e6]:
+        - link "LAONSHOP" [ref=f2e7] [cursor=pointer]:
+          - /url: /
+        - navigation [ref=f2e8]:
+          - link "남성의류" [ref=f2e9] [cursor=pointer]:
+            - /url: /shop/men
+          - link "여성의류" [ref=f2e10] [cursor=pointer]:
+            - /url: /shop/women
+          - link "검색" [ref=f2e11] [cursor=pointer]:
+            - /url: /search
+      - navigation [ref=f2e12]:
+        - link "장바구니 1" [ref=f2e13] [cursor=pointer]:
+          - /url: /cart
+          - text: 장바구니
+          - generic [ref=f2e14]: "1"
+        - link "심사테스트님" [ref=f2e15] [cursor=pointer]:
+          - /url: /mypage
+        - button "로그아웃" [ref=f2e17] [cursor=pointer]
+  - main [ref=f2e18]:
+    - generic [ref=f2e20]:
+      - link "← 남성의류" [ref=f2e21] [cursor=pointer]:
+        - /url: /shop/men
+        - generic [ref=f2e22]: ←
+        - text: 남성의류
+      - generic [ref=f2e23]:
+        - img "옥스포드 코튼 셔츠" [ref=f2e27]
+        - generic [ref=f2e28]:
+          - generic [ref=f2e29]: 상의
+          - generic [ref=f2e30]:
+            - heading "옥스포드 코튼 셔츠" [level=1] [ref=f2e31]
+            - button "위시리스트에 담기" [ref=f2e32] [cursor=pointer]:
+              - img [ref=f2e33]
+          - generic [ref=f2e36]: 39,000원
+          - paragraph [ref=f2e37]: 데일리로 입기 좋은 셀렉트 상의.
+          - generic [ref=f2e39]:
+            - generic [ref=f2e40]:
+              - generic [ref=f2e41]: 사이즈
+              - generic [ref=f2e42]:
+                - button "S" [ref=f2e43] [cursor=pointer]
+                - button "M" [ref=f2e44] [cursor=pointer]
+                - button "L" [ref=f2e45] [cursor=pointer]
+                - button "XL" [ref=f2e46] [cursor=pointer]
+            - generic [ref=f2e47]:
+              - generic [ref=f2e48]: 수량
+              - generic [ref=f2e49]:
+                - button "수량 감소" [ref=f2e50] [cursor=pointer]: −
+                - generic [ref=f2e51]: "1"
+                - button "수량 증가" [ref=f2e52] [cursor=pointer]: +
+            - generic [ref=f2e53]:
+              - button "장바구니 담기" [ref=f2e54] [cursor=pointer]
+              - button "바로 구매" [ref=f2e55] [cursor=pointer]
+          - generic [ref=f2e56]:
+            - group [ref=f2e57]:
+              - generic "사이즈 가이드" [ref=f2e58] [cursor=pointer]:
+                - text: 사이즈 가이드
+                - generic [ref=f2e59]: +
+            - group [ref=f2e60]:
+              - generic "상품정보 제공고시" [ref=f2e61] [cursor=pointer]:
+                - text: 상품정보 제공고시
+                - generic [ref=f2e62]: +
+            - group [ref=f2e63]:
+              - generic "배송·교환·반품" [ref=f2e64] [cursor=pointer]:
+                - text: 배송·교환·반품
+                - generic [ref=f2e65]: +
+      - generic [ref=f2e66]:
+        - generic [ref=f2e67]:
+          - heading "함께 볼 만한" [level=2] [ref=f2e68]
+          - link "더 보기 →" [ref=f2e69] [cursor=pointer]:
+            - /url: /shop/men
+        - generic [ref=f2e70]:
+          - link "오버핏 반팔 티셔츠 오버핏 반팔 티셔츠 25,000원" [ref=f2e71] [cursor=pointer]:
+            - /url: /product/cmr2buwr600017igo357opu7j
+            - img "오버핏 반팔 티셔츠" [ref=f2e72]
+            - generic [ref=f2e74]:
+              - generic [ref=f2e75]: 오버핏 반팔 티셔츠
+              - generic [ref=f2e76]: 25,000원
+          - link "미니멀 크루넥 니트 미니멀 크루넥 니트 59,000원" [ref=f2e77] [cursor=pointer]:
+            - /url: /product/cmr2buwt900027igouqch3bp4
+            - img "미니멀 크루넥 니트" [ref=f2e78]
+            - generic [ref=f2e80]:
+              - generic [ref=f2e81]: 미니멀 크루넥 니트
+              - generic [ref=f2e82]: 59,000원
+          - link "링클프리 드레스 셔츠 링클프리 드레스 셔츠 45,000원" [ref=f2e83] [cursor=pointer]:
+            - /url: /product/cmr2buwvc00037igofhj5heu8
+            - img "링클프리 드레스 셔츠" [ref=f2e84]
+            - generic [ref=f2e86]:
+              - generic [ref=f2e87]: 링클프리 드레스 셔츠
+              - generic [ref=f2e88]: 45,000원
+          - link "스트라이프 옥스포드 셔츠 스트라이프 옥스포드 셔츠 42,000원" [ref=f2e89] [cursor=pointer]:
+            - /url: /product/cmr2buwxg00047igoyby6lvnc
+            - img "스트라이프 옥스포드 셔츠" [ref=f2e90]
+            - generic [ref=f2e92]:
+              - generic [ref=f2e93]: 스트라이프 옥스포드 셔츠
+              - generic [ref=f2e94]: 42,000원
+  - contentinfo [ref=f2e95]:
+    - generic [ref=f2e96]:
+      - generic [ref=f2e97]:
+        - generic [ref=f2e98]:
+          - paragraph [ref=f2e99]: LAONSHOP
+          - paragraph [ref=f2e100]: 입는 것을 공간에서 만나는 ㈜커스텀오더의 미래지향 셀렉트샵.
+        - generic [ref=f2e101]:
+          - link "이용약관" [ref=f2e102] [cursor=pointer]:
+            - /url: /policy/terms
+          - link "개인정보처리방침" [ref=f2e103] [cursor=pointer]:
+            - /url: /policy/privacy
+          - link "청약철회·교환·환불 안내" [ref=f2e104] [cursor=pointer]:
+            - /url: /policy/refund
+          - link "배송 안내" [ref=f2e105] [cursor=pointer]:
+            - /url: /policy/shipping
+          - link "자주 묻는 질문" [ref=f2e106] [cursor=pointer]:
+            - /url: /support
+          - link "카카오톡 문의" [ref=f2e107] [cursor=pointer]:
+            - /url: https://pf.kakao.com/_UhNxdn/chat
+      - generic [ref=f2e108]:
+        - paragraph [ref=f2e109]: "상호: ㈜커스텀오더 | 사업자등록번호: 864-88-03054 | 통신판매업신고: 신고 예정"
+        - paragraph [ref=f2e110]:
+          - text: "고객센터:"
+          - link "070-4044-7008" [ref=f2e111] [cursor=pointer]:
+            - /url: tel:070-4044-7008
+          - text: "(평일 09:00–18:00) | 이메일:"
+          - link "custom_sales@customorder.co.kr" [ref=f2e112] [cursor=pointer]:
+            - /url: mailto:custom_sales@customorder.co.kr
+        - paragraph [ref=f2e113]: ⓘ 통신판매업 신고번호는 신고 완료 후 기재됩니다(카드사 심사용).
+        - paragraph [ref=f2e114]: © LAON SHOP · ㈜커스텀오더. 결제는 KSPAY(KSNET)로 안전하게 처리됩니다.
+  - alert [ref=f2e115]
