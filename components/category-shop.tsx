@@ -18,7 +18,8 @@ type Card = {
   createdAt: string; // ISO — 신상품순 정렬용
 };
 
-const CATS = ["상의", "하의", "신발"] as const;
+// 카테고리 표시 순서 — 상품이 있는 카테고리만 탭으로 노출 (여성 전용 '원피스/스커트' 등 대응)
+const CAT_ORDER = ["상의", "아우터", "하의", "원피스/스커트", "신발", "가방", "액세서리", "홈웨어", "스포츠"];
 
 const SORTS = {
   recommended: { label: "추천순", fn: () => 0 }, // 서버 sortOrder 유지
@@ -39,7 +40,8 @@ export function CategoryShop({
   products: Card[];
 }) {
   const reduce = useReducedMotion();
-  const [cat, setCat] = useState<string>("상의");
+  const cats = CAT_ORDER.filter((c) => products.some((p) => p.category === c));
+  const [cat, setCat] = useState<string>(cats[0] ?? "상의");
   const [sort, setSort] = useState<SortKey>("recommended");
   const list = products.filter((p) => p.category === cat).sort(SORTS[sort].fn);
 
@@ -55,7 +57,7 @@ export function CategoryShop({
       {/* 카테고리 탭 + 정렬 */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
         <div className="flex flex-wrap gap-2">
-        {CATS.map((c) => {
+        {cats.map((c) => {
           const active = c === cat;
           const n = products.filter((p) => p.category === c).length;
           return (
@@ -65,7 +67,7 @@ export function CategoryShop({
               aria-pressed={active}
               onClick={() => setCat(c)}
               className={
-                "rounded-[var(--radius-pill)] px-5 py-2 text-step-0 font-medium transition-colors duration-fast " +
+                "rounded-[var(--radius-pill)] px-4 py-1.5 text-step--1 font-medium transition-colors duration-fast " +
                 (active
                   ? "bg-accent-cyan text-void shadow-glow-cyan"
                   : "border border-line bg-raised text-fg-muted hover:bg-overlay hover:text-fg")

@@ -8,7 +8,7 @@ import { RecentProducts } from "@/components/recent-products";
 export const dynamic = "force-dynamic";
 
 // 시드 카탈로그 기준 실결과가 있는 검색어만 노출
-const SUGGESTED = ["셔츠", "니트", "데님", "슬랙스", "블라우스", "스커트", "스니커즈", "부츠"];
+const SUGGESTED = ["셔츠", "니트", "데님", "원피스", "자켓", "가방", "스니커즈", "부츠"];
 
 export async function generateMetadata({
   searchParams,
