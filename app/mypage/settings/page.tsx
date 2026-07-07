@@ -30,7 +30,15 @@ export default async function SettingsPage() {
 
       <section className="space-y-5">
         <h2 className="font-mono text-step--1 uppercase tracking-widest text-accent-cyan">내 정보</h2>
-        <ProfileForm initial={{ name: user.name, phone: user.phone ?? "", address: user.address ?? "" }} />
+        <ProfileForm
+          initial={{
+            name: user.name,
+            phone: user.phone ?? "",
+            zipcode: user.zipcode ?? "",
+            address: user.address ?? "",
+            addressDetail: user.addressDetail ?? "",
+          }}
+        />
       </section>
 
       <section className="space-y-5 border-t border-line pt-8">

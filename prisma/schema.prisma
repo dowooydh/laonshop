@@ -19,7 +19,9 @@ model ShopUser {
   passwordHash String
   name         String
   phone        String?
-  address      String? // 기본 배송지 (체크아웃 프리필 1순위)
+  zipcode       String? // 우편번호 (다음 우편번호 검색)
+  address       String? // 기본 배송지 — 도로명/지번 주소 (체크아웃 프리필 1순위)
+  addressDetail String? // 상세 주소 (동·호수 등 직접 입력)
   deletedAt    DateTime? // 탈퇴 (주문이력 보존 위해 소프트 삭제 — 전자상거래법 기록 보존)
   orders       ShopOrder[]
   wishlist     Wishlist[]

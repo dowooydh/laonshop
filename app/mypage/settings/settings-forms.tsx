@@ -1,6 +1,7 @@
 "use client";
 // 설정 폼 3종 — 내 정보 / 비밀번호 변경 / 회원 탈퇴 (마이페이지 톤: 모노 아이브로 + 섹션 분리)
 import { Button, FieldError, FieldHint, Input, Label } from "@/lib/ui";
+import { AddressInput } from "@/components/address-input";
 import { useActionState, useState } from "react";
 import {
   changePasswordAction,
@@ -14,7 +15,11 @@ function SavedMark({ show }: { show: boolean }) {
   return <span className="font-mono text-step--1 text-success">저장되었습니다 ✓</span>;
 }
 
-export function ProfileForm({ initial }: { initial: { name: string; phone: string; address: string } }) {
+export function ProfileForm({
+  initial,
+}: {
+  initial: { name: string; phone: string; zipcode: string; address: string; addressDetail: string };
+}) {
   const [state, action, pending] = useActionState<SettingsState, FormData>(updateProfileAction, {});
   return (
     <form action={action} className="space-y-4">
@@ -27,8 +32,11 @@ export function ProfileForm({ initial }: { initial: { name: string; phone: strin
         <Input id="s-phone" name="phone" inputMode="numeric" placeholder="010-0000-0000" defaultValue={initial.phone} />
       </div>
       <div className="space-y-1.5">
-        <Label htmlFor="s-addr">기본 배송지</Label>
-        <Input id="s-addr" name="address" placeholder="주소를 입력해 주세요" defaultValue={initial.address} />
+        <Label htmlFor="s-zipcode">기본 배송지</Label>
+        <AddressInput
+          idPrefix="s"
+          initial={{ zipcode: initial.zipcode, address: initial.address, addressDetail: initial.addressDetail }}
+        />
         <FieldHint>주문서 배송지에 자동으로 채워집니다.</FieldHint>
       </div>
       <FieldError>{state.error}</FieldError>

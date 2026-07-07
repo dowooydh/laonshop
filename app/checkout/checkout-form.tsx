@@ -3,11 +3,18 @@ import { formatKrw } from "@/lib/format";
 import { Button, Checkbox, EmptyState, FieldError, Input, Label, Spinner, buttonVariants, cn } from "@/lib/ui";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { AddressInput } from "@/components/address-input";
 import { KspayCheckout } from "@/components/kspay-checkout";
 import { cartTotal, getCart, type CartItem } from "@/lib/cart";
 import { createOrderAction } from "./actions";
 
-export type CheckoutInitial = { receiverName: string; receiverPhone: string; address: string };
+export type CheckoutInitial = {
+  receiverName: string;
+  receiverPhone: string;
+  zipcode: string;
+  address: string;
+  addressDetail: string;
+};
 export type BillingCardOption = { id: string; maskedCardNumb: string };
 
 export function CheckoutForm({
@@ -57,20 +64,22 @@ export function CheckoutForm({
       setError("주문 내용 확인 및 구매조건에 동의해 주세요.");
       return;
     }
-    // NEEDS_PG_SPEC: 원클릭(빌링) 실청구는 KSNET 사업부 계약 후 오픈 — 화면 경로만 우선 제공
-    if (method === "oneclick") {
-      setError("원클릭 결제는 서비스 준비 중입니다. 카드·간편결제를 이용해 주세요.");
-      return;
-    }
     setPending(true);
     try {
       const res = await createOrderAction({
-        method: method as "card" | "kakaopay" | "naverpay" | "bank",
+        method: method as "card" | "kakaopay" | "naverpay" | "bank" | "oneclick",
         items: items.map((i) => ({ productId: i.productId, qty: i.qty, size: i.size })),
         ...form,
       });
-      if (res.ok) setPay({ formAction: res.formAction, formFields: res.formFields });
-      else setError(res.error);
+      if (!res.ok) {
+        setError(res.error);
+      } else if ("redirect" in res) {
+        // 원클릭(빌링) — 결제창 없이 승인 완료 후 주문 확인으로 이동
+        window.location.href = res.redirect;
+        return;
+      } else {
+        setPay({ formAction: res.formAction, formFields: res.formFields });
+      }
     } catch {
       setError("주문 처리 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.");
     } finally {
@@ -144,8 +153,12 @@ export function CheckoutForm({
           <Input id="rp" inputMode="numeric" placeholder="010-0000-0000" value={form.receiverPhone} onChange={(e) => setForm({ ...form, receiverPhone: e.target.value })} />
         </div>
         <div>
-          <Label htmlFor="addr">배송지</Label>
-          <Input id="addr" placeholder="주소를 입력해 주세요" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
+          <Label htmlFor="co-zipcode">배송지</Label>
+          <AddressInput
+            idPrefix="co"
+            initial={{ zipcode: initial.zipcode, address: initial.address, addressDetail: initial.addressDetail }}
+            onChange={(v) => setForm((f) => ({ ...f, zipcode: v.zipcode, address: v.address, addressDetail: v.addressDetail }))}
+          />
         </div>
       </section>
 

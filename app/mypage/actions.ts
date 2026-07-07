@@ -13,7 +13,9 @@ export type SettingsState = { error?: string; ok?: boolean };
 const profileSchema = z.object({
   name: z.string().trim().min(1, "이름을 입력해 주세요.").max(30),
   phone: z.union([z.string().trim().max(20), z.literal("")]).optional(),
+  zipcode: z.union([z.string().trim().regex(/^\d{5}$/, "우편번호는 주소 검색으로 입력해 주세요."), z.literal("")]).optional(),
   address: z.union([z.string().trim().max(200), z.literal("")]).optional(),
+  addressDetail: z.union([z.string().trim().max(100), z.literal("")]).optional(),
 });
 
 export async function updateProfileAction(_prev: SettingsState, formData: FormData): Promise<SettingsState> {
@@ -21,7 +23,9 @@ export async function updateProfileAction(_prev: SettingsState, formData: FormDa
   const parsed = profileSchema.safeParse({
     name: formData.get("name"),
     phone: formData.get("phone"),
+    zipcode: formData.get("zipcode"),
     address: formData.get("address"),
+    addressDetail: formData.get("addressDetail"),
   });
   if (!parsed.success) return { error: parsed.error.errors[0]?.message ?? "입력값을 확인해 주세요." };
 
@@ -30,7 +34,9 @@ export async function updateProfileAction(_prev: SettingsState, formData: FormDa
     data: {
       name: parsed.data.name,
       phone: parsed.data.phone || null,
+      zipcode: parsed.data.zipcode || null,
       address: parsed.data.address || null,
+      addressDetail: parsed.data.addressDetail || null,
     },
   });
   revalidatePath("/mypage");

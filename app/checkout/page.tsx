@@ -28,7 +28,9 @@ export default async function CheckoutPage() {
       initial={{
         receiverName: lastOrder?.receiverName ?? user.name ?? "",
         receiverPhone: lastOrder?.receiverPhone ?? user.phone ?? "",
+        zipcode: user.zipcode ?? "",
         address: user.address ?? lastOrder?.address ?? "",
+        addressDetail: user.addressDetail ?? "",
       }}
       billingCards={billingCards}
     />

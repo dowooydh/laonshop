@@ -7,8 +7,8 @@ import { z } from "zod";
 import { requireShopUser } from "@/lib/auth";
 
 const schema = z.object({
-  // KSPAY 결제창 수단 — 가상계좌는 KSNET 미지원으로 제외, 원클릭(빌링)은 별도 경로
-  method: z.enum(["card", "kakaopay", "naverpay", "bank"]).default("card"),
+  // KSPAY 결제창 수단 — 가상계좌는 KSNET 미지원으로 제외. oneclick = 등록 카드(빌링) 결제창 없는 승인.
+  method: z.enum(["card", "kakaopay", "naverpay", "bank", "oneclick"]).default("card"),
   items: z
     .array(
       z.object({
@@ -20,13 +20,21 @@ const schema = z.object({
     .min(1, "장바구니가 비어 있습니다."),
   receiverName: z.string().trim().min(1, "받는 분 이름을 입력해 주세요.").max(30),
   receiverPhone: z.string().trim().min(1, "연락처를 입력해 주세요.").max(20),
+  zipcode: z.union([z.string().trim().max(10), z.literal("")]).optional(),
   address: z.string().trim().min(1, "배송지를 입력해 주세요.").max(200),
+  addressDetail: z.union([z.string().trim().max(100), z.literal("")]).optional(),
 });
 
 export type CheckoutInput = z.input<typeof schema>;
 export type CheckoutResult =
   | { ok: true; formAction: string; formFields: Record<string, string> }
+  | { ok: true; redirect: string }
   | { ok: false; error: string };
+
+// NEEDS_PG_SPEC: KSNET 빌링 승인 API(사업부 계약 + KSPAY_API_KEY) 미확보 — 테스트 계정 한정 mock 승인.
+// 실연동 시 라온페이 pg-adapter 빌링 이식 후 이 allowlist를 제거한다.
+// (실고객이 mock 승인으로 무결제 주문을 만드는 것을 차단하는 가드)
+const BILLING_TEST_EMAILS = ["test@laonshop.com", "laontest@laontest.com"];
 
 export async function createOrderAction(input: CheckoutInput): Promise<CheckoutResult> {
   const user = await requireShopUser();
@@ -57,6 +65,51 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
     return { productId: p.id, name: p.name, price: p.price, qty: it.qty, size: it.size || null };
   });
 
+  // 우편번호·상세주소는 주문 스냅샷 문자열로 합성 보관 (ShopOrder.address 단일 컬럼 유지)
+  const fullAddress = [d.zipcode ? `[${d.zipcode}]` : "", d.address, d.addressDetail || ""]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+
+  // ── 원클릭(빌링) — 결제창 없이 등록 카드로 승인 ──────────────────────
+  if (d.method === "oneclick") {
+    const card = await prisma.shopBillingCard.findFirst({
+      where: { userId: user.id },
+      orderBy: { createdAt: "asc" },
+    });
+    if (!card) return { ok: false, error: "등록된 카드가 없습니다. 설정에서 카드를 먼저 등록해 주세요." };
+    if (!BILLING_TEST_EMAILS.includes(user.email)) {
+      return { ok: false, error: "원클릭 결제는 서비스 준비 중입니다. 카드·간편결제를 이용해 주세요." };
+    }
+
+    const moid = generateMoid();
+    const order = await prisma.shopOrder.create({
+      data: {
+        userId: user.id,
+        status: "PENDING",
+        totalAmount: total,
+        moid,
+        receiverName: d.receiverName,
+        receiverPhone: d.receiverPhone,
+        address: fullAddress,
+        items: { create: itemsData },
+      },
+    });
+
+    // NEEDS_PG_SPEC: 실제 빌링 승인 호출 위치 — 계약 후 billingToken으로 KSNET 승인 요청.
+    // 현재는 화면·주문 흐름 검증용 mock 승인 (금액 계산은 위에서 서버 재조회로 확정).
+    await prisma.shopOrder.update({
+      where: { id: order.id },
+      data: {
+        status: "PAID",
+        paidAt: new Date(),
+        approvalNo: `MB${Date.now().toString().slice(-8)}`,
+        cardName: `등록카드 ${card.maskedCardNumb}`,
+      },
+    });
+    return { ok: true, redirect: `/order/${order.id}?receipt=1` };
+  }
+
   const moid = generateMoid();
   const order = await prisma.shopOrder.create({
     data: {
@@ -66,7 +119,7 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
       moid,
       receiverName: d.receiverName,
       receiverPhone: d.receiverPhone,
-      address: d.address,
+      address: fullAddress,
       items: { create: itemsData },
     },
   });
@@ -77,7 +130,8 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
 
   const res = await getPgProvider().createAuthOrder({
     paymentId: order.id, // 패스스루 a = orderId
-    payMethod: d.method,
+    payMethod: d.method as "card" | "kakaopay" | "naverpay" | "bank", // oneclick은 위에서 조기 반환
+
     moid,
     amount: total,
     goodsName: sanitizePgParam(goodsName),
