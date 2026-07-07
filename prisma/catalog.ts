@@ -40,7 +40,7 @@ export const DESC: Record<Category, string> = {
 export const CATALOG: Record<Gender, Partial<Record<Category, ProductDef[]>>> = {
   men: {
     "상의": [
-      { name: "옥스포드 코튼 셔츠", price: 39000, id: "1607345366928-199ea26cfe3e" },
+      { name: "타탄 체크 오버셔츠", price: 39000, id: "1607345366928-199ea26cfe3e" },
       { name: "오버핏 반팔 티셔츠", price: 25000, id: "1605949405965-d49ada3f9189" },
       { name: "미니멀 크루넥 니트", price: 59000, id: "1574201635302-388dd92a4c3f" },
       { name: "링클프리 드레스 셔츠", price: 45000, id: "1603252110481-7ba873bf42ab" },
