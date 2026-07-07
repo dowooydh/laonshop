@@ -136,6 +136,31 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
             </p>
           )}
 
+          {/* 디테일 컷 — 원본의 상이한 크롭 2컷 (KSNET 피드백: 상세 이미지 보강) */}
+          {product.imageUrl && (
+            <div className="mt-8 space-y-4 border-t border-line pt-8">
+              <p className="font-mono text-step--1 uppercase tracking-widest text-fg-subtle">Detail</p>
+              <div className="relative aspect-square overflow-hidden rounded-[var(--radius-md)] border border-line bg-overlay">
+                <Image
+                  src={`${product.imageUrl}&h=900&crop=top`}
+                  alt={`${product.name} 디테일`}
+                  fill
+                  sizes="(min-width: 768px) 50vw, 100vw"
+                  className="object-cover"
+                />
+              </div>
+              <div className="relative aspect-[4/3] overflow-hidden rounded-[var(--radius-md)] border border-line bg-overlay">
+                <Image
+                  src={`${product.imageUrl}&h=600&crop=entropy`}
+                  alt={`${product.name} 디테일 컷`}
+                  fill
+                  sizes="(min-width: 768px) 50vw, 100vw"
+                  className="object-cover"
+                />
+              </div>
+            </div>
+          )}
+
           <div className="mt-8 border-t border-line pt-8">
             <AddToCart
               product={{ id: product.id, name: product.name, price: product.price, imageUrl: product.imageUrl }}

@@ -17,11 +17,13 @@ export function CheckoutForm({
   initial: CheckoutInitial;
   billingCards?: BillingCardOption[];
 }) {
-  // 수기결제/구인증(카드정보 직접입력)은 가맹점용 도구 — 소비자 몰에 노출 금지(카드사 심사 감점 요소)
+  // 결제수단 구성 — KSNET 김민규 팀장 가이드(2026-07): 카드/카카오/네이버/실시간계좌이체/원클릭(빌링).
+  // 가상계좌는 KSNET 미지원+심사 거절 사유로 제외. 수기(구인증)는 적용 방식 KSNET 협의 중 — 노출 보류.
   const METHODS = [
-    { id: "auth", label: "카드·간편결제", desc: "신용카드 / 카카오·네이버·삼성페이", enabled: true },
-    { id: "bank", label: "계좌이체", desc: "준비 중", enabled: false },
-    { id: "vbank", label: "무통장입금(가상계좌)", desc: "준비 중", enabled: false },
+    { id: "card", label: "카드결제", desc: "신용카드 (인증결제)", enabled: true },
+    { id: "kakaopay", label: "카카오페이", desc: "카카오페이 간편결제", enabled: true },
+    { id: "naverpay", label: "네이버페이", desc: "네이버페이 간편결제", enabled: true },
+    { id: "bank", label: "실시간 계좌이체", desc: "은행 계좌 즉시 이체", enabled: true },
     {
       id: "oneclick",
       label: "원클릭 결제",
@@ -32,7 +34,7 @@ export function CheckoutForm({
   const [items, setItems] = useState<CartItem[]>([]);
   const [ready, setReady] = useState(false);
   const [form, setForm] = useState(initial);
-  const [method, setMethod] = useState("auth");
+  const [method, setMethod] = useState("card");
   const [pay, setPay] = useState<{ formAction: string; formFields: Record<string, string> } | null>(null);
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
@@ -63,6 +65,7 @@ export function CheckoutForm({
     setPending(true);
     try {
       const res = await createOrderAction({
+        method: method as "card" | "kakaopay" | "naverpay" | "bank",
         items: items.map((i) => ({ productId: i.productId, qty: i.qty, size: i.size })),
         ...form,
       });
@@ -194,7 +197,6 @@ export function CheckoutForm({
             </p>
           </div>
         )}
-        <p className="text-step--1 text-fg-subtle">계좌이체·무통장입금은 순차 오픈 예정입니다.</p>
       </section>
 
       {/* 전자상거래법 제13조 — 재화 대금 외 배송비 고지 (전 상품 무료배송) */}

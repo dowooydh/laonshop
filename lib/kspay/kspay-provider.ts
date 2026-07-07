@@ -82,10 +82,19 @@ export class KspayProvider implements PgProvider {
   ) {}
 
   async createAuthOrder(req: AuthOrderRequest): Promise<AuthOrderResponse> {
+    // sndPaymethod 비트플래그 — 통합모듈안내문서(V1.4, 2022) 13자리 기준.
+    // 신용카드/계좌이체/KAKAO/NPAY 다이렉트 호출. 가상계좌는 KSNET 미지원(2026-07 김민규 팀장)으로 제외.
+    const PAYMETHOD_FLAGS: Record<string, string> = {
+      card: "1000000000000",
+      bank: "0010000000000",
+      kakaopay: "0000000010000",
+      naverpay: "0000000000001",
+    };
+    const method = req.payMethod ?? "card";
+
     // 금지 특수문자(` ~ ' ") 제거 — 백틱은 응답 프로토콜 구분자
     const formFields: Record<string, string> = {
-      // 공통 (JSP utf-8 샘플 기준 — sndPaymethod 자릿수는 모듈 버전 확인 필요)
-      sndPaymethod: "1000000000", // 신용카드만 (간편결제는 sndQpayType으로 결제창 내 표시)
+      sndPaymethod: PAYMETHOD_FLAGS[method] ?? PAYMETHOD_FLAGS.card,
       sndStoreid: this.config.storeId,
       sndOrdernumber: sanitizePgParam(req.moid),
       sndGoodname: sanitizePgParam(req.goodsName).slice(0, 25),
@@ -101,7 +110,11 @@ export class KspayProvider implements PgProvider {
       sndCurrencytype: "WON",
       sndInstallmenttype: "ALL(0:2:3:4:5:6:7:8:9:10:11:12)",
       sndInteresttype: "NONE",
-      sndQpayType: "1", // 결제창 내 간편결제 표시 (EASY)
+      sndQpayType: method === "card" ? "1" : "0", // 카드 결제창 내 간편결제 표시
+      // 카카오페이 다이렉트 시 필수 3필드 (문서 2.2) — 사업자등록증 서류 값
+      sndStoreCeoName: "유준혁",
+      sndStorePhoneNo: "07040447008",
+      sndStoreAddress: "경기도 성남시 수정구 청계산로 686, 415호",
       // hidden — rcv 브릿지의 eparamSet()이 채움 (변수명 변경 금지)
       reCommConId: "",
       reCommType: "",

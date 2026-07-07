@@ -8,9 +8,14 @@
 
 export type PgMode = "mock" | "kspay";
 
+/** 결제창 호출 수단 — KSNET sndPaymethod 비트플래그로 매핑 (가상계좌는 KSNET 미지원으로 제외) */
+export type PayWindowMethod = "card" | "kakaopay" | "naverpay" | "bank";
+
 /** 인증결제(결제창) 주문 — C-01/C-02에서 고객이 결제창을 열 때 */
 export interface AuthOrderRequest {
   paymentId: string; // 자체 Payment.id — 패스스루(a1)로 전달
+  /** 결제창 수단 (기본 card) */
+  payMethod?: PayWindowMethod;
   moid: string; // 주문번호 (특수문자 ` ~ ' " 금지)
   amount: number; // 정수(원)
   goodsName: string;

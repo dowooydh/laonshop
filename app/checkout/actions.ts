@@ -7,6 +7,8 @@ import { z } from "zod";
 import { requireShopUser } from "@/lib/auth";
 
 const schema = z.object({
+  // KSPAY 결제창 수단 — 가상계좌는 KSNET 미지원으로 제외, 원클릭(빌링)은 별도 경로
+  method: z.enum(["card", "kakaopay", "naverpay", "bank"]).default("card"),
   items: z
     .array(
       z.object({
@@ -75,6 +77,7 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
 
   const res = await getPgProvider().createAuthOrder({
     paymentId: order.id, // 패스스루 a = orderId
+    payMethod: d.method,
     moid,
     amount: total,
     goodsName: sanitizePgParam(goodsName),
