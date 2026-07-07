@@ -17,6 +17,59 @@ export const dynamic = "force-dynamic";
 // generateMetadata와 페이지 본문의 중복 조회 방지
 const getProduct = cache((id: string) => prisma.product.findUnique({ where: { id } }));
 
+type GalleryProduct = {
+  id: string;
+  name: string;
+  imageUrl: string | null;
+  sortOrder: number;
+};
+
+function tokenizeProductName(name: string) {
+  return name
+    .toLowerCase()
+    .split(/[\s/·]+/)
+    .map((token) => token.trim())
+    .filter(Boolean);
+}
+
+function scoreGalleryImage(product: GalleryProduct, candidate: GalleryProduct) {
+  const productTokens = tokenizeProductName(product.name);
+  const productTokenSet = new Set(productTokens);
+  const candidateTokens = tokenizeProductName(candidate.name);
+  const overlap = candidateTokens.filter((token) => productTokenSet.has(token)).length;
+  const sameItemType = productTokens.at(-1) === candidateTokens.at(-1) ? 1 : 0;
+  const nearby = Math.max(0, 8 - Math.abs(product.sortOrder - candidate.sortOrder));
+
+  return overlap * 12 + sameItemType * 8 + nearby;
+}
+
+function buildGalleryImages(product: GalleryProduct, productsInCategory: GalleryProduct[]) {
+  const images: { src: string; alt: string }[] = [];
+  const seen = new Set<string>();
+  const pushImage = (src: string | null, alt: string) => {
+    if (!src || seen.has(src)) return;
+    seen.add(src);
+    images.push({ src, alt });
+  };
+
+  pushImage(product.imageUrl, `${product.name} 대표 이미지`);
+
+  const candidates = productsInCategory
+    .filter((candidate) => candidate.id !== product.id && candidate.imageUrl)
+    .sort((a, b) => {
+      const scoreDiff = scoreGalleryImage(product, b) - scoreGalleryImage(product, a);
+      if (scoreDiff !== 0) return scoreDiff;
+      return a.sortOrder - b.sortOrder;
+    });
+
+  for (const candidate of candidates) {
+    pushImage(candidate.imageUrl, `${product.name} 스타일링 컷`);
+    if (images.length >= 5) break;
+  }
+
+  return images;
+}
+
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
   const product = await getProduct(id);
@@ -43,11 +96,13 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
   const gender = product.gender === "women" ? "women" : "men";
   const genderLabel = gender === "women" ? "여성의류" : "남성의류";
 
-  const related = await prisma.product.findMany({
+  const productsInCategory = await prisma.product.findMany({
     where: { gender: product.gender, category: product.category, active: true, id: { not: product.id } },
     orderBy: { sortOrder: "asc" },
-    take: 4,
+    take: 24,
   });
+  const galleryImages = buildGalleryImages(product, productsInCategory);
+  const related = productsInCategory.slice(0, 4);
 
   const user = await getShopUser();
   const wished = user
@@ -61,7 +116,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
     "@context": "https://schema.org",
     "@type": "Product",
     name: product.name,
-    image: product.imageUrl ? [product.imageUrl] : [],
+    image: galleryImages.map((image) => image.src),
     description: product.description ?? undefined,
     offers: {
       "@type": "Offer",
@@ -90,10 +145,10 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
           <div className="relative overflow-hidden rounded-[var(--radius-lg)] border border-line bg-raised p-3 shadow-elev2 md:p-4">
             <div className="pointer-events-none absolute -inset-x-16 -top-24 h-56 bg-accent-cyan/10 blur-3xl" />
             <div className="relative aspect-[4/5] overflow-hidden rounded-[var(--radius-md)] bg-overlay shadow-glow-cyan">
-              {product.imageUrl && (
+              {galleryImages[0] && (
                 <Image
-                  src={product.imageUrl}
-                  alt={product.name}
+                  src={galleryImages[0].src}
+                  alt={galleryImages[0].alt}
                   fill
                   priority
                   sizes="(min-width: 768px) 50vw, 100vw"
@@ -136,27 +191,33 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
             </p>
           )}
 
-          {/* 디테일 컷 — 원본의 상이한 크롭 2컷 (KSNET 피드백: 상세 이미지 보강) */}
-          {product.imageUrl && (
+          {/* 같은 카테고리의 실제 착용·스타일링 컷을 섞어 원본 확대/크롭처럼 보이지 않게 구성한다. */}
+          {galleryImages.length > 1 && (
             <div className="mt-8 space-y-4 border-t border-line pt-8">
-              <p className="font-mono text-step--1 uppercase tracking-widest text-fg-subtle">Detail</p>
-              <div className="relative aspect-square overflow-hidden rounded-[var(--radius-md)] border border-line bg-overlay">
-                <Image
-                  src={`${product.imageUrl}&h=900&crop=top`}
-                  alt={`${product.name} 디테일`}
-                  fill
-                  sizes="(min-width: 768px) 50vw, 100vw"
-                  className="object-cover"
-                />
+              <div className="flex items-center justify-between gap-3">
+                <p className="font-mono text-step--1 uppercase tracking-widest text-fg-subtle">Looks</p>
+                <p className="font-mono text-[11px] uppercase tracking-widest text-fg-subtle">
+                  {galleryImages.length} photos
+                </p>
               </div>
-              <div className="relative aspect-[4/3] overflow-hidden rounded-[var(--radius-md)] border border-line bg-overlay">
-                <Image
-                  src={`${product.imageUrl}&h=600&crop=entropy`}
-                  alt={`${product.name} 디테일 컷`}
-                  fill
-                  sizes="(min-width: 768px) 50vw, 100vw"
-                  className="object-cover"
-                />
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                {galleryImages.slice(1).map((image, index) => (
+                  <div
+                    key={`${image.src}-${index}`}
+                    className="relative aspect-[4/5] overflow-hidden rounded-[var(--radius-md)] border border-line bg-overlay"
+                  >
+                    <Image
+                      src={image.src}
+                      alt={image.alt}
+                      fill
+                      sizes="(min-width: 768px) 25vw, 50vw"
+                      className="object-cover"
+                    />
+                    <div className="pointer-events-none absolute left-2 top-2 rounded-full border border-line bg-void/55 px-2 py-1 font-mono text-[10px] uppercase tracking-widest text-fg-subtle backdrop-blur">
+                      {String(index + 2).padStart(2, "0")}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
