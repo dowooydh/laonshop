@@ -4,6 +4,7 @@ import Link from "next/link";
 import { getShopUser } from "@/lib/auth";
 import { logoutAction } from "./(auth)/actions";
 import { fontDisplay, fontMono } from "./fonts";
+import { CartAuthSync } from "@/components/cart-auth-sync";
 import { CartBadge } from "@/components/cart-badge";
 import { GrainOverlay } from "@/components/grain-overlay";
 import { SmoothScroll } from "@/components/smooth-scroll";
@@ -30,6 +31,8 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
         <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
       </head>
       <body className="flex min-h-dvh flex-col">
+        {/* 로그아웃·계정 전환 시 이전 사용자 카트 정리 */}
+        <CartAuthSync userId={user?.id ?? null} />
         {/* a11y — 키보드 사용자 본문 바로가기 (포커스 시에만 노출) */}
         <a
           href="#main"
