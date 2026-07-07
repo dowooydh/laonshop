@@ -18,123 +18,21 @@ export const dynamic = "force-dynamic";
 const getProduct = cache((id: string) => prisma.product.findUnique({ where: { id } }));
 
 type GalleryProduct = {
-  id: string;
   name: string;
   imageUrl: string | null;
   category: string | null;
   gender: string | null;
-  sortOrder: number;
 };
 
-type GalleryProfile = {
-  kind: string;
-  family: string;
-};
+// 같은 상품의 추가 사진이라고 검수된 URL만 여기에 넣는다.
+// 다른 상품/비슷한 카테고리 이미지를 상세컷으로 재사용하지 않는다.
+const VERIFIED_DETAIL_IMAGES: Record<string, string[]> = {};
 
-function hasAny(value: string, terms: string[]) {
-  return terms.some((term) => value.includes(term));
+function getVerifiedGalleryKey(product: GalleryProduct) {
+  return `${product.gender ?? ""}|${product.category ?? ""}|${product.name}`;
 }
 
-function getGalleryProfile(product: GalleryProduct): GalleryProfile {
-  const name = product.name;
-
-  switch (product.category) {
-    case "상의":
-      if (hasAny(name, ["셔츠", "블라우스"])) return { kind: "shirt", family: "top" };
-      if (hasAny(name, ["니트", "가디건", "베스트", "터틀넥", "브이넥", "스웨터"])) {
-        return { kind: "knit", family: "top" };
-      }
-      if (hasAny(name, ["맨투맨", "후디"])) return { kind: "sweat", family: "top" };
-      return { kind: "tee", family: "top" };
-    case "아우터":
-      if (hasAny(name, ["코트", "트렌치", "파카"])) return { kind: "coat", family: "outer" };
-      if (hasAny(name, ["베스트"])) return { kind: "vest", family: "outer" };
-      return { kind: "jacket", family: "outer" };
-    case "하의":
-      if (hasAny(name, ["쇼츠"])) return { kind: "shorts", family: "bottom" };
-      if (hasAny(name, ["스커트"])) return { kind: "skirt", family: "bottom" };
-      if (hasAny(name, ["데님", "진", "스키니진"])) return { kind: "denim", family: "bottom" };
-      return { kind: "pants", family: "bottom" };
-    case "원피스/스커트":
-      if (hasAny(name, ["스커트"])) return { kind: "skirt", family: "bottom" };
-      return { kind: "dress", family: "bottom" };
-    case "신발":
-      if (hasAny(name, ["스니커즈", "로우탑", "하이탑", "트레이너", "러너", "스케이트", "슈즈"])) {
-        return { kind: "sneaker", family: "shoes" };
-      }
-      if (hasAny(name, ["로퍼", "더비", "메리제인"])) return { kind: "loafer", family: "shoes" };
-      if (hasAny(name, ["부츠", "앵클부츠", "첼시"])) return { kind: "boots", family: "shoes" };
-      if (hasAny(name, ["샌들", "슬라이드", "에스파듀"])) return { kind: "sandal", family: "shoes" };
-      return { kind: "heel-flat", family: "shoes" };
-    case "가방":
-      if (hasAny(name, ["백팩", "짐색"])) return { kind: "backpack", family: "bag" };
-      if (hasAny(name, ["토트백", "에코백"])) return { kind: "tote", family: "bag" };
-      if (hasAny(name, ["더플백", "위켄더백"])) return { kind: "duffle", family: "bag" };
-      if (hasAny(name, ["브리프케이스", "파우치", "클러치", "클러치백", "슬리브", "카메라백"])) {
-        return { kind: "case", family: "bag" };
-      }
-      return { kind: "crossbody", family: "bag" };
-    case "액세서리":
-      if (hasAny(name, ["볼캡", "비니", "버킷햇", "베레모", "캡"])) return { kind: "hat", family: "accessory" };
-      if (hasAny(name, ["네크리스", "링", "팔찌", "이어링", "세트"])) {
-        return { kind: "jewelry", family: "accessory" };
-      }
-      if (hasAny(name, ["시계", "손목시계"])) return { kind: "watch", family: "accessory" };
-      if (hasAny(name, ["선글라스"])) return { kind: "eyewear", family: "accessory" };
-      if (hasAny(name, ["머플러", "스카프"])) return { kind: "scarf", family: "accessory" };
-      if (hasAny(name, ["벨트", "지갑", "카드지갑"])) return { kind: "leather", family: "accessory" };
-      if (hasAny(name, ["삭스", "양말", "장갑"])) return { kind: "soft", family: "accessory" };
-      if (hasAny(name, ["헤어", "클립"])) return { kind: "hair", family: "accessory" };
-      if (hasAny(name, ["넥타이"])) return { kind: "tie", family: "accessory" };
-      return { kind: "accessory", family: "accessory" };
-    case "홈웨어":
-      if (hasAny(name, ["가운", "로브"])) return { kind: "robe", family: "home" };
-      if (hasAny(name, ["슬리퍼", "양말", "홈삭스"])) return { kind: "slipper-socks", family: "home" };
-      if (hasAny(name, ["안대", "마스크", "헤어밴드"])) return { kind: "home-small", family: "home" };
-      if (hasAny(name, ["블랭킷"])) return { kind: "blanket", family: "home" };
-      return { kind: "lounge", family: "home" };
-    case "스포츠":
-      if (hasAny(name, ["자켓", "바람막이", "베스트"])) return { kind: "sport-outer", family: "sport" };
-      if (hasAny(name, ["팬츠", "쇼츠", "레깅스", "스커트"])) return { kind: "sport-bottom", family: "sport" };
-      if (hasAny(name, ["캡", "헤드밴드", "글러브", "삭스", "레그워머"])) {
-        return { kind: "sport-accessory", family: "sport" };
-      }
-      if (hasAny(name, ["매트", "블록", "세트"])) return { kind: "sport-gear", family: "sport" };
-      return { kind: "sport-top", family: "sport" };
-    default:
-      return { kind: product.category ?? "product", family: product.category ?? "product" };
-  }
-}
-
-function tokenizeProductName(name: string) {
-  return name
-    .toLowerCase()
-    .split(/[\s/·]+/)
-    .map((token) => token.trim())
-    .filter(Boolean);
-}
-
-function scoreGalleryImage(product: GalleryProduct, candidate: GalleryProduct) {
-  const productProfile = getGalleryProfile(product);
-  const candidateProfile = getGalleryProfile(candidate);
-  const productTokens = tokenizeProductName(product.name);
-  const productTokenSet = new Set(productTokens);
-  const candidateTokens = tokenizeProductName(candidate.name);
-  const overlap = candidateTokens.filter((token) => productTokenSet.has(token)).length;
-  const sameItemType = productTokens.at(-1) === candidateTokens.at(-1) ? 1 : 0;
-  const nearby = Math.max(0, 8 - Math.abs(product.sortOrder - candidate.sortOrder));
-
-  return (
-    (product.category === candidate.category ? 32 : 0) +
-    (productProfile.kind === candidateProfile.kind ? 24 : 0) +
-    (productProfile.family === candidateProfile.family ? 12 : 0) +
-    overlap * 12 +
-    sameItemType * 8 +
-    nearby
-  );
-}
-
-function buildGalleryImages(product: GalleryProduct, galleryCandidates: GalleryProduct[]) {
+function buildGalleryImages(product: GalleryProduct) {
   const images: { src: string; alt: string }[] = [];
   const seen = new Set<string>();
   const pushImage = (src: string | null, alt: string) => {
@@ -145,38 +43,8 @@ function buildGalleryImages(product: GalleryProduct, galleryCandidates: GalleryP
 
   pushImage(product.imageUrl, `${product.name} 대표 이미지`);
 
-  const productProfile = getGalleryProfile(product);
-  const candidates = galleryCandidates
-    .filter((candidate) => candidate.id !== product.id && candidate.imageUrl && candidate.gender === product.gender)
-    .sort((a, b) => {
-      const scoreDiff = scoreGalleryImage(product, b) - scoreGalleryImage(product, a);
-      if (scoreDiff !== 0) return scoreDiff;
-      return a.sortOrder - b.sortOrder;
-    });
-  const addMatching = (match: (candidate: GalleryProduct) => boolean) => {
-    for (const candidate of candidates) {
-      const before = images.length;
-      if (match(candidate)) pushImage(candidate.imageUrl, `${product.name} 스타일링 컷`);
-      if (images.length !== before && images.length >= 5) return;
-    }
-  };
-
-  // 품목명 기준으로 먼저 맞추고, 부족한 경우에만 같은 카테고리 안의 호환 품목군으로 보강한다.
-  addMatching((candidate) => {
-    const profile = getGalleryProfile(candidate);
-    return candidate.category === product.category && profile.kind === productProfile.kind;
-  });
-  if (images.length < 5) {
-    addMatching((candidate) => {
-      const profile = getGalleryProfile(candidate);
-      return profile.family === productProfile.family && profile.kind === productProfile.kind;
-    });
-  }
-  if (images.length < 5) {
-    addMatching((candidate) => {
-      const profile = getGalleryProfile(candidate);
-      return candidate.category === product.category && profile.family === productProfile.family;
-    });
+  for (const detailImage of VERIFIED_DETAIL_IMAGES[getVerifiedGalleryKey(product)] ?? []) {
+    pushImage(detailImage, `${product.name} 상세 이미지`);
   }
 
   return images;
@@ -208,12 +76,12 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
   const gender = product.gender === "women" ? "women" : "men";
   const genderLabel = gender === "women" ? "여성의류" : "남성의류";
 
-  const galleryCandidates = await prisma.product.findMany({
-    where: { gender: product.gender, active: true, id: { not: product.id } },
+  const related = await prisma.product.findMany({
+    where: { gender: product.gender, category: product.category, active: true, id: { not: product.id } },
     orderBy: { sortOrder: "asc" },
+    take: 4,
   });
-  const galleryImages = buildGalleryImages(product, galleryCandidates);
-  const related = galleryCandidates.filter((candidate) => candidate.category === product.category).slice(0, 4);
+  const galleryImages = buildGalleryImages(product);
 
   const user = await getShopUser();
   const wished = user
@@ -302,11 +170,11 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
             </p>
           )}
 
-          {/* 같은 카테고리의 실제 착용·스타일링 컷을 섞어 원본 확대/크롭처럼 보이지 않게 구성한다. */}
+          {/* 검수된 같은 상품 추가컷만 노출한다. */}
           {galleryImages.length > 1 && (
             <div className="mt-8 space-y-4 border-t border-line pt-8">
               <div className="flex items-center justify-between gap-3">
-                <p className="font-mono text-step--1 uppercase tracking-widest text-fg-subtle">Looks</p>
+                <p className="font-mono text-step--1 uppercase tracking-widest text-fg-subtle">Detail</p>
                 <p className="font-mono text-[11px] uppercase tracking-widest text-fg-subtle">
                   {galleryImages.length} photos
                 </p>
