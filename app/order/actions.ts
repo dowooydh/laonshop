@@ -41,6 +41,7 @@ export async function requestCancelAction(input: { orderId: string; reason?: str
 const retrySchema = z.object({
   orderId: z.string().min(1),
   method: z.enum(["card", "kakaopay", "naverpay", "bank", "oneclick"]),
+  billingCardId: z.string().optional(), // oneclick 전용 — 미지정 시 첫 등록 카드
 });
 
 export type RetryPaymentResult =
@@ -51,11 +52,12 @@ export type RetryPaymentResult =
 export async function retryPaymentAction(input: {
   orderId: string;
   method: "card" | "kakaopay" | "naverpay" | "bank" | "oneclick";
+  billingCardId?: string;
 }): Promise<RetryPaymentResult> {
   const user = await requireShopUser();
   const parsed = retrySchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "입력값을 확인해 주세요." };
-  const { orderId, method } = parsed.data;
+  const { orderId, method, billingCardId } = parsed.data;
 
   // 본인 소유 + 결제 미완료 주문만 — 금액은 주문 생성 시 서버가 확정한 totalAmount 사용
   const order = await prisma.shopOrder.findFirst({
@@ -65,10 +67,10 @@ export async function retryPaymentAction(input: {
   if (!order || order.items.length === 0) return { ok: false, error: "결제를 진행할 수 없는 주문입니다." };
 
   if (method === "oneclick") {
-    const card = await prisma.shopBillingCard.findFirst({
-      where: { userId: user.id },
-      orderBy: { createdAt: "asc" },
-    });
+    // 카드 선택: billingCardId 지정 시 본인 소유 검증(IDOR 차단), 미지정 시 첫 등록 카드
+    const card = billingCardId
+      ? await prisma.shopBillingCard.findFirst({ where: { id: billingCardId, userId: user.id } })
+      : await prisma.shopBillingCard.findFirst({ where: { userId: user.id }, orderBy: { createdAt: "asc" } });
     if (!card) return { ok: false, error: "등록된 카드가 없습니다. 설정에서 카드를 먼저 등록해 주세요." };
     if (!BILLING_TEST_EMAILS.includes(user.email)) {
       return { ok: false, error: "원클릭 결제는 서비스 준비 중입니다. 카드·간편결제를 이용해 주세요." };

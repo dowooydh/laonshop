@@ -7,15 +7,19 @@ export const BILLING_TEST_EMAILS = ["test@laonshop.com", "laontest@laontest.com"
 
 // mock 승인 — 결제 대기(PENDING/FAILED) 주문만 조건부 확정 (경합·중복 승인 차단).
 // 금액은 주문 생성 시 서버 재조회로 확정된 totalAmount를 그대로 사용한다.
-export async function approveBillingMock(orderId: string, maskedCardNumb: string): Promise<boolean> {
+export async function approvePaymentMock(orderId: string, cardName: string): Promise<boolean> {
   const r = await prisma.shopOrder.updateMany({
     where: { id: orderId, status: { in: ["PENDING", "FAILED"] } },
     data: {
       status: "PAID",
       paidAt: new Date(),
       approvalNo: `MB${Date.now().toString().slice(-8)}`,
-      cardName: `등록카드 ${maskedCardNumb}`,
+      cardName,
     },
   });
   return r.count === 1;
+}
+
+export async function approveBillingMock(orderId: string, maskedCardNumb: string): Promise<boolean> {
+  return approvePaymentMock(orderId, `등록카드 ${maskedCardNumb}`);
 }

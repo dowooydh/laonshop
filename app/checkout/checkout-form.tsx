@@ -24,8 +24,8 @@ export function CheckoutForm({
   initial: CheckoutInitial;
   billingCards?: BillingCardOption[];
 }) {
-  // 결제수단 구성 — KSNET 김민규 팀장 가이드(2026-07): 카드/카카오/네이버/실시간계좌이체/원클릭(빌링).
-  // 가상계좌는 KSNET 미지원+심사 거절 사유로 제외. 수기(구인증)는 적용 방식 KSNET 협의 중 — 노출 보류.
+  // 결제수단 구성 — KSNET 김민규 팀장 가이드(2026-07): 카드/카카오/네이버/실시간계좌이체/원클릭(빌링)/수기(구인증).
+  // 가상계좌는 KSNET 미지원+심사 거절 사유로 제외.
   const METHODS = [
     { id: "card", label: "카드결제", desc: "신용카드 (인증결제)", enabled: true },
     { id: "kakaopay", label: "카카오페이", desc: "카카오페이 간편결제", enabled: true },
@@ -34,14 +34,17 @@ export function CheckoutForm({
     {
       id: "oneclick",
       label: "원클릭 결제",
-      desc: billingCards.length > 0 ? `등록 카드 ${billingCards[0].maskedCardNumb}` : "설정에서 카드 등록 후 이용",
+      desc: billingCards.length > 0 ? `등록 카드 ${billingCards.length}장` : "설정에서 카드 등록 후 이용",
       enabled: billingCards.length > 0,
     },
+    { id: "manual", label: "수기결제", desc: "카드번호 직접 입력 (구인증)", enabled: true },
   ];
   const [items, setItems] = useState<CartItem[]>([]);
   const [ready, setReady] = useState(false);
   const [form, setForm] = useState(initial);
   const [method, setMethod] = useState("card");
+  const [billingCardId, setBillingCardId] = useState(billingCards[0]?.id ?? "");
+  const [manualCard, setManualCard] = useState({ cardNo: "", expMm: "", expYy: "", pw2: "", birth6: "" });
   const [pay, setPay] = useState<{ formAction: string; formFields: Record<string, string> } | null>(null);
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
@@ -64,12 +67,20 @@ export function CheckoutForm({
       setError("주문 내용 확인 및 구매조건에 동의해 주세요.");
       return;
     }
+    if (method === "manual" && (!manualCard.cardNo || !manualCard.expMm || !manualCard.expYy || !manualCard.pw2 || !manualCard.birth6)) {
+      setError("수기결제 카드 정보를 모두 입력해 주세요.");
+      return;
+    }
     setPending(true);
     try {
       const res = await createOrderAction({
-        method: method as "card" | "kakaopay" | "naverpay" | "bank" | "oneclick",
+        method: method as "card" | "kakaopay" | "naverpay" | "bank" | "oneclick" | "manual",
         items: items.map((i) => ({ productId: i.productId, qty: i.qty, size: i.size })),
         ...form,
+        ...(method === "oneclick" && billingCardId ? { billingCardId } : {}),
+        ...(method === "manual"
+          ? { manualCard: { ...manualCard, cardNo: manualCard.cardNo.replace(/[\s-]/g, "") } }
+          : {}),
       });
       if (!res.ok) {
         setError(res.error);
@@ -188,18 +199,34 @@ export function CheckoutForm({
             </button>
           ))}
         </div>
-        {/* 원클릭 선택 시 — 등록 카드 표시 */}
+        {/* 원클릭 선택 시 — 결제에 사용할 등록 카드 선택 */}
         {method === "oneclick" && billingCards.length > 0 && (
           <div className="space-y-2 rounded-[var(--radius-md)] border border-line bg-overlay p-4">
-            {billingCards.map((c, i) => (
-              <div key={c.id} className="flex items-center justify-between gap-3 text-step--1">
-                <span className="font-mono font-semibold tabular-nums text-fg">{c.maskedCardNumb}</span>
-                {i === 0 && (
+            {billingCards.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => setBillingCardId(c.id)}
+                className="flex w-full items-center justify-between gap-3 text-left text-step--1"
+              >
+                <span className="flex items-center gap-2">
+                  <span
+                    className={cn(
+                      "flex h-4 w-4 items-center justify-center rounded-full border",
+                      billingCardId === c.id ? "border-accent-cyan" : "border-line",
+                    )}
+                    aria-hidden
+                  >
+                    {billingCardId === c.id && <span className="h-2 w-2 rounded-full bg-accent-cyan" />}
+                  </span>
+                  <span className="font-mono font-semibold tabular-nums text-fg">{c.maskedCardNumb}</span>
+                </span>
+                {billingCardId === c.id && (
                   <span className="rounded-[var(--radius-sm)] bg-[color-mix(in_oklab,var(--accent-cyan)_16%,transparent)] px-2 py-0.5 font-mono text-[11px] text-accent-cyan ring-1 ring-inset ring-[color-mix(in_oklab,var(--accent-cyan)_38%,transparent)]">
                     결제 카드
                   </span>
                 )}
-              </div>
+              </button>
             ))}
             <p className="text-step--1 text-fg-subtle">
               카드 관리는{" "}
@@ -207,6 +234,46 @@ export function CheckoutForm({
                 설정
               </Link>
               에서 할 수 있습니다.
+            </p>
+          </div>
+        )}
+
+        {/* 수기결제(구인증) 선택 시 — 카드정보 직접 입력. 서버에서 승인 요청 후 즉시 폐기 */}
+        {method === "manual" && (
+          <div className="space-y-3 rounded-[var(--radius-md)] border border-line bg-overlay p-4">
+            <div>
+              <Label htmlFor="mc-no">카드번호</Label>
+              <Input
+                id="mc-no"
+                inputMode="numeric"
+                autoComplete="cc-number"
+                placeholder="0000-0000-0000-0000"
+                value={manualCard.cardNo}
+                onChange={(e) => setManualCard({ ...manualCard, cardNo: e.target.value })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="mc-mm">유효기간 (MM)</Label>
+                <Input id="mc-mm" inputMode="numeric" maxLength={2} placeholder="MM" value={manualCard.expMm} onChange={(e) => setManualCard({ ...manualCard, expMm: e.target.value })} />
+              </div>
+              <div>
+                <Label htmlFor="mc-yy">유효기간 (YY)</Label>
+                <Input id="mc-yy" inputMode="numeric" maxLength={2} placeholder="YY" value={manualCard.expYy} onChange={(e) => setManualCard({ ...manualCard, expYy: e.target.value })} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="mc-pw">비밀번호 앞 2자리</Label>
+                <Input id="mc-pw" type="password" inputMode="numeric" maxLength={2} value={manualCard.pw2} onChange={(e) => setManualCard({ ...manualCard, pw2: e.target.value })} />
+              </div>
+              <div>
+                <Label htmlFor="mc-birth">생년월일 6자리</Label>
+                <Input id="mc-birth" inputMode="numeric" maxLength={10} placeholder="YYMMDD" value={manualCard.birth6} onChange={(e) => setManualCard({ ...manualCard, birth6: e.target.value })} />
+              </div>
+            </div>
+            <p className="text-step--1 text-fg-subtle">
+              카드 정보는 결제 승인에만 사용되며 저장되지 않습니다. (법인카드는 생년월일 대신 사업자번호 10자리)
             </p>
           </div>
         )}

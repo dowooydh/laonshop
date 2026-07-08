@@ -7,23 +7,28 @@ import { Button, FieldError, cn } from "@/lib/ui";
 import { KspayCheckout } from "@/components/kspay-checkout";
 import { retryPaymentAction } from "../actions";
 
+export type RetryBillingCard = { id: string; maskedCardNumb: string };
+
 export function RetryPayment({
   orderId,
   amount,
-  billingCardMasked,
+  billingCards,
 }: {
   orderId: string;
   amount: number;
-  billingCardMasked: string | null;
+  billingCards: RetryBillingCard[];
 }) {
   const METHODS = [
     { id: "card", label: "카드결제", desc: "신용카드 (인증결제)" },
     { id: "kakaopay", label: "카카오페이", desc: "카카오페이 간편결제" },
     { id: "naverpay", label: "네이버페이", desc: "네이버페이 간편결제" },
     { id: "bank", label: "실시간 계좌이체", desc: "은행 계좌 즉시 이체" },
-    ...(billingCardMasked ? [{ id: "oneclick", label: "원클릭 결제", desc: `등록 카드 ${billingCardMasked}` }] : []),
+    ...(billingCards.length > 0
+      ? [{ id: "oneclick", label: "원클릭 결제", desc: `등록 카드 ${billingCards.length}장` }]
+      : []),
   ];
   const [method, setMethod] = useState("card");
+  const [billingCardId, setBillingCardId] = useState(billingCards[0]?.id ?? "");
   const [pay, setPay] = useState<{ formAction: string; formFields: Record<string, string> } | null>(null);
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
@@ -35,6 +40,7 @@ export function RetryPayment({
       const res = await retryPaymentAction({
         orderId,
         method: method as "card" | "kakaopay" | "naverpay" | "bank" | "oneclick",
+        ...(method === "oneclick" && billingCardId ? { billingCardId } : {}),
       });
       if (!res.ok) {
         setError(res.error);
@@ -79,6 +85,36 @@ export function RetryPayment({
           </button>
         ))}
       </div>
+      {method === "oneclick" && billingCards.length > 0 && (
+        <div className="space-y-2 rounded-[var(--radius-md)] border border-line bg-overlay p-4">
+          {billingCards.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => setBillingCardId(c.id)}
+              className="flex w-full items-center justify-between gap-3 text-left text-step--1"
+            >
+              <span className="flex items-center gap-2">
+                <span
+                  className={cn(
+                    "flex h-4 w-4 items-center justify-center rounded-full border",
+                    billingCardId === c.id ? "border-accent-cyan" : "border-line",
+                  )}
+                  aria-hidden
+                >
+                  {billingCardId === c.id && <span className="h-2 w-2 rounded-full bg-accent-cyan" />}
+                </span>
+                <span className="font-mono font-semibold tabular-nums text-fg">{c.maskedCardNumb}</span>
+              </span>
+              {billingCardId === c.id && (
+                <span className="rounded-[var(--radius-sm)] bg-[color-mix(in_oklab,var(--accent-cyan)_16%,transparent)] px-2 py-0.5 font-mono text-[11px] text-accent-cyan ring-1 ring-inset ring-[color-mix(in_oklab,var(--accent-cyan)_38%,transparent)]">
+                  결제 카드
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
       <FieldError>{error}</FieldError>
       <Button type="button" size="lg" className="w-full" loading={pending} onClick={submit}>
         {formatKrw(amount)} 결제하기
