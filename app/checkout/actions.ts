@@ -5,6 +5,7 @@ import { getPgProvider } from "@/lib/kspay";
 import { generateMoid, sanitizePgParam } from "@/lib/format";
 import { z } from "zod";
 import { requireShopUser } from "@/lib/auth";
+import { BILLING_TEST_EMAILS, approveBillingMock } from "@/lib/billing";
 
 const schema = z.object({
   // KSPAY 결제창 수단 — 가상계좌는 KSNET 미지원으로 제외. oneclick = 등록 카드(빌링) 결제창 없는 승인.
@@ -30,11 +31,6 @@ export type CheckoutResult =
   | { ok: true; formAction: string; formFields: Record<string, string> }
   | { ok: true; redirect: string }
   | { ok: false; error: string };
-
-// NEEDS_PG_SPEC: KSNET 빌링 승인 API(사업부 계약 + KSPAY_API_KEY) 미확보 — 테스트 계정 한정 mock 승인.
-// 실연동 시 라온페이 pg-adapter 빌링 이식 후 이 allowlist를 제거한다.
-// (실고객이 mock 승인으로 무결제 주문을 만드는 것을 차단하는 가드)
-const BILLING_TEST_EMAILS = ["test@laonshop.com", "laontest@laontest.com"];
 
 export async function createOrderAction(input: CheckoutInput): Promise<CheckoutResult> {
   const user = await requireShopUser();
@@ -97,16 +93,7 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
     });
 
     // NEEDS_PG_SPEC: 실제 빌링 승인 호출 위치 — 계약 후 billingToken으로 KSNET 승인 요청.
-    // 현재는 화면·주문 흐름 검증용 mock 승인 (금액 계산은 위에서 서버 재조회로 확정).
-    await prisma.shopOrder.update({
-      where: { id: order.id },
-      data: {
-        status: "PAID",
-        paidAt: new Date(),
-        approvalNo: `MB${Date.now().toString().slice(-8)}`,
-        cardName: `등록카드 ${card.maskedCardNumb}`,
-      },
-    });
+    await approveBillingMock(order.id, card.maskedCardNumb);
     return { ok: true, redirect: `/order/${order.id}?receipt=1` };
   }
 

@@ -7,6 +7,7 @@ import { notFound } from "next/navigation";
 import { requireShopUser } from "@/lib/auth";
 import { ClearCartOnPaid } from "./clear-cart";
 import { CancelRequest } from "./cancel-request";
+import { RetryPayment } from "./retry-payment";
 
 export const dynamic = "force-dynamic";
 
@@ -65,7 +66,17 @@ export default async function OrderResultPage({
   if (!order) notFound();
 
   const paid = order.status === "PAID";
+  const retryable = order.status === "PENDING" || order.status === "FAILED";
   const s = STATUS[order.status] ?? STATUS.PENDING;
+
+  // 결제 재개 섹션 — 원클릭(등록 카드) 노출 여부
+  const billingCard = retryable
+    ? await prisma.shopBillingCard.findFirst({
+        where: { userId: user.id },
+        orderBy: { createdAt: "asc" },
+        select: { maskedCardNumb: true },
+      })
+    : null;
 
   // KSNET 매출전표(영수증) — 심사 캡처·소비자 증빙. env 미설정 시 링크만 생략.
   let receiptUrl: string | null = null;
@@ -161,6 +172,10 @@ export default async function OrderResultPage({
           ))}
         </ul>
       </div>
+
+      {retryable && (
+        <RetryPayment orderId={order.id} amount={order.totalAmount} billingCardMasked={billingCard?.maskedCardNumb ?? null} />
+      )}
 
       {order.status === "CANCEL_REQUESTED" && (
         <div className="mt-4 flex items-center justify-between rounded-[var(--radius-md)] border border-line bg-raised px-4 py-3 text-step--1 text-fg-muted">
