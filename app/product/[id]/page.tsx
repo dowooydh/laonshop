@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { formatKrw } from "@/lib/format";
 import { getShopUser } from "@/lib/auth";
+import { getProductDetailImages } from "@/lib/product-detail-images";
 import { Amount } from "@/lib/ui";
 import type { Metadata } from "next";
 import Image from "next/image";
@@ -17,51 +18,19 @@ export const dynamic = "force-dynamic";
 // generateMetadata와 페이지 본문의 중복 조회 방지
 const getProduct = cache((id: string) => prisma.product.findUnique({ where: { id } }));
 
-type GalleryProduct = {
-  name: string;
-  imageUrl: string | null;
-  category: string | null;
-  gender: string | null;
-};
-
-// 같은 상품의 추가 사진이라고 검수된 URL만 여기에 넣는다.
-// 다른 상품/비슷한 카테고리 이미지를 상세컷으로 재사용하지 않는다.
-const VERIFIED_DETAIL_IMAGES: Record<string, string[]> = {};
-
-function getVerifiedGalleryKey(product: GalleryProduct) {
-  return `${product.gender ?? ""}|${product.category ?? ""}|${product.name}`;
-}
-
-function buildGalleryImages(product: GalleryProduct) {
-  const images: { src: string; alt: string }[] = [];
-  const seen = new Set<string>();
-  const pushImage = (src: string | null, alt: string) => {
-    if (!src || seen.has(src)) return;
-    seen.add(src);
-    images.push({ src, alt });
-  };
-
-  pushImage(product.imageUrl, `${product.name} 대표 이미지`);
-
-  for (const detailImage of VERIFIED_DETAIL_IMAGES[getVerifiedGalleryKey(product)] ?? []) {
-    pushImage(detailImage, `${product.name} 상세 이미지`);
-  }
-
-  return images;
-}
-
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
   const product = await getProduct(id);
   if (!product || !product.active) return { title: "상품을 찾을 수 없습니다" };
   const description = `${product.name} — ${product.description ?? "LAON SHOP 셀렉트"} ${formatKrw(product.price)}`;
+  const galleryImages = getProductDetailImages(product);
   return {
     title: product.name,
     description,
     openGraph: {
       title: product.name,
       description,
-      images: product.imageUrl ? [product.imageUrl] : [],
+      images: galleryImages.map((image) => image.src),
     },
   };
 }
@@ -81,7 +50,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
     orderBy: { sortOrder: "asc" },
     take: 4,
   });
-  const galleryImages = buildGalleryImages(product);
+  const galleryImages = getProductDetailImages(product);
 
   const user = await getShopUser();
   const wished = user
@@ -108,7 +77,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
   return (
     <div className="space-y-8">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <RecordView item={{ id: product.id, name: product.name, price: product.price, imageUrl: product.imageUrl }} />
+      <RecordView item={{ id: product.id, name: product.name, price: product.price, imageUrl: galleryImages[0]?.src ?? product.imageUrl }} />
 
       <Link
         href={`/shop/${gender}`}
@@ -203,7 +172,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
 
           <div className="mt-8 border-t border-line pt-8">
             <AddToCart
-              product={{ id: product.id, name: product.name, price: product.price, imageUrl: product.imageUrl }}
+              product={{ id: product.id, name: product.name, price: product.price, imageUrl: galleryImages[0]?.src ?? product.imageUrl }}
               sizes={sizes}
               soldOut={soldOut}
             />
