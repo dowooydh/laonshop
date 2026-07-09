@@ -135,7 +135,9 @@ export async function deleteAccountAction(_prev: SettingsState, formData: FormDa
         email: `deleted-${user.id}@removed.laonshop`,
         name: "탈퇴회원",
         phone: null,
+        zipcode: null,
         address: null,
+        addressDetail: null,
         passwordHash: await bcrypt.hash(crypto.randomUUID(), 10), // 재로그인 원천 차단
       },
     }),

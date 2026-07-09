@@ -68,11 +68,17 @@ export async function loginAction(_prev: AuthState, formData: FormData): Promise
     if (loginFails.size > 1000) loginFails.clear(); // 메모리 상한
     const lockExpired = fail !== undefined && fail.lockedUntil !== 0 && fail.lockedUntil <= Date.now();
     const count = (lockExpired ? 0 : (fail?.count ?? 0)) + 1;
+    const nowLocked = count >= LOGIN_LOCK_AFTER;
     loginFails.set(key, {
       count,
-      lockedUntil: count >= LOGIN_LOCK_AFTER ? Date.now() + LOGIN_LOCK_MS : 0,
+      lockedUntil: nowLocked ? Date.now() + LOGIN_LOCK_MS : 0,
     });
-    return { error: "이메일 또는 비밀번호가 올바르지 않습니다." };
+    // 잠금이 걸리는 그 시도(5번째)부터 바로 안내 — 다음 시도까지 기다리지 않도록
+    return {
+      error: nowLocked
+        ? "비밀번호를 5회 잘못 입력했습니다. 보안을 위해 10분 후 다시 시도해 주세요."
+        : "이메일 또는 비밀번호가 올바르지 않습니다.",
+    };
   }
   loginFails.delete(key);
 

@@ -116,6 +116,8 @@ export function CategoryShop({
                     src={p.imageUrl}
                     alt={p.name}
                     fill
+                    // 첫 카드만 LCP 후보 — priority로 preload (Next Image LCP 경고 해소)
+                    priority={i === 0}
                     sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
                     className="object-cover transition-transform duration-slow ease-out-expo group-hover:scale-[1.06]"
                   />
