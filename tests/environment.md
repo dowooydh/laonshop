@@ -32,7 +32,7 @@ pnpm build
 ```
 
 - 개발 서버: `http://localhost:3003`
-- `pnpm db:seed`는 상품 60개를 생성한다.
+- `pnpm db:seed`는 현재 코드 기준 상품 329개를 생성한다.
 - 시드 재실행 시 상품 ID가 바뀌므로 브라우저 localStorage 장바구니에 죽은 상품이 남을 수 있다.
 - 이때 `"판매가 종료된 상품"` 오류가 뜨면 정상 동작으로 보고, localStorage를 비운 뒤 재시도한다.
 

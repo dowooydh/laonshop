@@ -1,0 +1,32 @@
+{
+  "stamp": "20260709T140112Z",
+  "results": [
+    {
+      "name": "home mobile visible nav links",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "name": "login lock message after five failures",
+      "status": "fail",
+      "detail": "lock text missing; body=본문 바로가기\nLAONSHOP\n장바구니\n로그인\n회원가입\n남성의류\n여성의류\n검색\n\nLOGIN\n\n로그인\n이메일\n비밀번호\n\n이메일 또는 비밀번호가 올바르지 않습니다.\n\n로그인\n\n아직 회원이 아니신가요? 회원가입\n\nLAONSHOP\n\n입는 것을 공간에서 만나는 ㈜커스텀오더의 미래지향 셀렉트샵.\n\n이용약관\n개인정보처리방침\n청약철회·교환·환불 안내\n배송 안내\n자주 묻는 질문\n카카오톡 문의\n\n상호: (주)커스텀오더  |  대표: 유준혁  |  사업자등록번호: 864-88-03054  |  통신판매업신고: 신고 예정\n\n사업장 소재지: 경기도 성남시"
+    },
+    {
+      "name": "checkout prefill and non-allowlist manual guard",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "name": "card checkout reaches KSPAY loading",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "name": "manual paid order can request cancel",
+      "status": "pass",
+      "detail": ""
+    }
+  ],
+  "issues": [],
+  "notFound": []
+}

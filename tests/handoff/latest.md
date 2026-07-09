@@ -1,15 +1,16 @@
 # QA 핸드오프 최신본
 
-작성일: 2026-07-03
+작성일: 2026-07-09
 담당: Codex QA/테스트 세션
-상태: 테스트 환경 안내 반영, 테스트 미실행
+상태: 모바일 웹/Android Chrome 전체 QA 실행 완료
 
 ## 이번 작업 요약
 
-- 최신 코드 파일 목록을 확인해 검색, 정렬, 찜, 최근 본 상품, 마이페이지 설정, 취소/반품 접수, 영수증 링크가 테스트 범위에 포함됨을 반영했다.
 - 제품 코드는 수정하지 않았다.
-- 로컬 테스트 환경, 환경변수, 셋업 순서, 결제 테스트 주의사항을 문서화했다.
-- 실제 E2E 테스트는 아직 실행하지 않았다.
+- `main` 최신 커밋 기준으로 코드 리뷰, DB 스키마 반영, 시드, 빌드, 타입체크, 모바일폭 브라우저 테스트, Android Chrome 테스트를 수행했다.
+- 수기결제/원클릭 결제는 allowlist 계정의 mock 승인 경로로 검증했다.
+- KSPAY 실카드 승인 왕복은 테스트 카드 정보가 없어 수행하지 않고, 결제창 로딩 화면 도달까지만 확인했다.
+- 상세 리포트: `tests/reports/2026-07-09-mobile-full-qa/report.md`
 
 ## 주요 기능 맵
 
@@ -22,12 +23,29 @@
 - 마이페이지: 사용자 주문 목록, 찜 목록, 정보 수정, 비밀번호 변경, 탈퇴
 - 카드사 심사: 푸터 사업자정보, 이용약관, 개인정보처리방침, 배송/환불 정책
 
-## 테스트 전략
+## 실행 결과
 
-- 우선 수동 E2E 체크리스트로 핵심 흐름을 검증한다.
-- 자동화는 Playwright/API 테스트 도입 승인을 받은 뒤 `tests/e2e`, `tests/api`에 추가한다.
-- 결제 관련 테스트는 KSPAY 테스트 MID와 테스트 카드/절차 확인 후 로컬에서만 실행한다.
-- 운영 데이터 삭제는 금지하고, QA 생성 데이터만 정리한다.
+- `pnpm prisma db push`: 통과
+- `pnpm db:seed`: 통과. 현재 시드 상품 수는 329개
+- `pnpm build`: 통과
+- `pnpm typecheck`: 통과
+- `pnpm lint`: 실패. `next lint`가 ESLint 설정 프롬프트로 진입
+- 로컬 dev server: `http://localhost:3003`
+- Android emulator: `emulator-5554`, Chrome에서 라온샵 웹 확인
+
+## 통과한 시나리오
+
+- 모바일폭 홈/nav, 상품 목록 카테고리/정렬, 검색 결과/빈 상태
+- 비로그인 찜 클릭 시 로그인 이동
+- 회원가입 약관/개인정보 동의 required 차단 및 정상 가입
+- 장바구니 담기/수량 조작/로그인 후 카트 유지
+- 체크아웃 저장 배송지 프리필, 구매 동의 전 결제 버튼 비활성
+- 비 allowlist 계정의 수기결제 준비 중 guard
+- 카드결제 선택 후 KSPAY 결제창 로딩 화면 도달
+- allowlist 계정 수기결제 mock 승인 → 주문완료
+- PAID 주문 취소·반품 신청 접수
+- 카드 등록 후 원클릭 결제 mock 승인
+- Android Chrome 홈/검색/여성 상품 목록 렌더링
 
 ## 필요한 계정/서버/기기/권한
 
@@ -47,7 +65,7 @@
 - 추가 환경 변수: `SHOP_APP_URL=http://localhost:3003`
 - 셋업: `pnpm install` → `pnpm prisma db push` → `pnpm db:seed` → `pnpm dev`
 - 런타임 기준: Node 22.x + pnpm 11.5.3
-- 현재 이 세션은 직접 `node -v` 확인 시 Node `v25.9.0`, `pnpm build` 경고 기준 Node `v24.14.0`, pnpm `11.7.0`, `corepack` 미탑재로 확인됨. 실제 검증 전 환경 정렬 필요.
+- 이번 실행 환경: Node `v25.9.0`, pnpm `11.5.3`. Node 엔진 경고 발생
 
 ### 기기/브라우저
 
@@ -63,16 +81,15 @@
 - 브라우저 콘솔/네트워크 확인 권한
 - Vercel preview 테스트 시 배포 URL 접근 권한
 
-## 초기 리스크/관찰사항
+## 발견 이슈
 
 | 우선순위 | 관찰 | 관련 위치 | 확인 필요 |
 | --- | --- | --- | --- |
-| P0 | `/checkout`는 클라이언트 컴포넌트에서 server action을 호출한다. 비로그인 시 `requireShopUser()` redirect가 client action 호출 중 어떤 사용자 경험으로 나타나는지 확인 필요 | `app/checkout/page.tsx`, `app/checkout/actions.ts` | 비로그인 checkout 버튼 클릭 시 UX |
-| P0 | `createOrderAction`에서 판매 종료 상품 포함 시 throw가 발생한다. 사용자에게 오류 메시지로 보이는지 확인 필요 | `app/checkout/actions.ts` | inactive/삭제 상품이 localStorage에 남은 케이스 |
-| P0 | KSPAY result는 PENDING일 때만 승인 처리한다. 중복 POST 멱등성은 의도상 양호하나 실제 재호출 시 응답/상태 확인 필요 | `app/api/pg/kspay/result/route.ts` | 중복 callback/result |
-| P1 | 결제창 스크립트 로드 실패 catch가 사용자 메시지를 갱신하지 않는다 | `components/kspay-checkout.tsx` | 네트워크 실패/차단 UX |
-| 제외 | 푸터 대표/주소 없음, 통신판매업신고 `신고 예정`은 심사 직전 기재 예정 상태로 버그 보고 제외 | `app/layout.tsx` | 심사 직전 최종 확인 |
-| P1 | 장바구니는 localStorage 가격을 표시하지만 주문 금액은 서버 재계산이다. 화면 표시 금액과 실제 주문 금액 불일치 케이스 확인 필요 | `lib/cart.ts`, `app/checkout/actions.ts` | 가격 변경 후 기존 장바구니 |
+| P1 | 회원 탈퇴 후 `zipcode`, `addressDetail`이 남는다. 실제 탈퇴 QA 계정에서 `zipcode=12345`, `addressDetail=잔존상세 909` 잔존 확인 | `app/mypage/actions.ts:133` | 탈퇴 익명화 시 두 컬럼도 null 처리 |
+| P2 | `pnpm lint`가 `next lint` deprecated/ESLint 설정 프롬프트로 진입해 자동 검증에 실패한다 | `package.json` | ESLint CLI 설정 또는 lint 스크립트 정비 |
+| P2 | 로그인 5회 실패 시 5번째 화면은 일반 오류이고, 6번째 시도부터 잠금 문구가 표시된다 | `app/(auth)/actions.ts:71` | 5번째 실패 응답에서 바로 잠금 안내 여부 결정 |
+| P3 | Android emulator에서 `127.0.0.1`/`10.0.2.2` dev 접속 시 Next `allowedDevOrigins` future 경고 발생 | `next.config.ts` | 로컬 모바일 테스트 편의용 dev origin 설정 검토 |
+| P3 | above-the-fold 이미지에 Next Image LCP priority 경고 반복 | `components/home-hero.tsx`, `components/category-shop.tsx` | 주요 첫 이미지 priority 적용 검토 |
 
 ## 버그 보고 제외 항목
 
@@ -90,3 +107,9 @@
 4. 테스트 DB/계정 확인
 5. `tests/checklists/manual-e2e.md` 기준으로 범위 선택
 6. 실행 결과와 결함을 이 문서에 갱신
+
+## QA 데이터
+
+- 이번 테스트에서 `qa-e2e-*`, `qa-focused-*`, `qa-lock-*`, `qa-delete-*` 계정을 생성했다.
+- `laontest@laontest.com` allowlist 계정은 mock 결제 검증을 위해 비밀번호/주소를 QA 값으로 맞췄다.
+- 주문/카드/탈퇴 상태는 재현 증적 보존을 위해 삭제하지 않았다.

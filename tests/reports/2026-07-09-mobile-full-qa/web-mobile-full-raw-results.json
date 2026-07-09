@@ -1,0 +1,131 @@
+{
+  "stamp": "20260709T135656Z",
+  "baseURL": "http://localhost:3003",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "results": [
+    {
+      "name": "console",
+      "status": "warn",
+      "detail": "Image with src \"https://images.unsplash.com/photo-1534030347209-467a5b0ad3e6?w=1100&q=80&auto=format&fit=crop\" was detected as the Largest Contentful Paint (LCP). Please add the \"priority\" property if this image is above the fold.\nRead more: https://nextjs.org/docs/api-reference/next/image#priority"
+    },
+    {
+      "name": "mobile home loads and nav visible",
+      "status": "fail",
+      "detail": "locator.waitFor: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText('남성의류').first() to be visible\u001b[22m\n\u001b[2m    64 × locator resolved to hidden <a href=\"/shop/men\" class=\"rounded-[var(--radius-sm)] px-3 py-2 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg\">남성의류</a>\u001b[22m\n"
+    },
+    {
+      "name": "console",
+      "status": "warn",
+      "detail": "Image with src \"https://images.unsplash.com/photo-1777462985111-9da64fb2e6e6?w=800&q=80&auto=format&fit=crop\" was detected as the Largest Contentful Paint (LCP). Please add the \"priority\" property if this image is above the fold.\nRead more: https://nextjs.org/docs/api-reference/next/image#priority"
+    },
+    {
+      "name": "shop category tabs and sorting work",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "name": "console",
+      "status": "warn",
+      "detail": "Image with src \"https://images.unsplash.com/photo-1607345366928-199ea26cfe3e?w=800&q=80&auto=format&fit=crop\" was detected as the Largest Contentful Paint (LCP). Please add the \"priority\" property if this image is above the fold.\nRead more: https://nextjs.org/docs/api-reference/next/image#priority"
+    },
+    {
+      "name": "console",
+      "status": "warn",
+      "detail": "Image with src \"https://images.unsplash.com/photo-1611312449412-6cefac5dc3e4?w=800&q=80&auto=format&fit=crop\" was detected as the Largest Contentful Paint (LCP). Please add the \"priority\" property if this image is above the fold.\nRead more: https://nextjs.org/docs/api-reference/next/image#priority"
+    },
+    {
+      "name": "search results and empty state",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "name": "console",
+      "status": "warn",
+      "detail": "Image with src \"https://images.unsplash.com/photo-1607345366928-199ea26cfe3e?w=800&q=80&auto=format&fit=crop\" was detected as the Largest Contentful Paint (LCP). Please add the \"priority\" property if this image is above the fold.\nRead more: https://nextjs.org/docs/api-reference/next/image#priority"
+    },
+    {
+      "name": "guest wishlist redirects to login",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "name": "signup validation and success with agreements",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "name": "logout and login lock after five bad attempts",
+      "status": "fail",
+      "detail": "locator.waitFor: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText('로그인 시도가 너무 많습니다') to be visible\u001b[22m\n"
+    },
+    {
+      "name": "console",
+      "status": "warn",
+      "detail": "Image with src \"https://images.unsplash.com/photo-1607345366928-199ea26cfe3e?w=800&q=80&auto=format&fit=crop\" was detected as the Largest Contentful Paint (LCP). Please add the \"priority\" property if this image is above the fold.\nRead more: https://nextjs.org/docs/api-reference/next/image#priority"
+    },
+    {
+      "name": "console",
+      "status": "fail",
+      "detail": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    },
+    {
+      "name": "guest cart persists into login and cart controls work",
+      "status": "fail",
+      "detail": "locator.waitFor: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText(/×?/).first() to be visible\u001b[22m\n\u001b[2m    64 × locator resolved to hidden <div hidden=\"\">…</div>\u001b[22m\n"
+    },
+    {
+      "name": "checkout prefill, required agreement, manual/oneclick non-allowlist guards",
+      "status": "fail",
+      "detail": "locator.waitFor: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByText('저장된 배송지') to be visible\u001b[22m\n"
+    },
+    {
+      "name": "card checkout reaches KSPAY bridge screen",
+      "status": "fail",
+      "detail": "locator.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: /카드결제/ })\u001b[22m\n"
+    },
+    {
+      "name": "console",
+      "status": "warn",
+      "detail": "Image with src \"https://images.unsplash.com/photo-1607345366928-199ea26cfe3e?w=800&q=80&auto=format&fit=crop\" was detected as the Largest Contentful Paint (LCP). Please add the \"priority\" property if this image is above the fold.\nRead more: https://nextjs.org/docs/api-reference/next/image#priority"
+    },
+    {
+      "name": "allowlisted manual payment creates paid order and cancel request",
+      "status": "fail",
+      "detail": "locator.fill: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByPlaceholder('취소·반품 사유를 입력해 주세요')\u001b[22m\n"
+    },
+    {
+      "name": "console",
+      "status": "warn",
+      "detail": "Image with src \"https://images.unsplash.com/photo-1607345366928-199ea26cfe3e?w=800&q=80&auto=format&fit=crop\" was detected as the Largest Contentful Paint (LCP). Please add the \"priority\" property if this image is above the fold.\nRead more: https://nextjs.org/docs/api-reference/next/image#priority"
+    },
+    {
+      "name": "billing card registration and oneclick mock payment for allowlisted user",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "name": "account deletion anonymization DB check",
+      "status": "pass",
+      "detail": ""
+    }
+  ],
+  "issues": [
+    {
+      "priority": "P1",
+      "title": "회원 탈퇴 후 우편번호/상세주소가 남음",
+      "detail": "deleted user id=cmrdkqi9200027imhdiymld8s, zipcode=12345, addressDetail=잔존상세 909",
+      "refs": [
+        "app/mypage/actions.ts"
+      ]
+    },
+    {
+      "priority": "P2",
+      "title": "브라우저 콘솔 에러 발생",
+      "detail": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "refs": []
+    }
+  ]
+}
