@@ -2,7 +2,7 @@
 // 주문 생성 + KSPAY 인증결제창 호출. 가격은 서버에서 상품 재조회로 신뢰(위변조 차단).
 import { prisma } from "@/lib/db";
 import { getPgProvider } from "@/lib/kspay";
-import { payOldCert } from "@/lib/kspay/webfep";
+import { isKspayRestLiveEnabled, payOldCert } from "@/lib/kspay/webfep";
 import { generateMoid, sanitizePgParam } from "@/lib/format";
 import { z } from "zod";
 import { requireShopUser } from "@/lib/auth";
@@ -114,8 +114,8 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
   // ── 수기결제(구인증) — KSNET WEBFEP /card/pay/oldcert. 카드정보는 즉시 폐기 ──
   if (d.method === "manual") {
     if (!d.manualCard) return { ok: false, error: "카드 정보를 입력해 주세요." };
-    // 계약 전(KSPAY_API_KEY 미설정) 실승인 불가 — 테스트 계정 외에는 준비 중 안내
-    if (!process.env.KSPAY_API_KEY && !BILLING_TEST_EMAILS.includes(user.email)) {
+    // 계약/API 키/명시적 운영 스위치가 모두 준비되기 전에는 테스트 계정만 mock 허용
+    if (!isKspayRestLiveEnabled() && !BILLING_TEST_EMAILS.includes(user.email)) {
       return { ok: false, error: "수기결제는 서비스 준비 중입니다. 카드·간편결제를 이용해 주세요." };
     }
 
@@ -151,7 +151,7 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
     });
 
     if (result === null) {
-      // KSPAY_API_KEY 미설정(사업부 계약 전) — 테스트 계정 한정 mock 승인 (위 가드 통과분)
+      // WEBFEP 실승인 이중 가드 비활성 — 테스트 계정 한정 mock 승인 (위 가드 통과분)
       await approvePaymentMock(order.id, `수기결제 ${masked}`);
       return { ok: true, redirect: `/order/${order.id}?receipt=1` };
     }

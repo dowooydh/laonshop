@@ -1,7 +1,8 @@
 // KSNET WEBFEP REST — 구인증(수기) 결제. 서버 간 API로 결제창 없이 카드정보 직접 승인.
 // 스펙: laonpay_docs/04_PG_KSNET/KSNET_WEBFEP_REST_API_레퍼런스.md (paydev.ksnet.co.kr/kspay/webfep/doc)
 //   POST {base}/kspay/webfep/api/v1/card/pay/oldcert · Authorization: pgapi {apiKey}
-// ★사업부 별도 계약 필요 — KSPAY_API_KEY 미설정 시 null 반환(호출부에서 심사용 mock 폴백).
+// ★사업부 별도 계약 필요 — KSPAY_API_KEY + KSPAY_REST_LIVE=1이 모두 있어야 실호출.
+// 둘 중 하나라도 없으면 null 반환(호출부에서 허용된 테스트 계정만 mock 폴백).
 // 절대 규칙 2: 카드정보는 요청 후 즉시 폐기, 저장·로그 금지.
 
 export type OldCertRequest = {
@@ -21,9 +22,27 @@ export type OldCertResult =
   | { ok: true; tid: string; approvalNumb: string; cardName: string }
   | { ok: false; message: string };
 
+export type KspayRestEnv = {
+  KSPAY_API_KEY?: string;
+  KSPAY_REST_LIVE?: string;
+};
+
+/**
+ * WEBFEP 실승인 이중 가드.
+ * API 키가 환경에 미리 등록되거나 잘못 노출되어도 명시적 운영 스위치 없이는 외부 승인 API를 호출하지 않는다.
+ */
+export function isKspayRestLiveEnabled(
+  env: KspayRestEnv = {
+    KSPAY_API_KEY: process.env.KSPAY_API_KEY,
+    KSPAY_REST_LIVE: process.env.KSPAY_REST_LIVE,
+  },
+): boolean {
+  return env.KSPAY_REST_LIVE === "1" && Boolean(env.KSPAY_API_KEY?.trim());
+}
+
 export async function payOldCert(req: OldCertRequest): Promise<OldCertResult | null> {
-  const apiKey = process.env.KSPAY_API_KEY;
-  if (!apiKey) return null; // 계약 전 — 호출부가 mock으로 폴백
+  const apiKey = process.env.KSPAY_API_KEY?.trim();
+  if (!isKspayRestLiveEnabled() || !apiKey) return null; // 계약 전/운영 스위치 OFF — 호출부가 제한적으로 mock 폴백
 
   const base = process.env.KSPAY_WEBFEP_BASE ?? "https://pay.ksnet.co.kr";
   const mid = process.env.KSPAY_STORE_ID ?? "2999199999";
