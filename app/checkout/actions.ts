@@ -3,10 +3,16 @@
 import { prisma } from "@/lib/db";
 import { getPgProvider } from "@/lib/kspay";
 import { isKspayRestLiveEnabled, payOldCert } from "@/lib/kspay/webfep";
-import { generateMoid, sanitizePgParam } from "@/lib/format";
+import { sanitizePgParam } from "@/lib/format";
 import { z } from "zod";
 import { requireShopUser } from "@/lib/auth";
-import { BILLING_TEST_EMAILS, approveBillingMock, approvePaymentMock } from "@/lib/billing";
+import { BILLING_TEST_EMAILS } from "@/lib/billing";
+import {
+  acquireTransactionLock,
+  createIdempotentMoid,
+  lockAndValidateInventory,
+  PAYMENT_PROCESSING_MARKER,
+} from "@/lib/order-guard";
 
 const schema = z.object({
   // KSPAY 결제창 수단 — 가상계좌는 KSNET 미지원으로 제외.
@@ -20,7 +26,9 @@ const schema = z.object({
         size: z.string().optional(),
       }),
     )
-    .min(1, "장바구니가 비어 있습니다."),
+    .min(1, "장바구니가 비어 있습니다.")
+    .max(50, "한 번에 주문할 수 있는 상품 종류를 초과했습니다."),
+  idempotencyKey: z.string().regex(/^[a-f0-9]{64}$/, "주문 요청 식별값이 올바르지 않습니다."),
   receiverName: z.string().trim().min(1, "받는 분 이름을 입력해 주세요.").max(30),
   receiverPhone: z.string().trim().min(1, "연락처를 입력해 주세요.").max(20),
   zipcode: z.union([z.string().trim().max(10), z.literal("")]).optional(),
@@ -46,34 +54,13 @@ export type CheckoutResult =
   | { ok: true; redirect: string }
   | { ok: false; error: string };
 
+const TX_OPTIONS = { maxWait: 5_000, timeout: 15_000 } as const;
+
 export async function createOrderAction(input: CheckoutInput): Promise<CheckoutResult> {
   const user = await requireShopUser();
   const parsed = schema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.errors[0]?.message ?? "입력값을 확인해 주세요." };
   const d = parsed.data;
-
-  const products = await prisma.product.findMany({
-    where: { id: { in: d.items.map((i) => i.productId) }, active: true },
-  });
-  const pmap = new Map(products.map((p) => [p.id, p]));
-
-  // throw 금지 — 서버액션 reject 시 클라이언트 pending이 안 풀린다. 항상 {ok:false}로 반환.
-  const gone = d.items.filter((it) => !pmap.get(it.productId));
-  if (gone.length > 0) {
-    return { ok: false, error: "판매가 종료된 상품이 장바구니에 있습니다. 장바구니를 정리한 뒤 다시 시도해 주세요." };
-  }
-  const soldOut = d.items.filter((it) => pmap.get(it.productId)!.stock < it.qty);
-  if (soldOut.length > 0) {
-    const name = pmap.get(soldOut[0].productId)!.name;
-    return { ok: false, error: `품절된 상품이 있습니다: ${name}` };
-  }
-
-  let total = 0;
-  const itemsData = d.items.map((it) => {
-    const p = pmap.get(it.productId)!;
-    total += p.price * it.qty;
-    return { productId: p.id, name: p.name, price: p.price, qty: it.qty, size: it.size || null };
-  });
 
   // 우편번호·상세주소는 주문 스냅샷 문자열로 합성 보관 (ShopOrder.address 단일 컬럼 유지)
   const fullAddress = [d.zipcode ? `[${d.zipcode}]` : "", d.address, d.addressDetail || ""]
@@ -81,121 +68,182 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
     .join(" ")
     .trim();
 
-  // ── 원클릭(빌링) — 결제창 없이 등록 카드로 승인 ──────────────────────
+  let billingCard: { id: string; maskedCardNumb: string } | null = null;
   if (d.method === "oneclick") {
-    // 카드 선택: billingCardId 지정 시 본인 소유 검증(IDOR 차단), 미지정 시 첫 등록 카드
-    const card = d.billingCardId
-      ? await prisma.shopBillingCard.findFirst({ where: { id: d.billingCardId, userId: user.id } })
-      : await prisma.shopBillingCard.findFirst({ where: { userId: user.id }, orderBy: { createdAt: "asc" } });
-    if (!card) return { ok: false, error: "등록된 카드가 없습니다. 설정에서 카드를 먼저 등록해 주세요." };
+    billingCard = d.billingCardId
+      ? await prisma.shopBillingCard.findFirst({
+          where: { id: d.billingCardId, userId: user.id },
+          select: { id: true, maskedCardNumb: true },
+        })
+      : await prisma.shopBillingCard.findFirst({
+          where: { userId: user.id },
+          orderBy: { createdAt: "asc" },
+          select: { id: true, maskedCardNumb: true },
+        });
+    if (!billingCard) return { ok: false, error: "등록된 카드가 없습니다. 설정에서 카드를 먼저 등록해 주세요." };
     if (!BILLING_TEST_EMAILS.includes(user.email)) {
       return { ok: false, error: "원클릭 결제는 서비스 준비 중입니다. 카드·간편결제를 이용해 주세요." };
     }
+  }
 
-    const moid = generateMoid();
-    const order = await prisma.shopOrder.create({
+  if (d.method === "manual") {
+    if (!d.manualCard) return { ok: false, error: "카드 정보를 입력해 주세요." };
+    if (!isKspayRestLiveEnabled() && !BILLING_TEST_EMAILS.includes(user.email)) {
+      return { ok: false, error: "수기결제는 서비스 준비 중입니다. 카드·간편결제를 이용해 주세요." };
+    }
+  }
+
+  // 동일 사용자·동일 체크아웃 요청은 같은 moid를 사용한다. DB advisory lock으로 다중 탭과
+  // 네트워크 재전송을 직렬화하고, 상품 행 잠금 안에서 재고 확인과 주문 생성을 원자화한다.
+  const prepared = await prisma.$transaction(async (tx) => {
+    await acquireTransactionLock(tx, `checkout:${user.id}:${d.idempotencyKey}`);
+    const moid = createIdempotentMoid(user.id, d.idempotencyKey);
+    const existing = await tx.shopOrder.findUnique({ where: { moid }, include: { items: true } });
+
+    if (existing) {
+      if (existing.userId !== user.id) return { ok: false as const, error: "주문 요청을 처리할 수 없습니다." };
+      if (existing.status === "PAID") return { ok: true as const, order: existing };
+      if (existing.status === "CANCELED" || existing.status === "CANCEL_REQUESTED") {
+        return { ok: false as const, error: "이미 처리된 주문입니다. 주문내역을 확인해 주세요." };
+      }
+      if (existing.approvalNo === PAYMENT_PROCESSING_MARKER) {
+        return { ok: false as const, error: "결제 결과를 확인 중입니다. 잠시 후 주문내역을 확인해 주세요." };
+      }
+      const inventory = await lockAndValidateInventory(tx, existing.items, existing.id);
+      if (!inventory.ok) return inventory;
+      const order = await tx.shopOrder.update({
+        where: { id: existing.id },
+        data: { status: "PENDING" },
+        include: { items: true },
+      });
+      return { ok: true as const, order };
+    }
+
+    const inventory = await lockAndValidateInventory(tx, d.items);
+    if (!inventory.ok) return inventory;
+    const order = await tx.shopOrder.create({
       data: {
         userId: user.id,
         status: "PENDING",
-        totalAmount: total,
+        totalAmount: inventory.total,
         moid,
         receiverName: d.receiverName,
         receiverPhone: d.receiverPhone,
         address: fullAddress,
-        items: { create: itemsData },
+        items: { create: inventory.items },
       },
+      include: { items: true },
     });
+    return { ok: true as const, order };
+  }, TX_OPTIONS).catch(() => null);
 
+  if (!prepared) return { ok: false, error: "주문을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요." };
+  if (!prepared.ok) return { ok: false, error: prepared.error };
+  const order = prepared.order;
+  if (order.status === "PAID") return { ok: true, redirect: `/order/${order.id}?receipt=1` };
+  const goodsName =
+    order.items.length > 1 ? `${order.items[0].name} 외 ${order.items.length - 1}건` : order.items[0].name;
+
+  // ── 원클릭(빌링) — 결제창 없이 등록 카드로 승인 ──────────────────────
+  if (d.method === "oneclick") {
     // NEEDS_PG_SPEC: 실제 빌링 승인 호출 위치 — 계약 후 billingToken으로 KSNET /billing/pay 요청.
-    await approveBillingMock(order.id, card.maskedCardNumb);
+    const approved = await prisma.$transaction(async (tx) => {
+      await acquireTransactionLock(tx, `order:${order.id}`);
+      const current = await tx.shopOrder.findUnique({ where: { id: order.id }, include: { items: true } });
+      if (!current || current.userId !== user.id) return { ok: false as const, error: "주문을 찾을 수 없습니다." };
+      if (current.status === "PAID") return { ok: true as const };
+      if (current.status !== "PENDING") return { ok: false as const, error: "이미 처리된 주문입니다." };
+      const inventory = await lockAndValidateInventory(tx, current.items, current.id);
+      if (!inventory.ok) {
+        await tx.shopOrder.update({ where: { id: current.id }, data: { status: "FAILED" } });
+        return inventory;
+      }
+      await tx.shopOrder.update({
+        where: { id: current.id },
+        data: {
+          status: "PAID",
+          paidAt: new Date(),
+          approvalNo: `MB${Date.now().toString().slice(-8)}`,
+          cardName: `등록카드 ${billingCard!.maskedCardNumb}`,
+        },
+      });
+      return { ok: true as const };
+    }, TX_OPTIONS).catch(() => null);
+    if (!approved) return { ok: false, error: "결제 상태를 확인하지 못했습니다. 주문내역을 확인해 주세요." };
+    if (!approved.ok) return { ok: false, error: approved.error };
     return { ok: true, redirect: `/order/${order.id}?receipt=1` };
   }
 
   // ── 수기결제(구인증) — KSNET WEBFEP /card/pay/oldcert. 카드정보는 즉시 폐기 ──
   if (d.method === "manual") {
-    if (!d.manualCard) return { ok: false, error: "카드 정보를 입력해 주세요." };
-    // 계약/API 키/명시적 운영 스위치가 모두 준비되기 전에는 테스트 계정만 mock 허용
-    if (!isKspayRestLiveEnabled() && !BILLING_TEST_EMAILS.includes(user.email)) {
-      return { ok: false, error: "수기결제는 서비스 준비 중입니다. 카드·간편결제를 이용해 주세요." };
-    }
-
-    const goodsName =
-      itemsData.length > 1 ? `${itemsData[0].name} 외 ${itemsData.length - 1}건` : itemsData[0].name;
-    const moid = generateMoid();
-    const order = await prisma.shopOrder.create({
-      data: {
-        userId: user.id,
-        status: "PENDING",
-        totalAmount: total,
-        moid,
-        receiverName: d.receiverName,
-        receiverPhone: d.receiverPhone,
-        address: fullAddress,
-        items: { create: itemsData },
-      },
-    });
-
-    const mc = d.manualCard;
+    const mc = d.manualCard!;
     const masked = `${mc.cardNo.slice(0, 4)}-${mc.cardNo.slice(4, 6)}**-****-${mc.cardNo.slice(-4)}`;
-    const result = await payOldCert({
-      orderNumb: moid,
-      userName: user.name,
-      userEmail: user.email,
-      productName: sanitizePgParam(goodsName),
-      totalAmount: total,
-      cardNumb: mc.cardNo,
-      expiryDate: `${mc.expYy}${mc.expMm}`, // yyMM
-      password2: mc.pw2,
-      userInfo: mc.birth6,
-      payload: order.id,
-    });
-
-    if (result === null) {
-      // WEBFEP 실승인 이중 가드 비활성 — 테스트 계정 한정 mock 승인 (위 가드 통과분)
-      await approvePaymentMock(order.id, `수기결제 ${masked}`);
-      return { ok: true, redirect: `/order/${order.id}?receipt=1` };
-    }
-    if (!result.ok) {
-      await prisma.shopOrder.updateMany({ where: { id: order.id, status: "PENDING" }, data: { status: "FAILED" } });
-      return { ok: false, error: `카드 승인이 거절되었습니다: ${result.message}` };
-    }
-    await prisma.shopOrder.updateMany({
-      where: { id: order.id, status: "PENDING" },
-      data: {
-        status: "PAID",
-        paidAt: new Date(),
-        approvalNo: result.approvalNumb,
-        pgTrno: result.tid,
-        cardName: `${result.cardName} (수기)`,
-      },
-    });
+    const manual = await prisma.$transaction(async (tx) => {
+      await acquireTransactionLock(tx, `order:${order.id}`);
+      const current = await tx.shopOrder.findUnique({ where: { id: order.id }, include: { items: true } });
+      if (!current || current.userId !== user.id) return { ok: false as const, error: "주문을 찾을 수 없습니다." };
+      if (current.status === "PAID") return { ok: true as const };
+      if (current.status !== "PENDING") return { ok: false as const, error: "이미 처리된 주문입니다." };
+      const inventory = await lockAndValidateInventory(tx, current.items, current.id);
+      if (!inventory.ok) {
+        await tx.shopOrder.update({ where: { id: current.id }, data: { status: "FAILED" } });
+        return inventory;
+      }
+      const result = await payOldCert({
+        orderNumb: current.moid,
+        userName: user.name,
+        userEmail: user.email,
+        productName: sanitizePgParam(goodsName),
+        totalAmount: current.totalAmount,
+        cardNumb: mc.cardNo,
+        expiryDate: `${mc.expYy}${mc.expMm}`,
+        password2: mc.pw2,
+        userInfo: mc.birth6,
+        payload: current.id,
+      });
+      if (result === null) {
+        await tx.shopOrder.update({
+          where: { id: current.id },
+          data: {
+            status: "PAID",
+            paidAt: new Date(),
+            approvalNo: `MB${Date.now().toString().slice(-8)}`,
+            cardName: `수기결제 ${masked}`,
+          },
+        });
+        return { ok: true as const };
+      }
+      if (!result.ok) {
+        if (!result.indeterminate) {
+          await tx.shopOrder.update({ where: { id: current.id }, data: { status: "FAILED" } });
+        }
+        return { ok: false as const, error: result.message };
+      }
+      await tx.shopOrder.update({
+        where: { id: current.id },
+        data: {
+          status: "PAID",
+          paidAt: new Date(),
+          approvalNo: result.approvalNumb,
+          pgTrno: result.tid,
+          cardName: `${result.cardName} (수기)`,
+        },
+      });
+      return { ok: true as const };
+    }, TX_OPTIONS).catch(() => null);
+    if (!manual) return { ok: false, error: "결제 상태를 확인하지 못했습니다. 주문내역을 확인해 주세요." };
+    if (!manual.ok) return { ok: false, error: manual.error };
     return { ok: true, redirect: `/order/${order.id}?receipt=1` };
   }
 
-  const moid = generateMoid();
-  const order = await prisma.shopOrder.create({
-    data: {
-      userId: user.id,
-      status: "PENDING",
-      totalAmount: total,
-      moid,
-      receiverName: d.receiverName,
-      receiverPhone: d.receiverPhone,
-      address: fullAddress,
-      items: { create: itemsData },
-    },
-  });
-
   const base = process.env.SHOP_APP_URL ?? "http://localhost:3003";
-  const goodsName =
-    itemsData.length > 1 ? `${itemsData[0].name} 외 ${itemsData.length - 1}건` : itemsData[0].name;
 
   const res = await getPgProvider().createAuthOrder({
     paymentId: order.id, // 패스스루 a = orderId
     payMethod: d.method as "card" | "kakaopay" | "naverpay" | "bank", // oneclick은 위에서 조기 반환
 
-    moid,
-    amount: total,
+    moid: order.moid,
+    amount: order.totalAmount,
     goodsName: sanitizePgParam(goodsName),
     ordername: sanitizePgParam(user.name),
     buyerPhone: d.receiverPhone.replace(/\D/g, ""),

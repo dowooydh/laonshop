@@ -8,6 +8,7 @@ import { requireShopUser } from "@/lib/auth";
 import { ClearCartOnPaid } from "./clear-cart";
 import { CancelRequest } from "./cancel-request";
 import { RetryPayment } from "./retry-payment";
+import { PAYMENT_PROCESSING_MARKER } from "@/lib/order-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -66,8 +67,11 @@ export default async function OrderResultPage({
   if (!order) notFound();
 
   const paid = order.status === "PAID";
-  const retryable = order.status === "PENDING" || order.status === "FAILED";
-  const s = STATUS[order.status] ?? STATUS.PENDING;
+  const processing = order.status === "PENDING" && order.approvalNo === PAYMENT_PROCESSING_MARKER;
+  const retryable = !processing && (order.status === "PENDING" || order.status === "FAILED");
+  const s = processing
+    ? { eyebrow: "Payment Processing", heading: "결제 결과를 확인하고 있습니다", tone: "warning" as const }
+    : STATUS[order.status] ?? STATUS.PENDING;
 
   // 결제 재개 섹션 — 원클릭(등록 카드) 노출·선택용
   const billingCards = retryable
@@ -109,7 +113,7 @@ export default async function OrderResultPage({
             <dt>주문번호</dt>
             <dd className="font-mono font-medium text-fg">{order.moid}</dd>
           </div>
-          {order.approvalNo && (
+          {order.approvalNo && !processing && (
             <div className="flex justify-between gap-4">
               <dt>승인번호</dt>
               <dd className="font-mono font-medium text-fg">{order.approvalNo}</dd>

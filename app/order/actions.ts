@@ -5,7 +5,8 @@ import { prisma } from "@/lib/db";
 import { requireShopUser } from "@/lib/auth";
 import { getPgProvider } from "@/lib/kspay";
 import { sanitizePgParam } from "@/lib/format";
-import { BILLING_TEST_EMAILS, approveBillingMock } from "@/lib/billing";
+import { BILLING_TEST_EMAILS } from "@/lib/billing";
+import { acquireTransactionLock, lockAndValidateInventory, PAYMENT_PROCESSING_MARKER } from "@/lib/order-guard";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -49,6 +50,8 @@ export type RetryPaymentResult =
   | { ok: true; redirect: string }
   | { ok: false; error: string };
 
+const TX_OPTIONS = { maxWait: 5_000, timeout: 15_000 } as const;
+
 export async function retryPaymentAction(input: {
   orderId: string;
   method: "card" | "kakaopay" | "naverpay" | "bank" | "oneclick";
@@ -59,24 +62,61 @@ export async function retryPaymentAction(input: {
   if (!parsed.success) return { ok: false, error: "입력값을 확인해 주세요." };
   const { orderId, method, billingCardId } = parsed.data;
 
-  // 본인 소유 + 결제 미완료 주문만 — 금액은 주문 생성 시 서버가 확정한 totalAmount 사용
-  const order = await prisma.shopOrder.findFirst({
-    where: { id: orderId, userId: user.id, status: { in: ["PENDING", "FAILED"] } },
-    include: { items: true },
-  });
-  if (!order || order.items.length === 0) return { ok: false, error: "결제를 진행할 수 없는 주문입니다." };
-
+  let card: { maskedCardNumb: string } | null = null;
   if (method === "oneclick") {
     // 카드 선택: billingCardId 지정 시 본인 소유 검증(IDOR 차단), 미지정 시 첫 등록 카드
-    const card = billingCardId
-      ? await prisma.shopBillingCard.findFirst({ where: { id: billingCardId, userId: user.id } })
-      : await prisma.shopBillingCard.findFirst({ where: { userId: user.id }, orderBy: { createdAt: "asc" } });
+    card = billingCardId
+      ? await prisma.shopBillingCard.findFirst({ where: { id: billingCardId, userId: user.id }, select: { maskedCardNumb: true } })
+      : await prisma.shopBillingCard.findFirst({ where: { userId: user.id }, orderBy: { createdAt: "asc" }, select: { maskedCardNumb: true } });
     if (!card) return { ok: false, error: "등록된 카드가 없습니다. 설정에서 카드를 먼저 등록해 주세요." };
     if (!BILLING_TEST_EMAILS.includes(user.email)) {
       return { ok: false, error: "원클릭 결제는 서비스 준비 중입니다. 카드·간편결제를 이용해 주세요." };
     }
-    const approved = await approveBillingMock(order.id, card.maskedCardNumb);
-    if (!approved) return { ok: false, error: "이미 처리된 주문입니다. 주문내역을 확인해 주세요." };
+  }
+
+  // 주문 잠금과 상품 행 잠금 안에서 재고를 다시 확인한다. 실패 주문도 같은 주문번호로만
+  // 재개하며, 이미 결제된 주문은 어떤 재시도도 상태를 바꾸지 않는다.
+  const prepared = await prisma.$transaction(async (tx) => {
+    await acquireTransactionLock(tx, `order:${orderId}`);
+    const order = await tx.shopOrder.findUnique({ where: { id: orderId }, include: { items: true } });
+    if (!order || order.userId !== user.id || !["PENDING", "FAILED"].includes(order.status) || order.items.length === 0) {
+      return { ok: false as const, error: "결제를 진행할 수 없는 주문입니다." };
+    }
+    if (order.approvalNo === PAYMENT_PROCESSING_MARKER) {
+      return { ok: false as const, error: "결제 결과를 확인 중입니다. 잠시 후 주문내역을 확인해 주세요." };
+    }
+    const inventory = await lockAndValidateInventory(tx, order.items, order.id);
+    if (!inventory.ok) {
+      if (order.status !== "FAILED") {
+        await tx.shopOrder.update({ where: { id: order.id }, data: { status: "FAILED" } });
+      }
+      return inventory;
+    }
+    if (method === "oneclick") {
+      const paid = await tx.shopOrder.update({
+        where: { id: order.id },
+        data: {
+          status: "PAID",
+          paidAt: new Date(),
+          approvalNo: `MB${Date.now().toString().slice(-8)}`,
+          cardName: `등록카드 ${card!.maskedCardNumb}`,
+        },
+        include: { items: true },
+      });
+      return { ok: true as const, order: paid };
+    }
+    const pendingOrder = await tx.shopOrder.update({
+      where: { id: order.id },
+      data: { status: "PENDING" },
+      include: { items: true },
+    });
+    return { ok: true as const, order: pendingOrder };
+  }, TX_OPTIONS).catch(() => null);
+
+  if (!prepared) return { ok: false, error: "결제 상태를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요." };
+  if (!prepared.ok) return { ok: false, error: prepared.error };
+  const order = prepared.order;
+  if (method === "oneclick") {
     revalidatePath(`/order/${order.id}`);
     return { ok: true, redirect: `/order/${order.id}?receipt=1` };
   }

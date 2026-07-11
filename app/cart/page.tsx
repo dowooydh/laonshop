@@ -64,12 +64,12 @@ export default function CartPage() {
                   <div className="truncate text-step--1 font-medium text-fg">{c.name}</div>
                   {c.size && <div className="text-step--1 text-fg-subtle">사이즈 {c.size}</div>}
                   <div className="mt-1 font-mono text-step--1 font-bold text-fg">{formatKrw(c.price * c.qty)}</div>
-                  <div className="mt-1.5 inline-flex items-center rounded-[var(--radius-md)] border border-line">
+                  <div className="mt-1.5 inline-flex min-h-11 items-center rounded-[var(--radius-md)] border border-line">
                     <button
                       type="button"
                       onClick={() => setQty(idx, c.qty - 1)}
                       aria-label="수량 감소"
-                      className="h-8 w-8 text-fg-muted transition-colors duration-fast hover:text-fg"
+                      className="h-11 w-11 text-fg-muted transition-colors duration-fast hover:text-fg"
                     >
                       −
                     </button>
@@ -78,7 +78,7 @@ export default function CartPage() {
                       type="button"
                       onClick={() => setQty(idx, c.qty + 1)}
                       aria-label="수량 증가"
-                      className="h-8 w-8 text-fg-muted transition-colors duration-fast hover:text-fg"
+                      className="h-11 w-11 text-fg-muted transition-colors duration-fast hover:text-fg"
                     >
                       +
                     </button>
@@ -87,7 +87,7 @@ export default function CartPage() {
                 <button
                   type="button"
                   onClick={() => remove(idx)}
-                  className="self-start text-step--1 text-fg-subtle transition-colors duration-fast hover:text-danger"
+                  className="flex min-h-11 min-w-11 items-center justify-center self-start text-step--1 text-fg-subtle transition-colors duration-fast hover:text-danger"
                 >
                   삭제
                 </button>

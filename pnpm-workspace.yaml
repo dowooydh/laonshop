@@ -6,3 +6,7 @@ allowBuilds:
   prisma: true
   sharp: true
   unrs-resolver: true
+
+# Next 15의 하위 의존성이 고정한 취약 PostCSS를 패치 버전으로 통일한다.
+overrides:
+  'postcss@8.4.31': 8.5.16

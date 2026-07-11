@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { AddressInput } from "@/components/address-input";
 import { KspayCheckout } from "@/components/kspay-checkout";
 import { cartTotal, getCart, type CartItem } from "@/lib/cart";
+import { createCheckoutIdempotencyKey, getCheckoutNonce } from "@/lib/checkout-idempotency";
 import { createOrderAction } from "./actions";
 
 export type CheckoutInitial = {
@@ -73,15 +74,24 @@ export function CheckoutForm({
     }
     setPending(true);
     try {
-      const res = await createOrderAction({
+      // 다른 탭에서 장바구니가 바뀌었을 수 있으므로 제출 직전에 다시 읽는다.
+      const currentItems = getCart();
+      if (currentItems.length === 0) {
+        setItems([]);
+        setError("장바구니가 비어 있습니다.");
+        return;
+      }
+      const orderInput = {
         method: method as "card" | "kakaopay" | "naverpay" | "bank" | "oneclick" | "manual",
-        items: items.map((i) => ({ productId: i.productId, qty: i.qty, size: i.size })),
+        items: currentItems.map((i) => ({ productId: i.productId, qty: i.qty, size: i.size })),
         ...form,
         ...(method === "oneclick" && billingCardId ? { billingCardId } : {}),
         ...(method === "manual"
           ? { manualCard: { ...manualCard, cardNo: manualCard.cardNo.replace(/[\s-]/g, "") } }
           : {}),
-      });
+      };
+      const idempotencyKey = await createCheckoutIdempotencyKey(orderInput, getCheckoutNonce());
+      const res = await createOrderAction({ ...orderInput, idempotencyKey });
       if (!res.ok) {
         setError(res.error);
       } else if ("redirect" in res) {
@@ -185,9 +195,13 @@ export function CheckoutForm({
               key={m.id}
               type="button"
               disabled={!m.enabled}
-              onClick={() => m.enabled && setMethod(m.id)}
+              onClick={() => {
+                if (!m.enabled) return;
+                setMethod(m.id);
+                setError("");
+              }}
               className={cn(
-                "rounded-[var(--radius-md)] border p-3.5 text-left transition-colors duration-fast",
+                "min-h-11 rounded-[var(--radius-md)] border p-3.5 text-left transition-colors duration-fast",
                 !m.enabled && "cursor-not-allowed border-line opacity-60",
                 method === m.id && m.enabled
                   ? "border-accent-cyan bg-[color-mix(in_oklab,var(--accent-cyan)_12%,transparent)] text-fg shadow-glow-cyan"
@@ -207,7 +221,7 @@ export function CheckoutForm({
                 key={c.id}
                 type="button"
                 onClick={() => setBillingCardId(c.id)}
-                className="flex w-full items-center justify-between gap-3 text-left text-step--1"
+                className="flex min-h-11 w-full items-center justify-between gap-3 text-left text-step--1"
               >
                 <span className="flex items-center gap-2">
                   <span

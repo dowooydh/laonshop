@@ -72,9 +72,12 @@ export function RetryPayment({
           <button
             key={m.id}
             type="button"
-            onClick={() => setMethod(m.id)}
+            onClick={() => {
+              setMethod(m.id);
+              setError("");
+            }}
             className={cn(
-              "rounded-[var(--radius-md)] border p-3.5 text-left transition-colors duration-fast",
+              "min-h-11 rounded-[var(--radius-md)] border p-3.5 text-left transition-colors duration-fast",
               method === m.id
                 ? "border-accent-cyan bg-[color-mix(in_oklab,var(--accent-cyan)_12%,transparent)] text-fg shadow-glow-cyan"
                 : "border-line bg-raised hover:bg-overlay",
@@ -92,7 +95,7 @@ export function RetryPayment({
               key={c.id}
               type="button"
               onClick={() => setBillingCardId(c.id)}
-              className="flex w-full items-center justify-between gap-3 text-left text-step--1"
+              className="flex min-h-11 w-full items-center justify-between gap-3 text-left text-step--1"
             >
               <span className="flex items-center gap-2">
                 <span

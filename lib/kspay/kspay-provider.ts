@@ -25,8 +25,9 @@ import type {
 } from "./types";
 
 const KSPAY_PWEB_URL = "https://kspay.ksnet.to/store/KSPayWebV1.4/KSPayPWeb.jsp";
-// 원본 샘플 기준 http — 운영 전 KSNET에 https 지원 확인 필요
-const KSPAY_WEBHOST_URL = "http://kspay.ksnet.to/store/KSPayWebV1.4/web_host/recv_post.jsp";
+// 원본 샘플은 http지만 동일 엔드포인트의 TLS 응답을 확인했다. 승인키는 반드시 암호화 전송한다.
+const KSPAY_WEBHOST_URL = "https://kspay.ksnet.to/store/KSPayWebV1.4/web_host/recv_post.jsp";
+const KSPAY_APPROVAL_TIMEOUT_MS = 8_000;
 const RECEIPT_URL = "https://ksta.ksnet.co.kr/mint/tsk/pgi01/mad/pgimad04m0.jsp";
 
 /**
@@ -152,7 +153,9 @@ export class KspayProvider implements PgProvider {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: body.toString(),
+      signal: AbortSignal.timeout(KSPAY_APPROVAL_TIMEOUT_MS),
     });
+    if (!res.ok) throw new Error(`KSPAY approval HTTP ${res.status}`);
     const buf = await res.arrayBuffer();
     // msg1/msg2 한글 — EUC-KR 디코딩 필수 (Node full-ICU 기본 내장)
     const text = new TextDecoder("euc-kr").decode(buf);
@@ -160,12 +163,9 @@ export class KspayProvider implements PgProvider {
     // 백틱 split: parts[0]은 선행 토큰 — 버리고 names[i] → parts[i+1] 매핑
     const parts = text.split("`");
     if (parts.length <= RPARAMS.length) {
-      return {
-        success: false,
-        amount,
-        failReason: "승인 응답 파싱 실패 — kspay_send_msg(1) 재조회 필요(당일 한정)",
-        raw: { response: text.slice(0, 500) },
-      };
+      // 거래 성립 여부가 불명확하므로 거절로 확정하지 않는다. 호출부가 PENDING을 유지해
+      // 중복 결제를 막고 운영자가 kspay_send_msg(1)로 조회하도록 한다.
+      throw new Error("KSPAY approval response parse failed");
     }
     const r: Record<string, string> = {};
     RPARAMS.forEach((name, i) => (r[name] = (parts[i + 1] ?? "").trim()));

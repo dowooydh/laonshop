@@ -1,4 +1,6 @@
 // 장바구니 — localStorage 기반 (심사용 더미몰, 가볍게). 주문 시 서버로 전달.
+import { rotateCheckoutNonce } from "@/lib/checkout-idempotency";
+
 export interface CartItem {
   productId: string;
   name: string;
@@ -34,6 +36,7 @@ export function addToCart(item: CartItem): void {
 
 export function clearCart(): void {
   localStorage.removeItem(KEY);
+  rotateCheckoutNonce();
   window.dispatchEvent(new Event("laonshop-cart-change"));
 }
 

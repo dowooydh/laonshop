@@ -43,11 +43,11 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
         <SmoothScroll>
           <header className="sticky top-0 z-40 border-b border-line">
             <div className="glass">
-              <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-                <div className="flex items-center gap-6">
+              <div className="mx-auto flex min-h-16 max-w-6xl flex-wrap items-center justify-between gap-1 px-2 py-1 min-[360px]:px-3 sm:flex-nowrap sm:px-6 sm:py-0">
+                <div className="flex shrink-0 items-center gap-6">
                   <Link
                     href="/"
-                    className="font-display text-xl font-bold tracking-tight text-fg transition-[text-shadow] duration-base hover:[text-shadow:0_0_22px_color-mix(in_oklab,var(--accent-cyan)_60%,transparent)]"
+                    className="flex min-h-11 shrink-0 items-center font-display text-lg font-bold tracking-tight text-fg transition-[text-shadow] duration-base hover:[text-shadow:0_0_22px_color-mix(in_oklab,var(--accent-cyan)_60%,transparent)] min-[360px]:text-xl"
                   >
                     LAON<span className="text-accent-cyan">SHOP</span>
                   </Link>
@@ -72,28 +72,28 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
                     </Link>
                   </nav>
                 </div>
-                <nav className="flex items-center gap-1 text-step--1 sm:gap-2">
+                <nav className="ml-auto flex shrink-0 items-center text-step--1 sm:gap-2">
                   <Link
                     href="/cart"
-                    className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-[var(--radius-sm)] px-2 py-2 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg sm:px-3"
+                    className="inline-flex min-h-11 items-center gap-1 whitespace-nowrap rounded-[var(--radius-sm)] px-2 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg sm:gap-1.5 sm:px-3"
                   >
-                    장바구니
+                    <span className="sm:hidden">카트</span><span className="hidden sm:inline">장바구니</span>
                     <CartBadge />
                   </Link>
                   {user ? (
                     <>
                       <Link
                         href="/mypage"
-                        className="max-w-[7rem] truncate whitespace-nowrap rounded-[var(--radius-sm)] px-2 py-2 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg sm:px-3"
+                        className="flex min-h-11 max-w-[7rem] items-center truncate whitespace-nowrap rounded-[var(--radius-sm)] px-2 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg sm:px-3"
                       >
-                        {user.name}님
+                        <span className="sm:hidden">마이</span><span className="hidden sm:inline">{user.name}님</span>
                       </Link>
                       <form action={logoutAction}>
                         <button
                           type="submit"
-                          className="whitespace-nowrap rounded-[var(--radius-sm)] px-2 py-2 text-fg-subtle transition-colors duration-fast hover:text-fg sm:px-3"
+                          className="min-h-11 whitespace-nowrap rounded-[var(--radius-sm)] px-2 text-fg-subtle transition-colors duration-fast hover:text-fg sm:px-3"
                         >
-                          로그아웃
+                          <span className="sm:hidden">나가기</span><span className="hidden sm:inline">로그아웃</span>
                         </button>
                       </form>
                     </>
@@ -101,37 +101,37 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
                     <>
                       <Link
                         href="/login"
-                        className="whitespace-nowrap rounded-[var(--radius-sm)] px-2 py-2 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg sm:px-3"
+                        className="flex min-h-11 items-center whitespace-nowrap rounded-[var(--radius-sm)] px-2 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg sm:px-3"
                       >
                         로그인
                       </Link>
                       <Link
                         href="/register"
-                        className="whitespace-nowrap rounded-[var(--radius-pill)] bg-accent-cyan px-4 py-2 font-medium text-void shadow-glow-cyan transition-[filter] duration-fast hover:brightness-110"
+                        className="flex min-h-11 items-center whitespace-nowrap rounded-[var(--radius-pill)] bg-accent-cyan px-3 font-medium text-void shadow-glow-cyan transition-[filter] duration-fast hover:brightness-110 sm:px-4"
                       >
-                        회원가입
+                        <span className="sm:hidden">가입</span><span className="hidden sm:inline">회원가입</span>
                       </Link>
                     </>
                   )}
                 </nav>
               </div>
               {/* 모바일 — 젠더 카테고리 진입 경로 (데스크톱 nav가 hidden sm:flex라 뷰포트 절반에서 끊기는 동선 복원) */}
-              <nav className="flex h-10 items-center gap-1 border-t border-line px-3 text-step--1 sm:hidden">
+              <nav className="flex min-h-12 flex-wrap items-center gap-1 border-t border-line px-2 py-1 text-step--1 sm:hidden">
                 <Link
                   href="/shop/men"
-                  className="rounded-[var(--radius-sm)] px-3 py-1.5 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg"
+                  className="flex min-h-11 items-center rounded-[var(--radius-sm)] px-3 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg"
                 >
                   남성의류
                 </Link>
                 <Link
                   href="/shop/women"
-                  className="rounded-[var(--radius-sm)] px-3 py-1.5 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg"
+                  className="flex min-h-11 items-center rounded-[var(--radius-sm)] px-3 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg"
                 >
                   여성의류
                 </Link>
                 <Link
                   href="/search"
-                  className="rounded-[var(--radius-sm)] px-3 py-1.5 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg"
+                  className="flex min-h-11 items-center rounded-[var(--radius-sm)] px-3 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg"
                 >
                   검색
                 </Link>
@@ -195,7 +195,7 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
                     070-4044-7008
                   </a>{" "}
                   (평일 09:00–18:00) &nbsp;|&nbsp; 이메일:{" "}
-                  <a href="mailto:custom_sales@customorder.co.kr" className="text-fg-muted hover:text-accent-cyan">
+                  <a href="mailto:custom_sales@customorder.co.kr" className="break-all text-fg-muted hover:text-accent-cyan">
                     custom_sales@customorder.co.kr
                   </a>
                 </p>

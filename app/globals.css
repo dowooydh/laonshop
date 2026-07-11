@@ -14,7 +14,7 @@
   /* 텍스트 */
   --fg-primary: #f4f6fb;
   --fg-muted: #9aa3b2;
-  --fg-subtle: #5c6577;
+  --fg-subtle: #828c9e;
   /* 발광 악센트 (좁게: 포커스·글로우·CTA에만) */
   --accent-cyan: #4fd1ff;
   --accent-violet: #8b5cff;
@@ -69,7 +69,7 @@
   --bg-overlay: #ffffff;
   --fg-primary: #10131c;
   --fg-muted: #4a5262;
-  --fg-subtle: #8a93a4;
+  --fg-subtle: #626b7a;
   --line: color-mix(in oklab, var(--fg-primary) 12%, transparent);
 }
 

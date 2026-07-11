@@ -67,7 +67,7 @@ export function CategoryShop({
               aria-pressed={active}
               onClick={() => setCat(c)}
               className={
-                "rounded-[var(--radius-pill)] px-4 py-1.5 text-step--1 font-medium transition-colors duration-fast " +
+                "min-h-11 rounded-[var(--radius-pill)] px-4 py-2 text-step--1 font-medium transition-colors duration-fast " +
                 (active
                   ? "bg-accent-cyan text-void shadow-glow-cyan"
                   : "border border-line bg-raised text-fg-muted hover:bg-overlay hover:text-fg")
@@ -85,7 +85,7 @@ export function CategoryShop({
           value={sort}
           onChange={(e) => setSort(e.target.value as SortKey)}
           aria-label="정렬"
-          className="h-9 w-auto min-w-32 text-step--1"
+          className="h-11 w-auto min-w-32 text-step--1"
         >
           {Object.entries(SORTS).map(([key, s]) => (
             <option key={key} value={key}>

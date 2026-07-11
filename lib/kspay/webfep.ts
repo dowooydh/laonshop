@@ -20,7 +20,7 @@ export type OldCertRequest = {
 
 export type OldCertResult =
   | { ok: true; tid: string; approvalNumb: string; cardName: string }
-  | { ok: false; message: string };
+  | { ok: false; message: string; indeterminate?: boolean };
 
 export type KspayRestEnv = {
   KSPAY_API_KEY?: string;
@@ -71,7 +71,11 @@ export async function payOldCert(req: OldCertRequest): Promise<OldCertResult | n
         userInfo: req.userInfo,
       }),
       cache: "no-store",
+      signal: AbortSignal.timeout(8_000),
     });
+    if (!res.ok) {
+      return { ok: false, message: "결제 서버가 요청을 처리하지 못했습니다. 잠시 후 주문내역을 확인해 주세요.", indeterminate: true };
+    }
 
     // 공통 envelope { aid, code, message, data } — code A0200 + data.respCode 0000 만 성공
     const json = (await res.json()) as {
@@ -90,6 +94,10 @@ export async function payOldCert(req: OldCertRequest): Promise<OldCertResult | n
     };
   } catch {
     // 네트워크/파싱 오류 — 카드정보가 포함될 수 있는 원문은 절대 로깅하지 않는다
-    return { ok: false, message: "결제 서버 통신에 실패했습니다. 잠시 후 다시 시도해 주세요." };
+    return {
+      ok: false,
+      message: "결제 서버 응답을 확인하지 못했습니다. 중복 결제를 피하려면 잠시 후 주문내역을 확인해 주세요.",
+      indeterminate: true,
+    };
   }
 }

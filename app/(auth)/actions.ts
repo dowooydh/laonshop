@@ -5,11 +5,14 @@ import bcrypt from "bcryptjs";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getSession } from "@/lib/session";
+import { normalizeEmail } from "@/lib/auth-input";
+import { acquireTransactionLock } from "@/lib/order-guard";
+import { Prisma } from "@prisma/client";
 
 export type AuthState = { error?: string };
 
 const registerSchema = z.object({
-  email: z.string().email("이메일 형식을 확인해 주세요."),
+  email: z.string().trim().transform(normalizeEmail).pipe(z.string().email("이메일 형식을 확인해 주세요.")),
   password: z.string().min(8, "비밀번호는 8자 이상 입력해 주세요."),
   name: z.string().trim().min(1, "이름을 입력해 주세요.").max(30),
   phone: z.union([z.string().trim().max(20), z.literal("")]).optional(),
@@ -30,13 +33,29 @@ export async function registerAction(_prev: AuthState, formData: FormData): Prom
   if (!parsed.success) return { error: parsed.error.errors[0]?.message ?? "입력값을 확인해 주세요." };
   const d = parsed.data;
 
-  const exists = await prisma.shopUser.findUnique({ where: { email: d.email } });
-  if (exists) return { error: "이미 가입된 이메일입니다." };
-
   const passwordHash = await bcrypt.hash(d.password, 10);
-  const user = await prisma.shopUser.create({
-    data: { email: d.email, passwordHash, name: d.name, phone: d.phone || null },
-  });
+  let user;
+  try {
+    user = await prisma.$transaction(async (tx) => {
+      // DB의 일반 text unique는 대소문자를 구분한다. 정규화 이메일 advisory lock으로
+      // 동시 가입과 대소문자 변형 가입을 직렬화해 애플리케이션 경계에서 단일성을 보장한다.
+      await acquireTransactionLock(tx, `register:${d.email}`);
+      const exists = await tx.shopUser.findFirst({
+        where: { email: { equals: d.email, mode: "insensitive" } },
+        select: { id: true },
+      });
+      if (exists) return null;
+      return tx.shopUser.create({
+        data: { email: d.email, passwordHash, name: d.name, phone: d.phone || null },
+      });
+    });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return { error: "이미 가입된 이메일입니다." };
+    }
+    return { error: "회원가입을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요." };
+  }
+  if (!user) return { error: "이미 가입된 이메일입니다." };
 
   const session = await getSession();
   session.userId = user.id;
@@ -53,17 +72,17 @@ const LOGIN_LOCK_MS = 10 * 60 * 1000;
 const loginFails = new Map<string, { count: number; lockedUntil: number }>();
 
 export async function loginAction(_prev: AuthState, formData: FormData): Promise<AuthState> {
-  const email = String(formData.get("email") ?? "").trim();
+  const email = normalizeEmail(String(formData.get("email") ?? ""));
   const password = String(formData.get("password") ?? "");
   if (!email || !password) return { error: "이메일과 비밀번호를 입력해 주세요." };
 
-  const key = email.toLowerCase();
+  const key = email;
   const fail = loginFails.get(key);
   if (fail && fail.lockedUntil > Date.now()) {
     return { error: "로그인 시도가 너무 많습니다. 10분 후 다시 시도해 주세요." };
   }
 
-  const user = await prisma.shopUser.findUnique({ where: { email } });
+  const user = await prisma.shopUser.findFirst({ where: { email: { equals: email, mode: "insensitive" } } });
   if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
     if (loginFails.size > 1000) loginFails.clear(); // 메모리 상한
     const lockExpired = fail !== undefined && fail.lockedUntil !== 0 && fail.lockedUntil <= Date.now();
