@@ -4,65 +4,61 @@
 
 담당: Codex QA/테스트 세션
 
-대상: `main` / `06f0e084b6dbcd5f2221e09ecb483058a354fb1a`
+대상: `main` / `588e845e66e8887461e1faf9714d760d31391e25`
 
-비교 범위: `5fe1417369f12e71328f221a34604f7a9229a07a..06f0e084b6dbcd5f2221e09ecb483058a354fb1a`
+자동 수정 회차: 1/2
 
-결과: **FAIL**
+결과: **PASS**
 
-출시 판정: **NO-GO**
+출시 판정: **GO - 이번 수정 범위 회귀 통과**
 
 ## 요약
 
 - 제품 코드는 수정하지 않았습니다.
-- Node 22.23.1 + pnpm 11.5.3에서 test 11/11, lint, typecheck, Prisma validate, production audit, production build가 모두 통과했습니다.
-- 재고 합산·마지막 재고 동시 주문·동일 키 주문 멱등성·일반 KSPAY callback 처리 마커·이메일 동시 가입·320/390/412px 반응형 수정은 실제 회귀에서 통과했습니다.
-- 수기결제의 503/timeout 재전송이 외부 승인 API를 다시 호출하는 P1을 확정했습니다.
-- KSPAY 처리 마커 주문도 30분 뒤 재고 예약에서 제외되는 P1을 확정했습니다.
-- 30분 시간 버킷 경계에서 동일 체크아웃의 멱등키가 달라지는 P2를 확인했습니다.
-- 상세 보고서: [2026-07-11 `06f0e08` 회귀 QA 보고서](../reports/2026-07-11-06f-regression/report.md)
+- Node 22.23.1 + pnpm 11.5.3에서 test 14/14, lint, typecheck, Prisma validate, production audit, production build가 모두 통과했습니다.
+- 수기결제 503·8초 timeout·승인 후 DB 확정 실패에서 외부 승인 요청은 1회로 제한됐고 PENDING+processing marker가 유지됐습니다.
+- 명시적 승인 거절은 FAILED+marker 해제 후 재시도를 허용했고, 성공은 PAID 1건으로 확정됐습니다.
+- processing marker 주문은 29/30/31분과 24시간 뒤에도 재고를 계속 예약했고 일반 PENDING만 31분에 해제됐습니다.
+- 시간 경계 멱등키, 카트 nonce 변경, 마지막 재고와 동일 키 병렬 주문 회귀가 통과했습니다.
+- 상세 보고서: [2026-07-11 `588e845` 회귀 QA 보고서](../reports/2026-07-11-588e845-regression/report.md)
 
-## 우선 결함
+## 핵심 결과
 
-| 우선순위 | 결함 | 실제 증거 | 관련 위치 |
-| --- | --- | --- | --- |
-| P1 | 수기결제 불명확 응답 뒤 같은 주문 재시도 시 외부 승인 재호출 | 로컬 503 stub `REQ 1 -> REQ 2`, DB는 주문 1건 PENDING | `app/checkout/actions.ts:181-233` |
-| P1 | `__KSPAY_PROCESSING__` PENDING도 30분 뒤 재고 예약 해제 | stock 1/marker 31분 fixture에서 두 번째 주문 guard 허용 | `lib/order-guard.ts:167-171` |
-| P2 | 30분 버킷 경계 전후 같은 요청의 멱등키 불일치 | helper 실측 `sameRequestAcrossWindowBoundaryHasSameKey=false` | `lib/checkout-idempotency.ts:20-22` |
+| 영역 | 결과 | 실제 증거 |
+| --- | --- | --- |
+| WEBFEP 503 | PASS | 첫 요청 1회, 재제출 뒤 총 1회, PENDING+marker |
+| WEBFEP timeout | PASS | 약 9.9초 안전 오류, 재제출 뒤 총 1회 |
+| 명시적 거절 | PASS | FAILED, approvalNo null, 재시도 stub 1→2 |
+| WEBFEP 성공 | PASS | PAID 1건, approvalNo/pgTrno 저장 |
+| 성공 후 DB 확정 실패 | PASS | 22초 advisory lock, PENDING+marker, stub 1회 |
+| marker 재고 예약 | PASS | 29/30/31분/24시간 모두 두 번째 주문 거부 |
+| 일반 PENDING 만료 | PASS | 29분 예약, 31분 해제 |
+| 마지막 재고 동시성 | PASS | 성공 1, 거부 1, 주문 1건 |
+| 동일 키 동시성 | PASS | 같은 order ID, 주문 1건 |
+| 시간 경계/카트 nonce | PASS | 30분·24시간 동일 키, 의미 변경만 nonce 회전 |
 
-## 통과 범위
+## 도구 timeout 판정
 
-- 동일 상품 S1+M1 합산 재고 거부, 허용되지 않은 사이즈 거부
-- 서로 다른 사용자 마지막 재고 동시 주문: 성공 1, 거부 1, 주문 1건
-- 같은 사용자·동일 키 동시 요청과 실제 두 탭 재전송: 동일 order/moid, 주문 1건
-- 동일 이메일 대소문자 변형 동시 가입: 성공 1, 중복 안내 1, 500 없음
-- 대문자 변형 이메일 로그인 성공
-- KSPAY 처리 마커 재전송 차단, 취소 result 병렬 FAILED, PENDING/FAILED 재결제 UI
-- KSPAY 스크립트 차단/8초 지연: spinner 종료, 오류·재시도 노출
-- 네트워크 offline 실패와 복구, 타 사용자 주문 404
-- Chromium 320/390/412px 주요 6개 화면과 200% root font overflow 0
-- Android Chrome 133 실제 320/390/412px, 시스템 글꼴 200%, 검색 빈 상태
-- `pnpm audit --prod` 취약점 0
+QA의 첫 두 DB 확정 실패 주입은 `pg_sleep()` void 역직렬화 오류로 잠금이 풀려 정상 PAID가 됐습니다. 당시 브라우저 timeout은 제품 결함이 아니라 fault-injection 도구 실패입니다.
 
-## 실행하지 못한 범위
+연결된 DEV 작업이 새 finalize3 주문에서 marker를 100ms polling하고 order advisory lock을 22초 유지해 다시 검증했습니다. 화면 안전 오류, DB PENDING+marker, stub 요청 1회와 재제출 차단을 확인했으며 `[AUTO_QA_EVIDENCE]`로 전달받았습니다. QA는 최종 DB 기준선과 cleanup을 독립 확인했습니다.
 
-- 실카드 승인, 자동취소, 실영수증
-- 운영 Vercel 배포 커밋 일치와 운영 도메인
-- Safari/WebKit, iOS 실제 기기
-- 실제 KSNET 장애: 로컬 stub/브라우저 route로 대체
-- 관리자: 저장소에 화면 없음
-- 비밀번호 변경·회원탈퇴 전체 흐름은 이번 변경 범위에서 반복하지 않음
+## 미실행·잔여 위험
+
+- 실 KSNET 승인·장애·자동취소·실영수증
+- 운영 Vercel 배포 커밋 일치, Safari/WebKit, iOS 실제 기기
+- 불명확 marker는 자동 해제되지 않아 운영자 KSTA 확인 필요
+- 일반 KSPAY result 경합과 실제 두 탭 UI는 직전 회귀를 유지하고 이번에는 단위/DB 병렬 경계로 재검증
 
 ## cleanup
 
-- QA 사용자 8명, 주문 9건, 주문항목 9건, QA 상품 1개를 삭제했습니다.
-- 최종 DB는 시작 전과 같은 사용자 9, 활성 사용자 8, 주문 4, 주문항목 4, 상품 329, 찜 0, 등록카드 4입니다.
-- Android 해상도 1080x2400, font scale 1.0을 복구하고 adb forward와 로컬 서버를 종료했습니다.
+- QA 사용자 7명, 주문 8건, 주문항목 8건, QA 상품 1개를 삭제했습니다.
+- 최종 DB는 사용자 9, 활성 사용자 8, 주문 4, 주문항목 4, 상품 329, 찜 0, 등록카드 4, QA fixture 0입니다.
+- 3003/3999 서버와 임시 브라우저 컨텍스트를 종료했습니다.
 - 실결제, 운영·마스터 데이터, PG/Vercel 설정 변경은 없었습니다.
 
-## 개발 회귀 요청
+## 다음 운영 확인
 
-1. 수기결제도 외부 호출 전에 처리 마커를 별도 transaction으로 commit하고 503/timeout/commit 실패 뒤 외부 호출 1회를 보장합니다.
-2. processing marker 주문은 운영 확인 전 재고 예약에서 제외되지 않도록 일반 PENDING과 분리합니다.
-3. 체크아웃 버킷 경계 전후 1ms, 다중 탭, 동일 카트 재구성 멱등성을 추가합니다.
-4. 수정 뒤 Node 22 정적 검증, DB 병렬 테스트, 로컬 PG fault injection과 모바일 회귀를 다시 수행합니다.
+1. 운영 배포가 제품 커밋 `588e845`을 가리키는지 확인합니다.
+2. 실 MID/WEBFEP 계약 전에는 `KSPAY_REST_LIVE` 이중 가드를 유지합니다.
+3. 불명확 주문의 KSTA 확인·marker 해제 운영 절차를 준비합니다.
