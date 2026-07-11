@@ -5,12 +5,12 @@ import { preparePaymentResolution, type PaymentResolution } from "@/lib/admin-or
 import { prisma } from "@/lib/db";
 import { acquireTransactionLock } from "@/lib/order-guard";
 import { Prisma } from "@prisma/client";
-import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 export type AdminPaymentState = {
   status: "idle" | "success" | "error";
   message?: string;
+  redirectTo?: string;
 };
 
 const orderIdSchema = z.string().trim().min(1).max(100);
@@ -105,10 +105,16 @@ async function resolvePayment(
   if (!result) return { status: "error", message: "결제 상태를 확정하지 못했습니다. 잠시 후 다시 시도해 주세요." };
   if (!result.ok) return { status: "error", message: result.error };
 
-  revalidatePath("/admin");
-  revalidatePath(`/order/${orderId}`);
-  revalidatePath("/mypage");
-  return { status: "success", message: "결제 확인 결과와 감사 이력을 저장했습니다." };
+  // /admin, /order/[id], /mypage는 모두 force-dynamic이다. 액션 응답에는 성공
+  // 상태만 반환하고, 클라이언트가 이 전환을 끝낸 뒤 새 GET으로 이동하게 한다.
+  // Next 15에서 revalidatePath/redirect를 useActionState 응답에 결합하면 제거될
+  // 폼의 pending 전환이 끝나지 않는 회귀가 있어 둘 다 여기서 호출하지 않는다.
+  const outcome = resolution.decision === "PAID" ? "paid" : "failed";
+  return {
+    status: "success",
+    message: "결제 확인 결과와 감사 이력을 저장했습니다.",
+    redirectTo: `/admin?paymentResolved=${outcome}`,
+  };
 }
 
 export async function confirmPaymentPaidAction(

@@ -1,5 +1,10 @@
 export const CHECKOUT_NONCE_KEY = "laonshop-checkout-nonce";
 
+type CheckoutNonceCrypto = {
+  randomUUID?: () => string;
+  getRandomValues?: (values: Uint8Array) => Uint8Array;
+};
+
 export type CheckoutIdempotencyPayload = {
   method: string;
   items: Array<{ productId: string; qty: number; size?: string | null }>;
@@ -43,7 +48,22 @@ export function getCheckoutNonce(): string {
   return localStorage.getItem(CHECKOUT_NONCE_KEY) ?? "initial";
 }
 
+export function createCheckoutNonce(cryptoApi: CheckoutNonceCrypto | null | undefined = globalThis.crypto): string {
+  if (typeof cryptoApi?.randomUUID === "function") return cryptoApi.randomUUID();
+
+  if (typeof cryptoApi?.getRandomValues === "function") {
+    const bytes = cryptoApi.getRandomValues(new Uint8Array(16));
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    const hex = [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+  }
+
+  // 오래된 브라우저에서도 장바구니 의미 변경을 구분할 수 있는 불투명 nonce를 만든다.
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+}
+
 export function rotateCheckoutNonce(): void {
   if (typeof window === "undefined") return;
-  localStorage.setItem(CHECKOUT_NONCE_KEY, globalThis.crypto.randomUUID());
+  localStorage.setItem(CHECKOUT_NONCE_KEY, createCheckoutNonce());
 }

@@ -2,12 +2,14 @@
 
 import { useActionState } from "react";
 import { confirmPaymentPaidAction, type AdminPaymentState } from "./actions";
+import { usePaymentResolutionNavigation } from "./use-payment-resolution-navigation";
 import { Button, Checkbox, FieldError, FieldHint, Input, Label, Textarea } from "@/lib/ui";
 
 const INITIAL_STATE: AdminPaymentState = { status: "idle" };
 
 export function PaymentPaidForm({ orderId }: { orderId: string }) {
   const [state, action, pending] = useActionState(confirmPaymentPaidAction, INITIAL_STATE);
+  usePaymentResolutionNavigation(state);
 
   return (
     <form action={action} className="space-y-4" aria-busy={pending}>
@@ -71,7 +73,7 @@ export function PaymentPaidForm({ orderId }: { orderId: string }) {
         {state.status === "success" && <p className="text-step--1 text-success">{state.message}</p>}
       </div>
 
-      <Button type="submit" loading={pending} disabled={pending} className="w-full sm:w-auto">
+      <Button type="submit" size="lg" loading={pending} disabled={pending} className="w-full sm:w-auto">
         결제완료로 확정
       </Button>
     </form>

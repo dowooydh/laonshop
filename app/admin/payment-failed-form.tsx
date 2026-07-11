@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { confirmPaymentFailedAction, type AdminPaymentState } from "./actions";
+import { usePaymentResolutionNavigation } from "./use-payment-resolution-navigation";
 import { Button, Checkbox, FieldError, FieldHint, Input, Label, Textarea } from "@/lib/ui";
 
 const INITIAL_STATE: AdminPaymentState = { status: "idle" };
@@ -14,6 +15,7 @@ type PaymentFailedFormProps = {
 
 export function PaymentFailedForm({ orderId, orderMoid, totalLabel }: PaymentFailedFormProps) {
   const [state, action, pending] = useActionState(confirmPaymentFailedAction, INITIAL_STATE);
+  usePaymentResolutionNavigation(state);
 
   return (
     <form action={action} className="space-y-4" aria-busy={pending}>
@@ -60,7 +62,7 @@ export function PaymentFailedForm({ orderId, orderMoid, totalLabel }: PaymentFai
         {state.status === "success" && <p className="text-step--1 text-success">{state.message}</p>}
       </div>
 
-      <Button type="submit" variant="danger" loading={pending} disabled={pending} className="w-full sm:w-auto">
+      <Button type="submit" variant="danger" size="lg" loading={pending} disabled={pending} className="w-full sm:w-auto">
         결제실패로 확정
       </Button>
     </form>

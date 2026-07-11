@@ -21,8 +21,18 @@ const DATE_TIME_FORMAT = new Intl.DateTimeFormat("ko-KR", {
   timeZone: "Asia/Seoul",
 });
 
-export default async function AdminPage() {
+type AdminPageProps = {
+  searchParams: Promise<{ paymentResolved?: string }>;
+};
+
+export default async function AdminPage({ searchParams }: AdminPageProps) {
   const admin = await requireShopAdmin();
+  const { paymentResolved } = await searchParams;
+  const resolutionMessage = paymentResolved === "paid"
+    ? "결제완료 확정과 감사 이력을 저장했습니다."
+    : paymentResolved === "failed"
+      ? "결제실패 확정과 감사 이력을 저장했습니다."
+      : null;
   const now = new Date();
   const reviewCutoff = new Date(now.getTime() - ADMIN_PAYMENT_REVIEW_DELAY_MS);
   const markerWhere = { status: "PENDING" as const, approvalNo: PAYMENT_PROCESSING_MARKER };
@@ -62,14 +72,23 @@ export default async function AdminPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link href="/mypage/settings" className={buttonVariants({ variant: "outline", size: "md" })}>
+          <Link href="/mypage/settings" className={buttonVariants({ variant: "outline", size: "lg" })}>
             계정 설정
           </Link>
-          <Link href="/" className={buttonVariants({ variant: "ghost", size: "md" })}>
+          <Link href="/" className={buttonVariants({ variant: "ghost", size: "lg" })}>
             쇼핑몰 보기
           </Link>
         </div>
       </header>
+
+      {resolutionMessage && (
+        <p
+          role="status"
+          className="rounded-[var(--radius-md)] border border-[color-mix(in_oklab,var(--success)_38%,transparent)] bg-[color-mix(in_oklab,var(--success)_8%,transparent)] px-4 py-3 text-step--1 text-success"
+        >
+          {resolutionMessage}
+        </p>
+      )}
 
       <section aria-labelledby="review-summary" className="space-y-4">
         <h2 id="review-summary" className="sr-only">결제 확인 요약</h2>
