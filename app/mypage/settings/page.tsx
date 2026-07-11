@@ -57,13 +57,15 @@ export default async function SettingsPage() {
 
       <section className="space-y-5 border-t border-line pt-8">
         <h2 className="font-mono text-step--1 uppercase tracking-widest text-accent-cyan">비밀번호 변경</h2>
-        <PasswordForm />
+        <PasswordForm minimumLength={user.role === "ADMIN" ? 12 : 8} />
       </section>
 
-      <section className="space-y-5 border-t border-line pt-8">
-        <h2 className="font-mono text-step--1 uppercase tracking-widest text-fg-subtle">회원 탈퇴</h2>
-        <DeleteAccountForm />
-      </section>
+      {user.role !== "ADMIN" && (
+        <section className="space-y-5 border-t border-line pt-8">
+          <h2 className="font-mono text-step--1 uppercase tracking-widest text-fg-subtle">회원 탈퇴</h2>
+          <DeleteAccountForm />
+        </section>
+      )}
     </div>
   );
 }

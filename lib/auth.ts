@@ -1,5 +1,5 @@
 import { prisma, type ShopUser } from "@/lib/db";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getSession } from "./session";
 
 /** 로그인 필수 (주문/결제/마이페이지) — 미인증·탈퇴회원은 로그인으로 */
@@ -17,6 +17,13 @@ export async function requireShopUser(): Promise<ShopUser> {
     }
     redirect("/login");
   }
+  return user;
+}
+
+/** 관리자 전용 경계 — 역할은 세션이 아니라 매 요청 DB 값을 기준으로 판정한다. */
+export async function requireShopAdmin(): Promise<ShopUser> {
+  const user = await requireShopUser();
+  if (user.role !== "ADMIN") notFound();
   return user;
 }
 

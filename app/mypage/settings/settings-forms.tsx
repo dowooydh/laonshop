@@ -50,7 +50,7 @@ export function ProfileForm({
   );
 }
 
-export function PasswordForm() {
+export function PasswordForm({ minimumLength = 8 }: { minimumLength?: number }) {
   const [state, action, pending] = useActionState<SettingsState, FormData>(changePasswordAction, {});
   return (
     <form action={action} className="space-y-4">
@@ -60,8 +60,8 @@ export function PasswordForm() {
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="s-next">새 비밀번호</Label>
-        <Input id="s-next" name="next" type="password" autoComplete="new-password" required />
-        <FieldHint>8자 이상 입력해 주세요.</FieldHint>
+        <Input id="s-next" name="next" type="password" autoComplete="new-password" minLength={minimumLength} required />
+        <FieldHint>{minimumLength}자 이상 입력해 주세요.</FieldHint>
       </div>
       <FieldError>{state.error}</FieldError>
       <div className="flex items-center gap-3">

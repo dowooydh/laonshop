@@ -7,6 +7,7 @@ const prisma = new PrismaClient();
 
 async function main() {
   // 초기화 (주문·찜 → 상품 순 — FK 제약)
+  await prisma.shopOrderAuditLog.deleteMany();
   await prisma.shopOrderItem.deleteMany();
   await prisma.shopOrder.deleteMany();
   await prisma.wishlist.deleteMany();

@@ -56,12 +56,16 @@ export async function changePasswordAction(_prev: SettingsState, formData: FormD
   });
   if (!parsed.success) return { error: parsed.error.errors[0]?.message ?? "입력값을 확인해 주세요." };
 
+  if (user.role === "ADMIN" && parsed.data.next.length < 12) {
+    return { error: "관리자 계정의 새 비밀번호는 12자 이상 입력해 주세요." };
+  }
+
   if (!(await bcrypt.compare(parsed.data.current, user.passwordHash))) {
     return { error: "현재 비밀번호가 올바르지 않습니다." };
   }
   await prisma.shopUser.update({
     where: { id: user.id },
-    data: { passwordHash: await bcrypt.hash(parsed.data.next, 10) },
+    data: { passwordHash: await bcrypt.hash(parsed.data.next, user.role === "ADMIN" ? 12 : 10) },
   });
   return { ok: true };
 }
@@ -117,6 +121,9 @@ export async function deleteBillingCardAction(cardId: string): Promise<SettingsS
 
 export async function deleteAccountAction(_prev: SettingsState, formData: FormData): Promise<SettingsState> {
   const user = await requireShopUser();
+  if (user.role === "ADMIN") {
+    return { error: "관리자 계정은 회원 탈퇴할 수 없습니다. 먼저 다른 관리자에게 권한을 이관해 주세요." };
+  }
   const password = String(formData.get("password") ?? "");
   if (!password) return { error: "비밀번호를 입력해 주세요." };
   if (!(await bcrypt.compare(password, user.passwordHash))) {

@@ -83,10 +83,14 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
                   {user ? (
                     <>
                       <Link
-                        href="/mypage"
+                        href={user.role === "ADMIN" ? "/admin" : "/mypage"}
                         className="flex min-h-11 max-w-[7rem] items-center truncate whitespace-nowrap rounded-[var(--radius-sm)] px-2 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg sm:px-3"
                       >
-                        <span className="sm:hidden">마이</span><span className="hidden sm:inline">{user.name}님</span>
+                        {user.role === "ADMIN" ? (
+                          <span>관리</span>
+                        ) : (
+                          <><span className="sm:hidden">마이</span><span className="hidden sm:inline">{user.name}님</span></>
+                        )}
                       </Link>
                       <form action={logoutAction}>
                         <button

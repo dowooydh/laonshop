@@ -14,19 +14,26 @@ datasource db {
 }
 
 model ShopUser {
-  id           String      @id @default(cuid())
-  email        String      @unique
-  passwordHash String
-  name         String
-  phone        String?
+  id            String              @id @default(cuid())
+  email         String              @unique
+  passwordHash  String
+  name          String
+  role          ShopUserRole        @default(CUSTOMER)
+  phone         String?
   zipcode       String? // 우편번호 (다음 우편번호 검색)
   address       String? // 기본 배송지 — 도로명/지번 주소 (체크아웃 프리필 1순위)
   addressDetail String? // 상세 주소 (동·호수 등 직접 입력)
-  deletedAt    DateTime? // 탈퇴 (주문이력 보존 위해 소프트 삭제 — 전자상거래법 기록 보존)
-  orders       ShopOrder[]
-  wishlist     Wishlist[]
-  billingCards ShopBillingCard[]
-  createdAt    DateTime    @default(now())
+  deletedAt     DateTime? // 탈퇴 (주문이력 보존 위해 소프트 삭제 — 전자상거래법 기록 보존)
+  orders        ShopOrder[]
+  wishlist      Wishlist[]
+  billingCards  ShopBillingCard[]
+  auditLogs     ShopOrderAuditLog[] @relation("ShopOrderAuditActor")
+  createdAt     DateTime            @default(now())
+}
+
+enum ShopUserRole {
+  CUSTOMER
+  ADMIN
 }
 
 // 원클릭 결제 등록 카드 — NEEDS_PG_SPEC: KSNET 빌링(/billing/regist)은 사업부 계약 전이라 mock 토큰.
@@ -77,28 +84,35 @@ enum ShopOrderStatus {
   CANCELED // 취소
 }
 
+enum ShopOrderAuditAction {
+  PAYMENT_CONFIRMED_PAID
+  PAYMENT_CONFIRMED_FAILED
+}
+
 model ShopOrder {
-  id            String          @id @default(cuid())
-  user          ShopUser        @relation(fields: [userId], references: [id])
-  userId        String
-  status        ShopOrderStatus @default(PENDING)
-  totalAmount   Int
-  moid          String          @unique // 주문번호 (KSPAY 결제 연동)
-  approvalNo    String?
-  pgTrno        String?
-  cardName      String? // 발급 카드사명 (isscd 매핑 — 주문완료 결제수단 표기·심사 캡처용)
-  paidAt        DateTime?
-  receiverName  String?
-  receiverPhone String?
-  address       String?
+  id                String              @id @default(cuid())
+  user              ShopUser            @relation(fields: [userId], references: [id])
+  userId            String
+  status            ShopOrderStatus     @default(PENDING)
+  totalAmount       Int
+  moid              String              @unique // 주문번호 (KSPAY 결제 연동)
+  approvalNo        String?
+  pgTrno            String?             @unique
+  cardName          String? // 발급 카드사명 (isscd 매핑 — 주문완료 결제수단 표기·심사 캡처용)
+  paidAt            DateTime?
+  receiverName      String?
+  receiverPhone     String?
+  address           String?
   // 취소·반품 신청 (NEEDS_PG_SPEC: 카드 승인취소 API 미확보 — 신청 접수만 기록)
   cancelRequestedAt DateTime?
   cancelReason      String?
-  items         ShopOrderItem[]
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
+  items             ShopOrderItem[]
+  auditLogs         ShopOrderAuditLog[]
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
 
   @@index([userId, createdAt])
+  @@index([status, approvalNo, updatedAt])
 }
 
 model ShopOrderItem {
@@ -113,4 +127,27 @@ model ShopOrderItem {
   size      String? // 선택 사이즈
 
   @@index([orderId])
+}
+
+// 결제 결과가 불명확한 주문을 운영자가 KSTA에서 대조해 확정한 이력.
+// 주문 상태 변경과 같은 트랜잭션에서만 append하며 수정·삭제 UI는 제공하지 않는다.
+model ShopOrderAuditLog {
+  id              String               @id @default(cuid())
+  order           ShopOrder            @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  orderId         String
+  actor           ShopUser             @relation("ShopOrderAuditActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+  actorUserId     String
+  actorEmail      String // 처리 당시 관리자 이메일 스냅샷
+  action          ShopOrderAuditAction
+  fromStatus      ShopOrderStatus
+  toStatus        ShopOrderStatus
+  reason          String
+  confirmedAmount Int?
+  approvalNo      String?
+  pgTrno          String?
+  cardName        String?
+  createdAt       DateTime             @default(now())
+
+  @@index([orderId, createdAt])
+  @@index([actorUserId, createdAt])
 }
