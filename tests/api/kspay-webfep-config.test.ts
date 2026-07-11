@@ -63,3 +63,44 @@ test("WEBFEP 실승인은 API 키와 명시적 운영 스위치가 모두 필요
     globalThis.fetch = originalFetch;
   }
 });
+
+test("WEBFEP 503 응답은 재승인 가능한 실패가 아니라 불명확 결과로 반환한다", async () => {
+  const originalApiKey = process.env.KSPAY_API_KEY;
+  const originalRestLive = process.env.KSPAY_REST_LIVE;
+  const originalBase = process.env.KSPAY_WEBFEP_BASE;
+  const originalFetch = globalThis.fetch;
+  let fetchCount = 0;
+
+  try {
+    process.env.KSPAY_API_KEY = "issued-key";
+    process.env.KSPAY_REST_LIVE = "1";
+    process.env.KSPAY_WEBFEP_BASE = "https://stub.invalid";
+    globalThis.fetch = (async () => {
+      fetchCount += 1;
+      return new Response("unavailable", { status: 503 });
+    }) as typeof fetch;
+
+    const result = await payOldCert({
+      orderNumb: "ORDER-STUB-503",
+      userName: "테스트",
+      productName: "로컬 스텁 상품",
+      totalAmount: 1,
+      cardNumb: "0000000000000000",
+      expiryDate: "3012",
+      password2: "00",
+      userInfo: "000000",
+    });
+
+    assert.equal(fetchCount, 1);
+    assert.equal(result?.ok, false);
+    if (result && !result.ok) assert.equal(result.indeterminate, true);
+  } finally {
+    if (originalApiKey === undefined) delete process.env.KSPAY_API_KEY;
+    else process.env.KSPAY_API_KEY = originalApiKey;
+    if (originalRestLive === undefined) delete process.env.KSPAY_REST_LIVE;
+    else process.env.KSPAY_REST_LIVE = originalRestLive;
+    if (originalBase === undefined) delete process.env.KSPAY_WEBFEP_BASE;
+    else process.env.KSPAY_WEBFEP_BASE = originalBase;
+    globalThis.fetch = originalFetch;
+  }
+});

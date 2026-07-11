@@ -167,7 +167,10 @@ export async function lockAndValidateInventory(
         o."status" IN ('PAID', 'CANCEL_REQUESTED')
         OR (
           o."status" = 'PENDING'
-          AND o."updatedAt" >= NOW() - INTERVAL '30 minutes'
+          AND (
+            o."approvalNo" = ${PAYMENT_PROCESSING_MARKER}
+            OR o."updatedAt" >= NOW() - INTERVAL '30 minutes'
+          )
         )
       )
     GROUP BY oi."productId"

@@ -12,6 +12,14 @@ export interface CartItem {
 
 const KEY = "laonshop-cart";
 
+function cartIdentity(items: CartItem[]): string {
+  return JSON.stringify(
+    items
+      .map(({ productId, size, qty }) => ({ productId, size, qty }))
+      .sort((a, b) => `${a.productId}:${a.size}`.localeCompare(`${b.productId}:${b.size}`)),
+  );
+}
+
 export function getCart(): CartItem[] {
   if (typeof window === "undefined") return [];
   try {
@@ -22,7 +30,11 @@ export function getCart(): CartItem[] {
 }
 
 export function saveCart(items: CartItem[]): void {
+  const changed = cartIdentity(getCart()) !== cartIdentity(items);
   localStorage.setItem(KEY, JSON.stringify(items));
+  // 장바구니 내용 변경이 새 주문 의도를 구분한다. 시간 버킷 없이도 동일 제출은 안정적으로
+  // 같은 키를 유지하고, 사용자가 카트를 수정하면 새 멱등 nonce를 발급한다.
+  if (changed) rotateCheckoutNonce();
   window.dispatchEvent(new Event("laonshop-cart-change"));
 }
 

@@ -27,9 +27,14 @@ test("동일 체크아웃 요청은 탭과 항목 순서가 달라도 같은 멱
   assert.match(first, /^[a-f0-9]{64}$/);
 });
 
-test("새 장바구니 nonce나 멱등 시간창은 다른 요청으로 분리한다", async () => {
+test("시간 버킷 경계를 넘어도 같은 요청과 nonce는 같은 키를 유지한다", async () => {
   const now = 1_800_000_000_000;
   const first = await createCheckoutIdempotencyKey(payload, "nonce-1", now);
-  assert.notEqual(first, await createCheckoutIdempotencyKey(payload, "nonce-2", now));
-  assert.notEqual(first, await createCheckoutIdempotencyKey(payload, "nonce-1", now + 30 * 60 * 1_000));
+  assert.equal(first, await createCheckoutIdempotencyKey(payload, "nonce-1", now + 30 * 60 * 1_000));
+  assert.equal(first, await createCheckoutIdempotencyKey(payload, "nonce-1", now + 24 * 60 * 60 * 1_000));
+});
+
+test("장바구니 nonce가 바뀌면 새 주문 요청으로 분리한다", async () => {
+  const first = await createCheckoutIdempotencyKey(payload, "nonce-1");
+  assert.notEqual(first, await createCheckoutIdempotencyKey(payload, "nonce-2"));
 });

@@ -178,29 +178,69 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
   if (d.method === "manual") {
     const mc = d.manualCard!;
     const masked = `${mc.cardNo.slice(0, 4)}-${mc.cardNo.slice(4, 6)}**-****-${mc.cardNo.slice(-4)}`;
-    const manual = await prisma.$transaction(async (tx) => {
+    // 일반 KSPAY callback과 같은 2단계 처리: 외부 승인 전에 마커를 별도 트랜잭션으로
+    // 먼저 커밋한다. timeout/503 또는 승인 후 DB 장애가 나도 같은 주문의 재호출을 막는다.
+    const manualPrepared = await prisma.$transaction(async (tx) => {
       await acquireTransactionLock(tx, `order:${order.id}`);
       const current = await tx.shopOrder.findUnique({ where: { id: order.id }, include: { items: true } });
       if (!current || current.userId !== user.id) return { ok: false as const, error: "주문을 찾을 수 없습니다." };
-      if (current.status === "PAID") return { ok: true as const };
+      if (current.status === "PAID") return { ok: true as const, paid: true as const, order: current };
       if (current.status !== "PENDING") return { ok: false as const, error: "이미 처리된 주문입니다." };
+      if (current.approvalNo === PAYMENT_PROCESSING_MARKER) {
+        return { ok: false as const, error: "결제 결과를 확인 중입니다. 잠시 후 주문내역을 확인해 주세요." };
+      }
       const inventory = await lockAndValidateInventory(tx, current.items, current.id);
       if (!inventory.ok) {
         await tx.shopOrder.update({ where: { id: current.id }, data: { status: "FAILED" } });
         return inventory;
       }
-      const result = await payOldCert({
-        orderNumb: current.moid,
-        userName: user.name,
-        userEmail: user.email,
-        productName: sanitizePgParam(goodsName),
-        totalAmount: current.totalAmount,
-        cardNumb: mc.cardNo,
-        expiryDate: `${mc.expYy}${mc.expMm}`,
-        password2: mc.pw2,
-        userInfo: mc.birth6,
-        payload: current.id,
+      const marked = await tx.shopOrder.update({
+        where: { id: current.id },
+        data: { approvalNo: PAYMENT_PROCESSING_MARKER },
+        include: { items: true },
       });
+      return { ok: true as const, paid: false as const, order: marked };
+    }, TX_OPTIONS).catch(() => null);
+
+    if (!manualPrepared) {
+      return { ok: false, error: "결제 상태를 확인하지 못했습니다. 주문내역을 확인해 주세요." };
+    }
+    if (!manualPrepared.ok) return { ok: false, error: manualPrepared.error };
+    if (manualPrepared.paid) return { ok: true, redirect: `/order/${order.id}?receipt=1` };
+
+    const markedOrder = manualPrepared.order;
+    const result = await payOldCert({
+      orderNumb: markedOrder.moid,
+      userName: user.name,
+      userEmail: user.email,
+      productName: sanitizePgParam(goodsName),
+      totalAmount: markedOrder.totalAmount,
+      cardNumb: mc.cardNo,
+      expiryDate: `${mc.expYy}${mc.expMm}`,
+      password2: mc.pw2,
+      userInfo: mc.birth6,
+      payload: markedOrder.id,
+    }).catch(() => ({
+      ok: false as const,
+      message: "결제 서버 응답을 확인하지 못했습니다. 중복 결제를 피하려면 잠시 후 주문내역을 확인해 주세요.",
+      indeterminate: true,
+    }));
+
+    // 승인 성립 여부가 불명확하면 처리 마커와 PENDING을 그대로 둔다. 이후 동일 폼 제출과
+    // 주문 재결제 모두 마커에서 차단되고 운영 확인 전까지 재고도 계속 예약된다.
+    if (result && !result.ok && result.indeterminate) {
+      return { ok: false, error: result.message };
+    }
+
+    const manualFinalized = await prisma.$transaction(async (tx) => {
+      await acquireTransactionLock(tx, `order:${markedOrder.id}`);
+      const current = await tx.shopOrder.findUnique({ where: { id: markedOrder.id } });
+      if (!current || current.userId !== user.id) return { ok: false as const, error: "주문을 찾을 수 없습니다." };
+      if (current.status === "PAID") return { ok: true as const };
+      if (current.status !== "PENDING" || current.approvalNo !== PAYMENT_PROCESSING_MARKER) {
+        return { ok: false as const, error: "결제 상태가 변경되었습니다. 주문내역을 확인해 주세요." };
+      }
+
       if (result === null) {
         await tx.shopOrder.update({
           where: { id: current.id },
@@ -214,9 +254,10 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
         return { ok: true as const };
       }
       if (!result.ok) {
-        if (!result.indeterminate) {
-          await tx.shopOrder.update({ where: { id: current.id }, data: { status: "FAILED" } });
-        }
+        await tx.shopOrder.update({
+          where: { id: current.id },
+          data: { status: "FAILED", approvalNo: null },
+        });
         return { ok: false as const, error: result.message };
       }
       await tx.shopOrder.update({
@@ -231,8 +272,11 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
       });
       return { ok: true as const };
     }, TX_OPTIONS).catch(() => null);
-    if (!manual) return { ok: false, error: "결제 상태를 확인하지 못했습니다. 주문내역을 확인해 주세요." };
-    if (!manual.ok) return { ok: false, error: manual.error };
+
+    if (!manualFinalized) {
+      return { ok: false, error: "결제 상태를 확인하지 못했습니다. 주문내역을 확인해 주세요." };
+    }
+    if (!manualFinalized.ok) return { ok: false, error: manualFinalized.error };
     return { ok: true, redirect: `/order/${order.id}?receipt=1` };
   }
 

@@ -1,5 +1,4 @@
 export const CHECKOUT_NONCE_KEY = "laonshop-checkout-nonce";
-const IDEMPOTENCY_WINDOW_MS = 30 * 60 * 1000;
 
 export type CheckoutIdempotencyPayload = {
   method: string;
@@ -15,10 +14,9 @@ export type CheckoutIdempotencyPayload = {
 export async function createCheckoutIdempotencyKey(
   payload: CheckoutIdempotencyPayload,
   nonce: string,
-  now = Date.now(),
+  _requestTime = Date.now(), // 회귀 검증용 시각. 시간 경계가 키를 바꾸지 않도록 해시에는 포함하지 않는다.
 ): Promise<string> {
   const canonical = {
-    window: Math.floor(now / IDEMPOTENCY_WINDOW_MS),
     nonce,
     method: payload.method,
     items: [...payload.items]
