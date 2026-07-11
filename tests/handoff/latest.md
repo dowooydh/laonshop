@@ -4,7 +4,9 @@
 
 담당: Codex QA/테스트 세션
 
-대상: `main` / `5fe1417369f12e71328f221a34604f7a9229a07a`
+대상: `main` / `06f0e084b6dbcd5f2221e09ecb483058a354fb1a`
+
+비교 범위: `5fe1417369f12e71328f221a34604f7a9229a07a..06f0e084b6dbcd5f2221e09ecb483058a354fb1a`
 
 결과: **FAIL**
 
@@ -13,60 +15,54 @@
 ## 요약
 
 - 제품 코드는 수정하지 않았습니다.
-- Node 22.23.1 + pnpm 11.5.3에서 install, test, lint, typecheck, Prisma validate, production build는 통과했습니다.
-- 로컬 production server, 데스크톱, 390/320 모바일폭, Android Chrome, API, DB를 함께 검증했습니다.
-- 재고 1개 상품의 총수량 2 주문이 KSPAY 단계까지 진행되는 결함을 E2E와 DB로 확정했습니다.
-- KSPAY 승인 평문 HTTP, result 동시 처리 경합, 주문 생성 멱등성 부재를 실결제 출시 차단 위험으로 확인했습니다.
-- 상세 보고서: [2026-07-11 전수 QA 보고서](../reports/2026-07-11-full-audit/report.md)
+- Node 22.23.1 + pnpm 11.5.3에서 test 11/11, lint, typecheck, Prisma validate, production audit, production build가 모두 통과했습니다.
+- 재고 합산·마지막 재고 동시 주문·동일 키 주문 멱등성·일반 KSPAY callback 처리 마커·이메일 동시 가입·320/390/412px 반응형 수정은 실제 회귀에서 통과했습니다.
+- 수기결제의 503/timeout 재전송이 외부 승인 API를 다시 호출하는 P1을 확정했습니다.
+- KSPAY 처리 마커 주문도 30분 뒤 재고 예약에서 제외되는 P1을 확정했습니다.
+- 30분 시간 버킷 경계에서 동일 체크아웃의 멱등키가 달라지는 P2를 확인했습니다.
+- 상세 보고서: [2026-07-11 `06f0e08` 회귀 QA 보고서](../reports/2026-07-11-06f-regression/report.md)
 
 ## 우선 결함
 
-| 우선순위 | 결함 | 증거 | 관련 위치 |
+| 우선순위 | 결함 | 실제 증거 | 관련 위치 |
 | --- | --- | --- | --- |
-| P1 | 상품 재고 1인데 사이즈 S 1 + M 1, 총 2개 주문 생성·결제창 진입 | E2E + DB | `app/checkout/actions.ts:55-76` |
-| P1 | KSPAY 승인키를 평문 HTTP로 전송하고 timeout 없음 | 코드 | `lib/kspay/kspay-provider.ts:29`, `:145-155` |
-| P1 | 중복 result 승인 경합에서 실패 상태가 실제 성공 승인을 선점 가능 | 코드 | `app/api/pg/kspay/result/route.ts:15-55` |
-| P1 | 신규 주문에 서버 멱등키가 없어 다중 탭·재전송 중복 주문 가능 | 코드 | `app/checkout/actions.ts:175-187` |
-| P2 | 같은 이메일 동시 가입 중 한 요청이 Prisma P2002/500 | E2E + 서버 로그 | `app/(auth)/actions.ts:33-39` |
-| P2 | 이메일 대소문자 변형 2개가 DB unique를 모두 통과 | rollback DB test | `app/(auth)/actions.ts:12`, `prisma/schema.prisma:18` |
-| P2 | 320px 로그인 헤더 `scrollWidth=357` | 모바일폭 실측 | `app/layout.tsx:46-116` |
-| P2 | PG 외부 스크립트 실패를 삼켜 무한 spinner | 코드 | `components/kspay-checkout.tsx:52-69` |
-| P2 | `--fg-subtle` 대비 약 3.46:1로 일반 텍스트 AA 미달 | 계산 + 실화면 | `app/globals.css:17` |
-| P3 | 일부 터치 타깃 20~36px | 실측 + 코드 | cart/category/header |
-| P3 | production audit PostCSS moderate 1건 | `pnpm audit --prod` | Next 하위 PostCSS 8.4.31 |
+| P1 | 수기결제 불명확 응답 뒤 같은 주문 재시도 시 외부 승인 재호출 | 로컬 503 stub `REQ 1 -> REQ 2`, DB는 주문 1건 PENDING | `app/checkout/actions.ts:181-233` |
+| P1 | `__KSPAY_PROCESSING__` PENDING도 30분 뒤 재고 예약 해제 | stock 1/marker 31분 fixture에서 두 번째 주문 guard 허용 | `lib/order-guard.ts:167-171` |
+| P2 | 30분 버킷 경계 전후 같은 요청의 멱등키 불일치 | helper 실측 `sameRequestAcrossWindowBoundaryHasSameKey=false` | `lib/checkout-idempotency.ts:20-22` |
 
 ## 통과 범위
 
-- 회원가입 필수 동의, 로그인, 정확히 5회 잠금, 로그아웃, 보호 페이지
-- 정보 수정, 비밀번호 변경, 회원탈퇴 취소/오류/익명화/주문 보존/재로그인 차단
-- 상품 목록, 검색/빈 상태, 정렬, 찜, 최근 본 상품
-- 장바구니 사이즈별 라인, 수량, 삭제, 새로고침 유지
-- 배송지 프리필, 구매 동의, 서버 가격 재계산, 단일 탭 더블클릭 1건
-- KSPAY 폼 진입, callback XSS escape, 빈 result PENDING 유지, 재결제 동일 주문
-- 카드 마스킹 저장, 수기/원클릭 실호출 이중 guard
-- 주문 IDOR 404, 주문완료/영수증 링크, 취소·반품 접수
-- 1440px·390px 주요 화면, Android Chrome 홈·검색
-- 푸터 사업자정보와 정책·지원 페이지
+- 동일 상품 S1+M1 합산 재고 거부, 허용되지 않은 사이즈 거부
+- 서로 다른 사용자 마지막 재고 동시 주문: 성공 1, 거부 1, 주문 1건
+- 같은 사용자·동일 키 동시 요청과 실제 두 탭 재전송: 동일 order/moid, 주문 1건
+- 동일 이메일 대소문자 변형 동시 가입: 성공 1, 중복 안내 1, 500 없음
+- 대문자 변형 이메일 로그인 성공
+- KSPAY 처리 마커 재전송 차단, 취소 result 병렬 FAILED, PENDING/FAILED 재결제 UI
+- KSPAY 스크립트 차단/8초 지연: spinner 종료, 오류·재시도 노출
+- 네트워크 offline 실패와 복구, 타 사용자 주문 404
+- Chromium 320/390/412px 주요 6개 화면과 200% root font overflow 0
+- Android Chrome 133 실제 320/390/412px, 시스템 글꼴 200%, 검색 빈 상태
+- `pnpm audit --prod` 취약점 0
 
 ## 실행하지 못한 범위
 
-- 실카드 승인/자동취소/실영수증
-- 운영 Vercel 배포, Safari/WebKit, iOS 실제 기기
-- 실제 PG 503/timeout·중복 승인 fault injection
-- Android 홈·검색 이후 전 기능: Chrome 자체 ANR로 PARTIAL
-- 200% 글자 확대, 전체 키보드 순회
-- 관리자 화면: 저장소에 없음
+- 실카드 승인, 자동취소, 실영수증
+- 운영 Vercel 배포 커밋 일치와 운영 도메인
+- Safari/WebKit, iOS 실제 기기
+- 실제 KSNET 장애: 로컬 stub/브라우저 route로 대체
+- 관리자: 저장소에 화면 없음
+- 비밀번호 변경·회원탈퇴 전체 흐름은 이번 변경 범위에서 반복하지 않음
 
 ## cleanup
 
-- 이번 QA 사용자 5, 주문 3, 주문항목 4, 찜 1, QA 상품 1을 정리했습니다.
-- 최종 DB 집계는 시작 전과 같은 사용자 9, 주문 4, 상품 329입니다.
-- 실결제와 운영·마스터 데이터 변경은 없었습니다.
+- QA 사용자 8명, 주문 9건, 주문항목 9건, QA 상품 1개를 삭제했습니다.
+- 최종 DB는 시작 전과 같은 사용자 9, 활성 사용자 8, 주문 4, 주문항목 4, 상품 329, 찜 0, 등록카드 4입니다.
+- Android 해상도 1080x2400, font scale 1.0을 복구하고 adb forward와 로컬 서버를 종료했습니다.
+- 실결제, 운영·마스터 데이터, PG/Vercel 설정 변경은 없었습니다.
 
 ## 개발 회귀 요청
 
-1. 동일 상품을 사이즈별로 나눈 재고 초과와 두 사용자 동시 주문을 차단합니다.
-2. PG 승인 처리 선점·멱등성·성공 우선 상태 전이를 병렬 테스트합니다.
-3. 주문 생성에 멱등키를 적용하고 다중 탭/재전송을 테스트합니다.
-4. 회원가입 P2002를 사용자 오류로 변환하고 이메일을 case-insensitive unique로 만듭니다.
-5. 320px 로그인 헤더, PG script 오류/재시도, subtle 대비를 회귀합니다.
+1. 수기결제도 외부 호출 전에 처리 마커를 별도 transaction으로 commit하고 503/timeout/commit 실패 뒤 외부 호출 1회를 보장합니다.
+2. processing marker 주문은 운영 확인 전 재고 예약에서 제외되지 않도록 일반 PENDING과 분리합니다.
+3. 체크아웃 버킷 경계 전후 1ms, 다중 탭, 동일 카트 재구성 멱등성을 추가합니다.
+4. 수정 뒤 Node 22 정적 검증, DB 병렬 테스트, 로컬 PG fault injection과 모바일 회귀를 다시 수행합니다.
