@@ -60,10 +60,10 @@ export function RetryPayment({
   if (pay) return <KspayCheckout formAction={pay.formAction} formFields={pay.formFields} />;
 
   return (
-    <section className="mt-6 space-y-3 rounded-[var(--radius-lg)] border border-line bg-raised p-5">
+    <section className="mt-6 min-w-0 space-y-3 rounded-[var(--radius-lg)] border border-line bg-raised p-[20px]">
       <div>
         <p className="text-step-0 font-semibold text-fg">결제 이어서 진행하기</p>
-        <p className="mt-1 text-step--1 text-fg-subtle">
+        <p className="mt-1 text-step--1 text-fg-subtle [overflow-wrap:anywhere]">
           결제창이 닫혔거나 결제가 완료되지 않았습니다. 결제수단을 선택해 같은 주문으로 다시 결제할 수 있습니다.
         </p>
       </div>
@@ -94,28 +94,31 @@ export function RetryPayment({
         ))}
       </div>
       {method === "oneclick" && billingCards.length > 0 && (
-        <div className="space-y-2 rounded-[var(--radius-md)] border border-line bg-overlay p-4">
+        <div className="min-w-0 space-y-2 rounded-[var(--radius-md)] border border-line bg-overlay p-[16px]">
           {billingCards.map((c) => (
             <button
               key={c.id}
               type="button"
+              aria-pressed={billingCardId === c.id}
               onClick={() => setBillingCardId(c.id)}
-              className="flex min-h-11 w-full items-center justify-between gap-3 text-left text-step--1"
+              className="flex min-h-[44px] w-full min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-2 text-left text-step--1"
             >
-              <span className="flex items-center gap-2">
+              <span className="flex min-w-[min(100%,8rem)] flex-1 flex-wrap items-center gap-2">
                 <span
                   className={cn(
-                    "flex h-4 w-4 items-center justify-center rounded-full border",
+                    "flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-full border",
                     billingCardId === c.id ? "border-accent-cyan" : "border-line",
                   )}
                   aria-hidden
                 >
-                  {billingCardId === c.id && <span className="h-2 w-2 rounded-full bg-accent-cyan" />}
+                  {billingCardId === c.id && <span className="h-[8px] w-[8px] rounded-full bg-accent-cyan" />}
                 </span>
-                <span className="font-mono font-semibold tabular-nums text-fg">{c.maskedCardNumb}</span>
+                <span className="min-w-[min(100%,6rem)] flex-1 font-mono font-semibold tabular-nums text-fg [overflow-wrap:anywhere]">
+                  {c.maskedCardNumb}
+                </span>
               </span>
               {billingCardId === c.id && (
-                <span className="rounded-[var(--radius-sm)] bg-[color-mix(in_oklab,var(--accent-cyan)_16%,transparent)] px-2 py-0.5 font-mono text-[11px] text-accent-cyan ring-1 ring-inset ring-[color-mix(in_oklab,var(--accent-cyan)_38%,transparent)]">
+                <span className="max-w-full shrink-0 whitespace-nowrap rounded-[var(--radius-sm)] bg-[color-mix(in_oklab,var(--accent-cyan)_16%,transparent)] px-2 py-0.5 font-mono text-[11px] text-accent-cyan ring-1 ring-inset ring-[color-mix(in_oklab,var(--accent-cyan)_38%,transparent)]">
                   결제 카드
                 </span>
               )}
@@ -124,8 +127,15 @@ export function RetryPayment({
         </div>
       )}
       <FieldError>{error}</FieldError>
-      <Button type="button" size="lg" className="w-full" loading={pending} onClick={submit}>
-        {formatKrw(amount)} 결제하기
+      <Button
+        type="button"
+        size="lg"
+        className="min-h-[48px] w-full min-w-0 max-w-full flex-wrap gap-x-2 gap-y-1 px-[clamp(4px,3vw,1.25rem)] py-3 text-center !h-auto !whitespace-normal leading-tight"
+        loading={pending}
+        onClick={submit}
+      >
+        <span className="min-w-0 max-w-full [overflow-wrap:anywhere]">{formatKrw(amount)}</span>
+        <span className="max-w-full break-keep">결제하기</span>
       </Button>
       <p className="text-center text-step--1 text-fg-subtle">결제는 KSPAY(KSNET) 인증결제창에서 안전하게 진행됩니다.</p>
     </section>

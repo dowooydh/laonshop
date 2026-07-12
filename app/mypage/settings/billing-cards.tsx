@@ -10,7 +10,7 @@ export type BillingCardRow = { id: string; maskedCardNumb: string; dateLabel: st
 
 function CardMark() {
   return (
-    <span className="flex h-9 w-12 shrink-0 items-center justify-center rounded-[var(--radius-sm)] border border-line bg-overlay">
+    <span className="flex h-[36px] w-[48px] shrink-0 items-center justify-center rounded-[var(--radius-sm)] border border-line bg-overlay">
       <svg width="18" height="14" viewBox="0 0 24 18" fill="none" stroke="currentColor" strokeWidth="1.6" className="text-fg-subtle" aria-hidden>
         <rect x="1" y="1" width="22" height="16" rx="2.5" />
         <path d="M1 6.2h22" />
@@ -56,17 +56,17 @@ export function BillingCards({ cards }: { cards: BillingCardRow[] }) {
       ) : (
         <ul className="divide-y divide-line rounded-[var(--radius-lg)] border border-line bg-raised">
           {cards.map((c) => (
-            <li key={c.id} className="flex items-center gap-3 p-4">
+            <li key={c.id} className="flex min-w-0 items-center gap-[12px] p-[16px]">
               <CardMark />
               <div className="min-w-0 flex-1">
-                <div className="font-mono text-step--1 font-semibold tabular-nums text-fg">{c.maskedCardNumb}</div>
-                <div className="text-step--1 text-fg-subtle">{c.dateLabel} 등록</div>
+                <div className="font-mono text-step--1 font-semibold tabular-nums text-fg [overflow-wrap:anywhere]">{c.maskedCardNumb}</div>
+                <div className="text-step--1 text-fg-subtle [overflow-wrap:anywhere]">{c.dateLabel} 등록</div>
               </div>
               <button
                 type="button"
                 disabled={deleting}
                 onClick={() => remove(c.id)}
-                className="text-step--1 text-fg-subtle transition-colors duration-fast hover:text-danger"
+                className="inline-flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center whitespace-nowrap px-[8px] text-step--1 text-fg-subtle transition-colors duration-fast hover:text-danger"
               >
                 삭제
               </button>
@@ -76,11 +76,11 @@ export function BillingCards({ cards }: { cards: BillingCardRow[] }) {
       )}
 
       {!open ? (
-        <Button type="button" variant="outline" size="md" onClick={openForm}>
+        <Button type="button" variant="outline" size="md" className="min-h-[44px]" onClick={openForm}>
           카드 등록
         </Button>
       ) : (
-        <form action={action} className="space-y-4 rounded-[var(--radius-lg)] border border-line bg-raised p-5">
+        <form action={action} className="min-w-0 space-y-4 rounded-[var(--radius-lg)] border border-line bg-raised p-[20px]">
           <div className="space-y-1.5">
             <Label htmlFor="bc-no">카드번호</Label>
             <Input id="bc-no" name="cardNo" inputMode="numeric" autoComplete="cc-number" placeholder="0000-0000-0000-0000" required />
@@ -107,11 +107,23 @@ export function BillingCards({ cards }: { cards: BillingCardRow[] }) {
           </div>
           <FieldHint>카드번호는 저장되지 않으며, 등록 후 마스킹된 번호만 표시됩니다.</FieldHint>
           <FieldError>{showError ? state.error : undefined}</FieldError>
-          <div className="flex gap-2">
-            <Button type="button" variant="ghost" size="md" onClick={closeForm}>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="md"
+              className="min-h-[44px] min-w-[min(100%,6rem)] px-[12px] py-[10px] !h-auto !whitespace-normal"
+              onClick={closeForm}
+            >
               취소
             </Button>
-            <Button type="submit" variant="secondary" size="md" loading={pending}>
+            <Button
+              type="submit"
+              variant="secondary"
+              size="md"
+              className="min-h-[44px] min-w-[min(100%,6rem)] break-keep px-[12px] py-[10px] !h-auto !whitespace-normal"
+              loading={pending}
+            >
               등록하기
             </Button>
           </div>

@@ -1,6 +1,6 @@
 "use client";
 import { formatKrw } from "@/lib/format";
-import { EmptyState, Spinner, buttonVariants } from "@/lib/ui";
+import { EmptyState, Spinner, buttonVariants, cn } from "@/lib/ui";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -56,57 +56,70 @@ export default function CartPage() {
         <>
           <ul className="divide-y divide-line rounded-[var(--radius-lg)] border border-line bg-raised">
             {items.map((c, idx) => (
-              <li key={`${c.productId}-${c.size}`} className="flex items-center gap-3 p-3">
-                <div className="relative h-20 w-16 shrink-0 overflow-hidden rounded-[var(--radius-md)] bg-overlay">
+              <li
+                key={`${c.productId}-${c.size}`}
+                className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-[12px] p-[12px] sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center"
+              >
+                <div className="relative h-[80px] w-[64px] shrink-0 overflow-hidden rounded-[var(--radius-md)] bg-overlay">
                   {c.imageUrl && <Image src={c.imageUrl} alt={c.name} fill sizes="64px" className="object-cover" />}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-step--1 font-medium text-fg">{c.name}</div>
+                  <div className="line-clamp-2 text-step--1 font-medium text-fg [overflow-wrap:anywhere]">{c.name}</div>
                   {c.size && <div className="text-step--1 text-fg-subtle">사이즈 {c.size}</div>}
-                  <div className="mt-1 font-mono text-step--1 font-bold text-fg">{formatKrw(c.price * c.qty)}</div>
-                  <div className="mt-1.5 inline-flex min-h-11 items-center rounded-[var(--radius-md)] border border-line">
+                  <div className="mt-1 font-mono text-step--1 font-bold text-fg [overflow-wrap:anywhere]">{formatKrw(c.price * c.qty)}</div>
+                </div>
+                <div className="col-span-2 flex min-w-0 flex-wrap items-center justify-between gap-[8px] sm:col-span-1 sm:col-start-3 sm:row-start-1 sm:flex-nowrap">
+                  <div className="inline-flex min-h-[44px] shrink-0 items-center rounded-[var(--radius-md)] border border-line">
                     <button
                       type="button"
                       onClick={() => setQty(idx, c.qty - 1)}
                       aria-label="수량 감소"
-                      className="h-11 w-11 text-fg-muted transition-colors duration-fast hover:text-fg"
+                      className="flex min-h-[44px] min-w-[44px] items-center justify-center leading-none text-fg-muted transition-colors duration-fast hover:text-fg"
                     >
                       −
                     </button>
-                    <span className="w-8 text-center font-mono text-step--1 tabular-nums">{c.qty}</span>
+                    <span className="min-w-[32px] text-center font-mono text-step--1 tabular-nums">{c.qty}</span>
                     <button
                       type="button"
                       onClick={() => setQty(idx, c.qty + 1)}
                       aria-label="수량 증가"
-                      className="h-11 w-11 text-fg-muted transition-colors duration-fast hover:text-fg"
+                      className="flex min-h-[44px] min-w-[44px] items-center justify-center leading-none text-fg-muted transition-colors duration-fast hover:text-fg"
                     >
                       +
                     </button>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => remove(idx)}
+                    className="inline-flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center whitespace-nowrap px-[8px] text-step--1 text-fg-subtle transition-colors duration-fast hover:text-danger"
+                  >
+                    삭제
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => remove(idx)}
-                  className="flex min-h-11 min-w-11 items-center justify-center self-start text-step--1 text-fg-subtle transition-colors duration-fast hover:text-danger"
-                >
-                  삭제
-                </button>
               </li>
             ))}
           </ul>
 
-          <div className="space-y-2.5 rounded-[var(--radius-lg)] border border-line bg-overlay px-5 py-4">
-            <div className="flex items-center justify-between text-step--1 text-fg-muted">
-              <span>배송비</span>
-              <span className="font-mono text-success">무료</span>
+          <div className="space-y-2.5 rounded-[var(--radius-lg)] border border-line bg-overlay px-[20px] py-[16px]">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-step--1 text-fg-muted">
+              <span className="min-w-[min(100%,8rem)] flex-1">배송비</span>
+              <span className="shrink-0 whitespace-nowrap font-mono text-success">무료</span>
             </div>
-            <div className="flex items-center justify-between border-t border-line pt-2.5">
-              <span className="text-step-0 text-fg-muted">총 결제금액</span>
-              <span className="font-mono text-step-1 font-extrabold text-fg">{formatKrw(total)}</span>
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-t border-line pt-2.5">
+              <span className="min-w-[min(100%,8rem)] flex-1 text-step-0 text-fg-muted">총 결제금액</span>
+              <span className="min-w-0 max-w-full text-right font-mono text-step-1 font-extrabold text-fg [overflow-wrap:anywhere]">
+                {formatKrw(total)}
+              </span>
             </div>
           </div>
 
-          <Link href="/checkout" className={buttonVariants({ variant: "primary", size: "xl" })}>
+          <Link
+            href="/checkout"
+            className={cn(
+              buttonVariants({ variant: "primary", size: "xl" }),
+              "min-h-[56px] max-w-full break-keep px-[16px] py-[12px] text-center leading-tight !h-auto !whitespace-normal",
+            )}
+          >
             주문하기
           </Link>
         </>

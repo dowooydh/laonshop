@@ -53,14 +53,18 @@ export default async function MyPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-10">
       <header className="border-b border-line pb-8">
-        <div className="flex items-start justify-between gap-4">
-          <div className="space-y-2">
-            <p className="font-mono text-step--1 uppercase tracking-widest text-fg-muted">{user.email}</p>
-            <h1 className="font-display text-step-3 font-bold tracking-tight text-fg">{user.name}</h1>
+        <div className="flex min-w-0 flex-wrap items-start justify-between gap-x-4 gap-y-2">
+          <div className="min-w-[min(100%,10rem)] flex-1 space-y-2">
+            <p className="min-w-0 font-mono text-step--1 uppercase tracking-wide text-fg-muted [overflow-wrap:anywhere] sm:tracking-widest">
+              {user.email}
+            </p>
+            <h1 className="min-w-0 break-keep font-display text-step-3 font-bold tracking-tight text-fg [overflow-wrap:anywhere]">
+              {user.name}
+            </h1>
           </div>
           <Link
             href="/mypage/settings"
-            className="rounded-[var(--radius-sm)] px-3 py-2 text-step--1 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg"
+            className="ml-auto inline-flex min-h-[44px] shrink-0 items-center justify-center self-start whitespace-nowrap rounded-[var(--radius-sm)] px-[12px] py-[8px] text-step--1 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg"
           >
             설정
           </Link>

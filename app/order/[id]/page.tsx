@@ -93,7 +93,7 @@ export default async function OrderResultPage({
   }
 
   return (
-    <div className="mx-auto max-w-lg py-8">
+    <div className="mx-auto min-w-0 max-w-lg py-8">
       {/* 결제 직후(receipt=1)에만 카트 클리어 — 과거 주문 재조회로 현재 카트가 지워지는 것 방지 */}
       {paid && receipt === "1" && <ClearCartOnPaid />}
 
@@ -104,41 +104,47 @@ export default async function OrderResultPage({
           {s.heading}
         </h1>
         <div className="mt-4">
-          <Amount value={order.totalAmount} className="text-step-2 text-fg" />
+          <Amount value={order.totalAmount} className="inline-block max-w-full text-step-2 text-fg [overflow-wrap:anywhere]" />
         </div>
       </div>
 
       {/* 심사 캡처 요소 — 주문번호·승인번호·결제수단·결제일시가 한 화면에 (카드사 결제경로 캡처 기준) */}
-      <div className="mt-8 rounded-[var(--radius-lg)] border border-line bg-raised p-5 text-left shadow-elev1">
+      <div className="mt-8 rounded-[var(--radius-lg)] border border-line bg-raised p-[20px] text-left shadow-elev1">
         <dl className="space-y-2 text-step--1 text-fg-muted">
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-wrap items-start justify-between gap-x-[16px] gap-y-[8px]">
             <dt className="shrink-0">주문번호</dt>
-            <dd className="min-w-0 text-right font-mono font-medium text-fg [overflow-wrap:anywhere]">{order.moid}</dd>
+            <dd className="min-w-[min(100%,7rem)] flex-1 text-right font-mono font-medium text-fg [overflow-wrap:anywhere]">
+              {order.moid}
+            </dd>
           </div>
           {order.approvalNo && !processing && (
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex flex-wrap items-start justify-between gap-x-[16px] gap-y-[8px]">
               <dt className="shrink-0">승인번호</dt>
-              <dd className="min-w-0 text-right font-mono font-medium text-fg [overflow-wrap:anywhere]">{order.approvalNo}</dd>
+              <dd className="min-w-[min(100%,7rem)] flex-1 text-right font-mono font-medium text-fg [overflow-wrap:anywhere]">
+                {order.approvalNo}
+              </dd>
             </div>
           )}
           {(paid || order.status === "CANCEL_REQUESTED") && (
             <>
-              <div className="flex items-start justify-between gap-4">
+              <div className="flex flex-wrap items-start justify-between gap-x-[16px] gap-y-[8px]">
                 <dt className="shrink-0">결제수단</dt>
-                <dd className="min-w-0 text-right font-medium text-fg [overflow-wrap:anywhere]">
+                <dd className="min-w-[min(100%,7rem)] flex-1 text-right font-medium text-fg [overflow-wrap:anywhere]">
                   {order.cardName ? `${order.cardName} (KSPAY)` : "신용카드·간편결제 (KSPAY)"}
                 </dd>
               </div>
               {order.paidAt && (
-                <div className="flex items-start justify-between gap-4">
+                <div className="flex flex-wrap items-start justify-between gap-x-[16px] gap-y-[8px]">
                   <dt className="shrink-0">결제일시</dt>
-                  <dd className="min-w-0 text-right font-medium text-fg [overflow-wrap:anywhere]">{order.paidAt.toLocaleString("ko-KR")}</dd>
+                  <dd className="min-w-[min(100%,7rem)] flex-1 text-right font-medium text-fg [overflow-wrap:anywhere]">
+                    {order.paidAt.toLocaleString("ko-KR")}
+                  </dd>
                 </div>
               )}
               {receiptUrl && (
-                <div className="flex items-start justify-between gap-4">
+                <div className="flex flex-wrap items-start justify-between gap-x-[16px] gap-y-[8px]">
                   <dt className="shrink-0">매출전표</dt>
-                  <dd className="min-w-0 text-right">
+                  <dd className="min-w-[min(100%,7rem)] flex-1 text-right">
                     <a
                       href={receiptUrl}
                       target="_blank"
@@ -152,15 +158,19 @@ export default async function OrderResultPage({
               )}
             </>
           )}
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-wrap items-start justify-between gap-x-[16px] gap-y-[8px]">
             <dt className="shrink-0">받는 분</dt>
-            <dd className="min-w-0 text-right font-medium text-fg [overflow-wrap:anywhere]">{order.receiverName}</dd>
+            <dd className="min-w-[min(100%,7rem)] flex-1 text-right font-medium text-fg [overflow-wrap:anywhere]">
+              {order.receiverName}
+            </dd>
           </div>
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-wrap items-start justify-between gap-x-[16px] gap-y-[8px]">
             <dt className="shrink-0">배송지</dt>
-            <dd className="min-w-0 max-w-60 text-right font-medium text-fg [overflow-wrap:anywhere]">{order.address}</dd>
+            <dd className="min-w-[min(100%,7rem)] max-w-60 flex-1 text-right font-medium text-fg [overflow-wrap:anywhere]">
+              {order.address}
+            </dd>
           </div>
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-wrap items-start justify-between gap-x-[16px] gap-y-[8px]">
             <dt className="shrink-0">배송비</dt>
             <dd className="shrink-0 font-medium text-success">무료</dd>
           </div>
@@ -168,12 +178,12 @@ export default async function OrderResultPage({
 
         <ul className="mt-4 space-y-1.5 border-t border-line pt-4 text-step--1 text-fg-muted">
           {order.items.map((it) => (
-            <li key={it.id} className="flex items-start justify-between gap-4">
-              <span className="min-w-0 [overflow-wrap:anywhere]">
+            <li key={it.id} className="flex flex-wrap items-start justify-between gap-x-[16px] gap-y-[4px]">
+              <span className="min-w-[min(100%,8rem)] flex-1 [overflow-wrap:anywhere]">
                 {it.name}
                 {it.size ? ` (${it.size})` : ""} × {it.qty}
               </span>
-              <span className="shrink-0 whitespace-nowrap font-mono">{formatKrw(it.price * it.qty)}</span>
+              <span className="min-w-0 max-w-full text-right font-mono [overflow-wrap:anywhere]">{formatKrw(it.price * it.qty)}</span>
             </li>
           ))}
         </ul>

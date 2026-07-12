@@ -87,7 +87,7 @@ export function AddressInput({
 
   return (
     <div className="space-y-2">
-      <div className="flex gap-2">
+      <div className="flex min-w-0 flex-wrap gap-2">
         <Input
           id={`${idPrefix}-zipcode`}
           name="zipcode"
@@ -96,10 +96,16 @@ export function AddressInput({
           onChange={(e) => update({ ...value, zipcode: e.target.value })}
           placeholder="우편번호"
           inputMode="numeric"
-          className="w-32"
+          className="w-[min(100%,6rem)] min-w-0 max-w-full px-[14px]"
           aria-label="우편번호"
         />
-        <Button type="button" variant="outline" size="md" onClick={search}>
+        <Button
+          type="button"
+          variant="outline"
+          size="md"
+          className="min-h-[44px] min-w-[min(100%,6rem)] max-w-full break-keep px-[12px] py-[10px] !h-auto !whitespace-normal leading-tight"
+          onClick={search}
+        >
           주소 검색
         </Button>
       </div>

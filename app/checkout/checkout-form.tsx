@@ -129,40 +129,45 @@ export function CheckoutForm({
     );
 
   return (
-    <div className="mx-auto max-w-lg space-y-6">
+    <div className="mx-auto min-w-0 max-w-lg space-y-6">
       <header className="space-y-1">
         <p className="font-mono text-step--1 uppercase tracking-widest text-accent-cyan">Checkout</p>
         <h1 className="font-display text-step-2 font-bold tracking-tight text-fg">주문/결제</h1>
       </header>
 
       {/* 01 주문 상품 */}
-      <section className="rounded-[var(--radius-lg)] border border-line bg-raised p-5">
+      <section className="rounded-[var(--radius-lg)] border border-line bg-raised p-[20px]">
         <div className="mb-3 flex items-baseline gap-2">
           <span className="font-mono text-step--1 text-fg-subtle">01</span>
           <span className="text-step-0 font-semibold text-fg">주문 상품</span>
         </div>
         <ul className="divide-y divide-line">
           {items.map((c) => (
-            <li key={`${c.productId}-${c.size}`} className="flex justify-between py-2.5 text-step--1">
-              <span className="text-fg-muted">
+            <li
+              key={`${c.productId}-${c.size}`}
+              className="flex min-w-0 flex-wrap items-start justify-between gap-x-4 gap-y-1 py-2.5 text-step--1"
+            >
+              <span className="min-w-[min(100%,8rem)] flex-1 text-fg-muted [overflow-wrap:anywhere]">
                 {c.name}
                 {c.size ? ` (${c.size})` : ""} × {c.qty}
               </span>
-              <span className="font-mono font-medium text-fg">{formatKrw(c.price * c.qty)}</span>
+              <span className="min-w-0 max-w-full text-right font-mono font-medium text-fg [overflow-wrap:anywhere]">
+                {formatKrw(c.price * c.qty)}
+              </span>
             </li>
           ))}
         </ul>
       </section>
 
       {/* 02 배송 정보 — 최근 주문/회원정보로 프리필됨 */}
-      <section className="space-y-3 rounded-[var(--radius-lg)] border border-line bg-raised p-5">
-        <div className="mb-1 flex items-baseline justify-between gap-2">
+      <section className="space-y-3 rounded-[var(--radius-lg)] border border-line bg-raised p-[20px]">
+        <div className="mb-1 flex flex-wrap items-baseline justify-between gap-2">
           <div className="flex items-baseline gap-2">
             <span className="font-mono text-step--1 text-fg-subtle">02</span>
             <span className="text-step-0 font-semibold text-fg">배송 정보</span>
           </div>
           {initial.address && (
-            <span className="font-mono text-[11px] uppercase tracking-widest text-fg-subtle">저장된 배송지</span>
+            <span className="shrink-0 font-mono text-[11px] uppercase tracking-widest text-fg-subtle">저장된 배송지</span>
           )}
         </div>
         <div>
@@ -184,7 +189,7 @@ export function CheckoutForm({
       </section>
 
       {/* 03 결제수단 */}
-      <section className="space-y-3 rounded-[var(--radius-lg)] border border-line bg-raised p-5">
+      <section className="space-y-3 rounded-[var(--radius-lg)] border border-line bg-raised p-[20px]">
         <div className="flex items-baseline gap-2">
           <span className="font-mono text-step--1 text-fg-subtle">03</span>
           <span className="text-step-0 font-semibold text-fg">결제수단</span>
@@ -225,28 +230,31 @@ export function CheckoutForm({
         </div>
         {/* 원클릭 선택 시 — 결제에 사용할 등록 카드 선택 */}
         {method === "oneclick" && billingCards.length > 0 && (
-          <div className="space-y-2 rounded-[var(--radius-md)] border border-line bg-overlay p-4">
+          <div className="min-w-0 space-y-2 rounded-[var(--radius-md)] border border-line bg-overlay p-[16px]">
             {billingCards.map((c) => (
               <button
                 key={c.id}
                 type="button"
+                aria-pressed={billingCardId === c.id}
                 onClick={() => setBillingCardId(c.id)}
-                className="flex min-h-11 w-full items-center justify-between gap-3 text-left text-step--1"
+                className="flex min-h-[44px] w-full min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-2 text-left text-step--1"
               >
-                <span className="flex items-center gap-2">
+                <span className="flex min-w-[min(100%,8rem)] flex-1 flex-wrap items-center gap-2">
                   <span
                     className={cn(
-                      "flex h-4 w-4 items-center justify-center rounded-full border",
+                      "flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-full border",
                       billingCardId === c.id ? "border-accent-cyan" : "border-line",
                     )}
                     aria-hidden
                   >
-                    {billingCardId === c.id && <span className="h-2 w-2 rounded-full bg-accent-cyan" />}
+                    {billingCardId === c.id && <span className="h-[8px] w-[8px] rounded-full bg-accent-cyan" />}
                   </span>
-                  <span className="font-mono font-semibold tabular-nums text-fg">{c.maskedCardNumb}</span>
+                  <span className="min-w-[min(100%,6rem)] flex-1 font-mono font-semibold tabular-nums text-fg [overflow-wrap:anywhere]">
+                    {c.maskedCardNumb}
+                  </span>
                 </span>
                 {billingCardId === c.id && (
-                  <span className="rounded-[var(--radius-sm)] bg-[color-mix(in_oklab,var(--accent-cyan)_16%,transparent)] px-2 py-0.5 font-mono text-[11px] text-accent-cyan ring-1 ring-inset ring-[color-mix(in_oklab,var(--accent-cyan)_38%,transparent)]">
+                  <span className="max-w-full shrink-0 whitespace-nowrap rounded-[var(--radius-sm)] bg-[color-mix(in_oklab,var(--accent-cyan)_16%,transparent)] px-2 py-0.5 font-mono text-[11px] text-accent-cyan ring-1 ring-inset ring-[color-mix(in_oklab,var(--accent-cyan)_38%,transparent)]">
                     결제 카드
                   </span>
                 )}
@@ -264,7 +272,7 @@ export function CheckoutForm({
 
         {/* 수기결제(구인증) 선택 시 — 카드정보 직접 입력. 서버에서 승인 요청 후 즉시 폐기 */}
         {method === "manual" && (
-          <div className="space-y-3 rounded-[var(--radius-md)] border border-line bg-overlay p-4">
+          <div className="min-w-0 space-y-3 rounded-[var(--radius-md)] border border-line bg-overlay p-[16px]">
             <div>
               <Label htmlFor="mc-no">카드번호</Label>
               <Input
@@ -304,18 +312,20 @@ export function CheckoutForm({
       </section>
 
       {/* 전자상거래법 제13조 — 재화 대금 외 배송비 고지 (전 상품 무료배송) */}
-      <div className="space-y-2.5 rounded-[var(--radius-lg)] border border-line bg-overlay px-5 py-4">
-        <div className="flex items-center justify-between text-step--1 text-fg-muted">
-          <span>상품 금액</span>
-          <span className="font-mono">{formatKrw(total)}</span>
+      <div className="space-y-2.5 rounded-[var(--radius-lg)] border border-line bg-overlay px-[20px] py-[16px]">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-step--1 text-fg-muted">
+          <span className="min-w-[min(100%,8rem)] flex-1">상품 금액</span>
+          <span className="min-w-0 max-w-full text-right font-mono [overflow-wrap:anywhere]">{formatKrw(total)}</span>
         </div>
-        <div className="flex items-center justify-between text-step--1 text-fg-muted">
-          <span>배송비</span>
-          <span className="font-mono text-success">무료</span>
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-step--1 text-fg-muted">
+          <span className="min-w-[min(100%,8rem)] flex-1">배송비</span>
+          <span className="shrink-0 whitespace-nowrap font-mono text-success">무료</span>
         </div>
-        <div className="flex items-center justify-between border-t border-line pt-2.5">
-          <span className="text-step-0 text-fg-muted">총 결제금액</span>
-          <span className="font-mono text-step-1 font-extrabold text-fg">{formatKrw(total)}</span>
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-t border-line pt-2.5">
+          <span className="min-w-[min(100%,8rem)] flex-1 text-step-0 text-fg-muted">총 결제금액</span>
+          <span className="min-w-0 max-w-full text-right font-mono text-step-1 font-extrabold text-fg [overflow-wrap:anywhere]">
+            {formatKrw(total)}
+          </span>
         </div>
       </div>
 
@@ -337,8 +347,16 @@ export function CheckoutForm({
       </Checkbox>
 
       <FieldError>{error}</FieldError>
-      <Button type="button" size="xl" loading={pending} disabled={!agree} onClick={submit}>
-        {formatKrw(total)} 결제하기
+      <Button
+        type="button"
+        size="xl"
+        className="min-h-[56px] min-w-0 max-w-full flex-wrap gap-x-2 gap-y-1 px-[clamp(4px,3vw,1.5rem)] py-3 text-center !h-auto !whitespace-normal leading-tight"
+        loading={pending}
+        disabled={!agree}
+        onClick={submit}
+      >
+        <span className="min-w-0 max-w-full [overflow-wrap:anywhere]">{formatKrw(total)}</span>
+        <span className="max-w-full break-keep">결제하기</span>
       </Button>
 
       <p className="text-center text-step--1 text-fg-subtle">

@@ -31,16 +31,18 @@ export function OrderHistory({ orders }: { orders: OrderRow[] }) {
         >
           <Link
             href={o.href}
-            className="group block rounded-[var(--radius-lg)] border border-line bg-raised p-5 shadow-elev1 transition-all duration-fast hover:border-accent-cyan hover:shadow-glow-cyan"
+            className="group block rounded-[var(--radius-lg)] border border-line bg-raised p-[20px] shadow-elev1 transition-all duration-fast hover:border-accent-cyan hover:shadow-glow-cyan"
           >
-            <div className="flex items-center justify-between gap-3">
-              <span className="font-mono text-step--1 tracking-wide text-fg-subtle">{o.dateLabel}</span>
+            <div className="flex min-w-0 flex-wrap items-start justify-between gap-x-3 gap-y-2">
+              <span className="min-w-[min(100%,8rem)] flex-1 font-mono text-step--1 tracking-wide text-fg-subtle [overflow-wrap:anywhere]">
+                {o.dateLabel}
+              </span>
               <Badge variant={o.badgeVariant}>{o.statusLabel}</Badge>
             </div>
-            <div className="mt-3 text-step-0 text-fg transition-colors duration-fast group-hover:text-accent-cyan">
+            <div className="mt-3 text-step-0 text-fg transition-colors duration-fast [overflow-wrap:anywhere] group-hover:text-accent-cyan">
               {o.itemSummary}
             </div>
-            <div className="mt-1 font-mono text-step-0 font-bold text-fg">{o.totalLabel}</div>
+            <div className="mt-1 font-mono text-step-0 font-bold text-fg [overflow-wrap:anywhere]">{o.totalLabel}</div>
           </Link>
         </motion.li>
       ))}

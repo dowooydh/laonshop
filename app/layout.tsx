@@ -72,7 +72,7 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
                     </Link>
                   </nav>
                 </div>
-                <nav className="ml-auto flex shrink-0 items-center text-step--1 sm:gap-2">
+                <nav className="ml-auto flex min-w-0 max-w-full flex-wrap items-center justify-end gap-1 text-step--1 sm:flex-nowrap sm:gap-2">
                   <Link
                     href="/cart"
                     className="inline-flex min-h-11 min-w-11 items-center justify-center gap-1 whitespace-nowrap rounded-[var(--radius-sm)] px-2 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg sm:gap-1.5 sm:px-3"

@@ -40,8 +40,8 @@ export function ProfileForm({
         <FieldHint>주문서 배송지에 자동으로 채워집니다.</FieldHint>
       </div>
       <FieldError>{state.error}</FieldError>
-      <div className="flex items-center gap-3">
-        <Button type="submit" variant="secondary" size="md" loading={pending}>
+      <div className="flex flex-wrap items-center gap-3">
+        <Button type="submit" variant="secondary" size="md" className="min-h-[44px]" loading={pending}>
           저장
         </Button>
         <SavedMark show={!!state.ok && !pending} />
@@ -64,8 +64,14 @@ export function PasswordForm({ minimumLength = 8 }: { minimumLength?: number }) 
         <FieldHint>{minimumLength}자 이상 입력해 주세요.</FieldHint>
       </div>
       <FieldError>{state.error}</FieldError>
-      <div className="flex items-center gap-3">
-        <Button type="submit" variant="secondary" size="md" loading={pending}>
+      <div className="flex flex-wrap items-center gap-3">
+        <Button
+          type="submit"
+          variant="secondary"
+          size="md"
+          className="min-h-[44px] break-keep px-[12px] py-[10px] !h-auto !whitespace-normal"
+          loading={pending}
+        >
           비밀번호 변경
         </Button>
         <SavedMark show={!!state.ok && !pending} />
@@ -101,11 +107,23 @@ export function DeleteAccountForm() {
         <Input id="s-del" name="password" type="password" autoComplete="current-password" required />
       </div>
       <FieldError>{state.error}</FieldError>
-      <div className="flex gap-2">
-        <Button type="button" variant="ghost" size="md" onClick={() => setOpen(false)}>
+      <div className="flex flex-wrap gap-2">
+        <Button
+          type="button"
+          variant="ghost"
+          size="md"
+          className="min-h-[44px] min-w-[min(100%,6rem)] px-[12px] py-[10px] !h-auto !whitespace-normal"
+          onClick={() => setOpen(false)}
+        >
           취소
         </Button>
-        <Button type="submit" variant="danger" size="md" loading={pending}>
+        <Button
+          type="submit"
+          variant="danger"
+          size="md"
+          className="min-h-[44px] min-w-[min(100%,6rem)] break-keep px-[12px] py-[10px] !h-auto !whitespace-normal"
+          loading={pending}
+        >
           탈퇴하기
         </Button>
       </div>
