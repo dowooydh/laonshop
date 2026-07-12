@@ -22,7 +22,7 @@ export function Badge({
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-[var(--radius-sm)] px-2 py-0.5 text-step--1 font-medium ring-1 ring-inset",
+        "inline-flex shrink-0 items-center whitespace-nowrap rounded-[var(--radius-sm)] px-2 py-0.5 text-step--1 font-medium ring-1 ring-inset",
         VARIANT_CLASS[variant] ?? VARIANT_CLASS.gray,
         className,
       )}

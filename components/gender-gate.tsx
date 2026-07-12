@@ -17,7 +17,7 @@ export function GenderGate() {
         <Link
           key={s.href}
           href={s.href}
-          className="group relative block h-[56vh] min-h-[26rem] overflow-hidden rounded-[var(--radius-lg)] border border-line transition-[border-color,box-shadow] duration-base hover:border-accent-cyan hover:shadow-glow-cyan"
+          className="group relative block h-[52svh] min-h-[22rem] overflow-hidden rounded-[var(--radius-lg)] border border-line transition-[border-color,box-shadow] duration-base hover:border-accent-cyan hover:shadow-glow-cyan sm:h-[56vh] sm:min-h-[26rem]"
         >
           <ModelCrossfade
             images={s.images}

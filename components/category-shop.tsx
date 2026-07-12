@@ -99,7 +99,7 @@ export function CategoryShop({
         <EmptyState title="아직 준비 중인 카테고리입니다" description="다른 카테고리를 둘러보세요" />
       ) : (
         /* 그리드 (탭 전환 시 재애니메이션 위해 key=cat) */
-        <div key={cat} className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+        <div key={cat} className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,8rem),1fr))] gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {list.map((p, i) => (
             <motion.div
               key={p.id}
@@ -125,10 +125,10 @@ export function CategoryShop({
                 <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-void via-void/60 to-transparent" />
                 {p.soldOut && (
                   <div className="absolute inset-0 flex items-center justify-center bg-void/60">
-                    <span className="font-mono text-step--1 uppercase tracking-[0.3em] text-fg">Sold Out</span>
+                    <span className="whitespace-nowrap font-mono text-step--1 uppercase tracking-[0.3em] text-fg">Sold Out</span>
                   </div>
                 )}
-                <div className="absolute inset-x-0 bottom-0 p-4">
+                <div className="absolute inset-x-0 bottom-0 p-3 sm:p-4">
                   <div className="truncate text-step-0 font-semibold text-fg">{p.name}</div>
                   <div className="mt-0.5 font-mono text-step--1 font-bold text-fg">{formatKrw(p.price)}</div>
                 </div>

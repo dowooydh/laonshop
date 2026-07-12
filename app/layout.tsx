@@ -75,7 +75,7 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
                 <nav className="ml-auto flex shrink-0 items-center text-step--1 sm:gap-2">
                   <Link
                     href="/cart"
-                    className="inline-flex min-h-11 items-center gap-1 whitespace-nowrap rounded-[var(--radius-sm)] px-2 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg sm:gap-1.5 sm:px-3"
+                    className="inline-flex min-h-11 min-w-11 items-center justify-center gap-1 whitespace-nowrap rounded-[var(--radius-sm)] px-2 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg sm:gap-1.5 sm:px-3"
                   >
                     <span className="sm:hidden">카트</span><span className="hidden sm:inline">장바구니</span>
                     <CartBadge />
@@ -120,22 +120,22 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
                 </nav>
               </div>
               {/* 모바일 — 젠더 카테고리 진입 경로 (데스크톱 nav가 hidden sm:flex라 뷰포트 절반에서 끊기는 동선 복원) */}
-              <nav className="flex min-h-12 flex-wrap items-center gap-1 border-t border-line px-2 py-1 text-step--1 sm:hidden">
+              <nav className="flex min-h-12 flex-wrap items-center justify-evenly gap-1 border-t border-line px-2 py-1 text-step--1 sm:hidden">
                 <Link
                   href="/shop/men"
-                  className="flex min-h-11 items-center rounded-[var(--radius-sm)] px-3 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg"
+                  className="flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-[var(--radius-sm)] px-2 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg"
                 >
                   남성의류
                 </Link>
                 <Link
                   href="/shop/women"
-                  className="flex min-h-11 items-center rounded-[var(--radius-sm)] px-3 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg"
+                  className="flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-[var(--radius-sm)] px-2 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg"
                 >
                   여성의류
                 </Link>
                 <Link
                   href="/search"
-                  className="flex min-h-11 items-center rounded-[var(--radius-sm)] px-3 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg"
+                  className="flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-[var(--radius-sm)] px-2 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg"
                 >
                   검색
                 </Link>
@@ -160,26 +160,26 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-x-6 gap-y-2 text-step--1">
-                  <Link href="/policy/terms" className="text-fg-muted transition-colors hover:text-accent-cyan">
+                  <Link href="/policy/terms" className="inline-flex min-h-11 items-center break-keep text-fg-muted transition-colors hover:text-accent-cyan">
                     이용약관
                   </Link>
-                  <Link href="/policy/privacy" className="text-fg-muted transition-colors hover:text-accent-cyan">
+                  <Link href="/policy/privacy" className="inline-flex min-h-11 items-center break-keep text-fg-muted transition-colors hover:text-accent-cyan">
                     개인정보처리방침
                   </Link>
-                  <Link href="/policy/refund" className="text-fg-muted transition-colors hover:text-accent-cyan">
+                  <Link href="/policy/refund" className="inline-flex min-h-11 items-center break-keep text-fg-muted transition-colors hover:text-accent-cyan">
                     청약철회·교환·환불 안내
                   </Link>
-                  <Link href="/policy/shipping" className="text-fg-muted transition-colors hover:text-accent-cyan">
+                  <Link href="/policy/shipping" className="inline-flex min-h-11 items-center break-keep text-fg-muted transition-colors hover:text-accent-cyan">
                     배송 안내
                   </Link>
-                  <Link href="/support" className="text-fg-muted transition-colors hover:text-accent-cyan">
+                  <Link href="/support" className="inline-flex min-h-11 items-center break-keep text-fg-muted transition-colors hover:text-accent-cyan">
                     자주 묻는 질문
                   </Link>
                   <a
                     href="https://pf.kakao.com/_UhNxdn/chat"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-fg-muted transition-colors hover:text-accent-cyan"
+                    className="inline-flex min-h-11 items-center break-keep text-fg-muted transition-colors hover:text-accent-cyan"
                   >
                     카카오톡 문의
                   </a>
@@ -188,21 +188,28 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
 
               {/* 전자상거래법 제10조 필수 표시 — 값은 ㈜커스텀오더 사업자등록증 서류와 글자까지 일치 (신고번호는 발급 후 기재) */}
               <div className="mt-10 border-t border-line pt-6 text-step--1 leading-relaxed text-fg-subtle">
-                <p>
-                  상호: (주)커스텀오더 &nbsp;|&nbsp; 대표: 유준혁 &nbsp;|&nbsp; 사업자등록번호: 864-88-03054 &nbsp;|&nbsp;
-                  통신판매업신고: 신고 예정
-                </p>
+                <div className="flex flex-wrap gap-x-4 gap-y-1">
+                  <span>상호: (주)커스텀오더</span>
+                  <span>대표: 유준혁</span>
+                  <span>사업자등록번호: 864-88-03054</span>
+                  <span>통신판매업신고: 신고 예정</span>
+                </div>
                 <p>사업장 소재지: 경기도 성남시 수정구 청계산로 686, 415호 (판교반도아이비밸리)</p>
-                <p>
-                  고객센터:{" "}
-                  <a href="tel:070-4044-7008" className="text-fg-muted hover:text-accent-cyan">
-                    070-4044-7008
-                  </a>{" "}
-                  (평일 09:00–18:00) &nbsp;|&nbsp; 이메일:{" "}
-                  <a href="mailto:custom_sales@customorder.co.kr" className="break-all text-fg-muted hover:text-accent-cyan">
-                    custom_sales@customorder.co.kr
-                  </a>
-                </p>
+                <div className="flex flex-wrap gap-x-4 gap-y-1">
+                  <span className="break-keep">
+                    고객센터:{" "}
+                    <a href="tel:070-4044-7008" className="text-fg-muted hover:text-accent-cyan">
+                      070-4044-7008
+                    </a>
+                  </span>
+                  <span className="break-keep">평일 09:00–18:00</span>
+                  <span className="min-w-0">
+                    이메일:{" "}
+                    <a href="mailto:custom_sales@customorder.co.kr" className="inline-block max-w-full text-fg-muted hover:text-accent-cyan [overflow-wrap:anywhere]">
+                      custom_sales@customorder.co.kr
+                    </a>
+                  </span>
+                </div>
                 <p className="mt-3">© LAON SHOP · ㈜커스텀오더. 결제는 KSPAY(KSNET)로 안전하게 처리됩니다.</p>
               </div>
             </div>

@@ -75,21 +75,21 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
   };
 
   return (
-    <div className="space-y-8">
+    <div className="min-w-0 space-y-8">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <RecordView item={{ id: product.id, name: product.name, price: product.price, imageUrl: galleryImages[0]?.src ?? product.imageUrl }} />
 
       <Link
         href={`/shop/${gender}`}
-        className="group inline-flex items-center gap-2 font-mono text-step--1 uppercase tracking-widest text-fg-subtle transition-colors hover:text-fg-muted"
+        className="group inline-flex min-h-11 items-center gap-2 font-mono text-step--1 uppercase tracking-widest text-fg-subtle transition-colors hover:text-fg-muted"
       >
         <span className="transition-transform group-hover:-translate-x-0.5">←</span>
         {genderLabel}
       </Link>
 
-      <div className="grid gap-8 md:grid-cols-2 md:gap-12 lg:gap-16">
+      <div className="grid min-w-0 gap-8 md:grid-cols-2 md:gap-12 lg:gap-16">
         {/* 이미지 패널 */}
-        <div className="md:sticky md:top-24 md:self-start">
+        <div className="min-w-0 md:sticky md:top-24 md:self-start">
           <div className="relative overflow-hidden rounded-[var(--radius-lg)] border border-line bg-raised p-3 shadow-elev2 md:p-4">
             <div className="pointer-events-none absolute -inset-x-16 -top-24 h-56 bg-accent-cyan/10 blur-3xl" />
             <div className="relative aspect-[4/5] overflow-hidden rounded-[var(--radius-md)] bg-overlay shadow-glow-cyan">
@@ -105,7 +105,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
               )}
               {soldOut && (
                 <div className="absolute inset-0 flex items-center justify-center bg-void/60">
-                  <span className="font-mono text-step-0 uppercase tracking-[0.3em] text-fg">Sold Out</span>
+                  <span className="whitespace-nowrap font-mono text-step-0 uppercase tracking-[0.3em] text-fg">Sold Out</span>
                 </div>
               )}
             </div>
@@ -113,12 +113,12 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
         </div>
 
         {/* 상세 */}
-        <div className="flex flex-col md:py-2">
+        <div className="min-w-0 flex flex-col md:py-2">
           <div className="font-mono text-step--1 uppercase tracking-widest text-accent-cyan">
             {product.category}
           </div>
-          <div className="mt-3 flex items-start justify-between gap-4">
-            <h1 className="font-display text-step-3 font-bold leading-tight tracking-tight text-fg">
+          <div className="mt-3 flex min-w-0 items-start justify-between gap-3 sm:gap-4">
+            <h1 className="min-w-0 text-balance break-keep font-display text-step-2 font-bold leading-tight tracking-tight text-fg [overflow-wrap:anywhere] sm:text-step-3">
               {product.name}
             </h1>
             <WishlistButton productId={product.id} initialWished={wished} />
@@ -129,12 +129,12 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
           </div>
 
           {/* 전상법 제13조 — 계약 전 배송비·소요기간 고지 (아코디언 외 상시 노출) */}
-          <p className="mt-2 font-mono text-step--1 text-fg-subtle">
+          <p className="mt-2 break-keep font-mono text-step--1 text-fg-subtle [overflow-wrap:anywhere]">
             무료배송 · 결제 확인 후 영업일 2~3일 내 출고
           </p>
 
           {product.description && (
-            <p className="mt-6 whitespace-pre-wrap text-step-0 leading-relaxed text-fg-muted">
+            <p className="mt-6 whitespace-pre-wrap text-step-0 leading-relaxed text-fg-muted [overflow-wrap:anywhere]">
               {product.description}
             </p>
           )}
@@ -194,7 +194,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
               더 보기 →
             </Link>
           </div>
-          <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <div className="mt-5 grid grid-cols-[repeat(auto-fit,minmax(min(100%,8rem),1fr))] gap-4 sm:grid-cols-4">
             {related.map((p) => (
               <Link
                 key={p.id}

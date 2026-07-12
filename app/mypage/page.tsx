@@ -91,7 +91,7 @@ export default async function MyPage() {
         {wishlist.length === 0 ? (
           <EmptyState title="찜한 상품이 없습니다" description="상품 상세의 하트를 눌러 담아보세요" />
         ) : (
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,8rem),1fr))] gap-4 sm:grid-cols-4">
             {wishlist.map(({ product: p }) => (
               <Link
                 key={p.id}

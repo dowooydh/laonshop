@@ -28,7 +28,7 @@ export function WishlistButton({ productId, initialWished }: { productId: string
       aria-pressed={wished}
       aria-label={wished ? "위시리스트에서 제거" : "위시리스트에 담기"}
       className={cn(
-        "flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] border transition-colors duration-fast",
+        "flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-[var(--radius-md)] border transition-colors duration-fast",
         wished
           ? "border-accent-cyan bg-[color-mix(in_oklab,var(--accent-cyan)_12%,transparent)] text-accent-cyan"
           : "border-line bg-raised text-fg-subtle hover:bg-overlay hover:text-fg",

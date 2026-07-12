@@ -60,9 +60,9 @@ export default function SupportPage() {
       <div className="mt-4 border-b border-line">
         {FAQS.map(({ q, a }) => (
           <details key={q} className="group border-t border-line">
-            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-5 text-step-0 font-medium text-fg transition-colors duration-fast hover:text-accent-cyan [&::-webkit-details-marker]:hidden">
-              {q}
-              <span aria-hidden className="font-mono text-fg-subtle transition-transform duration-fast group-open:rotate-45">
+            <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-3 py-2 text-[15px] font-medium leading-6 text-fg transition-colors duration-fast hover:text-accent-cyan min-[360px]:text-step-0 [&::-webkit-details-marker]:hidden">
+              <span className="min-w-0 text-balance break-keep">{q}</span>
+              <span aria-hidden className="flex h-11 w-11 shrink-0 items-center justify-center font-mono text-fg-subtle transition-transform duration-fast group-open:rotate-45">
                 +
               </span>
             </summary>
@@ -73,7 +73,7 @@ export default function SupportPage() {
 
       <div className="mt-8 rounded-[var(--radius-lg)] border border-line bg-raised p-5">
         <h2 className="font-mono text-step--1 uppercase tracking-widest text-accent-cyan">고객센터</h2>
-        <p className="mt-3 text-step--1 leading-relaxed text-fg-muted">
+        <p className="mt-3 text-step--1 leading-relaxed text-fg-muted [overflow-wrap:anywhere]">
           전화{" "}
           <a href="tel:070-4044-7008" className="text-fg hover:text-accent-cyan">
             070-4044-7008

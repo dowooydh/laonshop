@@ -71,12 +71,12 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <details className="group border-t border-line">
       <summary className="flex cursor-pointer list-none items-center justify-between py-4 font-mono text-step--1 uppercase tracking-widest text-fg-muted transition-colors duration-fast hover:text-fg [&::-webkit-details-marker]:hidden">
-        {title}
-        <span aria-hidden className="text-fg-subtle transition-transform duration-fast group-open:rotate-45">
+        <span className="min-w-0 break-keep [overflow-wrap:anywhere]">{title}</span>
+        <span aria-hidden className="shrink-0 text-fg-subtle transition-transform duration-fast group-open:rotate-45">
           +
         </span>
       </summary>
-      <div className="pb-5 text-step--1 leading-relaxed text-fg-muted">{children}</div>
+      <div className="min-w-0 pb-5 text-step--1 leading-relaxed text-fg-muted [overflow-wrap:anywhere]">{children}</div>
     </details>
   );
 }
@@ -88,11 +88,11 @@ export function ProductInfoSections({ category }: { category: string | null }) {
     <div className="mt-10 border-b border-line">
       {guide && (
         <Section title="사이즈 가이드">
-          <table className="w-full text-left">
+          <table className="w-full table-fixed text-left">
             <thead>
               <tr className="border-b border-line font-mono text-fg-subtle">
                 {guide.head.map((h) => (
-                  <th key={h} className="py-2 pr-4 font-medium">
+                  <th key={h} className="break-keep py-2 pr-1 font-medium min-[360px]:pr-2 sm:pr-4">
                     {h}
                   </th>
                 ))}
@@ -102,7 +102,7 @@ export function ProductInfoSections({ category }: { category: string | null }) {
               {guide.rows.map((r) => (
                 <tr key={r[0]} className="border-b border-line/50">
                   {r.map((c, i) => (
-                    <td key={i} className={`py-2 pr-4 ${i === 0 ? "font-semibold text-fg" : ""}`}>
+                    <td key={i} className={`py-2 pr-1 min-[360px]:pr-2 sm:pr-4 ${i === 0 ? "font-semibold text-fg" : ""}`}>
                       {c}
                     </td>
                   ))}
@@ -117,9 +117,9 @@ export function ProductInfoSections({ category }: { category: string | null }) {
       <Section title="상품정보 제공고시">
         <dl className="space-y-2">
           {NOTICE_ROWS.map(([k, v]) => (
-            <div key={k} className="flex gap-4">
-              <dt className="w-32 shrink-0 text-fg-subtle">{k}</dt>
-              <dd>{v}</dd>
+            <div key={k} className="flex min-w-0 flex-col gap-1 sm:flex-row sm:gap-4">
+              <dt className="break-keep font-medium text-fg-subtle sm:w-32 sm:shrink-0 sm:font-normal">{k}</dt>
+              <dd className="min-w-0 [overflow-wrap:anywhere]">{v}</dd>
             </div>
           ))}
         </dl>

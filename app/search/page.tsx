@@ -79,7 +79,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
               key={word}
               href={`/search?q=${encodeURIComponent(word)}`}
               className={
-                "rounded-[var(--radius-pill)] border px-4 py-1.5 text-step--1 transition-colors duration-fast " +
+                "inline-flex min-h-11 items-center rounded-[var(--radius-pill)] border px-4 py-1.5 text-step--1 transition-colors duration-fast " +
                 (word === query
                   ? "border-accent-cyan bg-[color-mix(in_oklab,var(--accent-cyan)_12%,transparent)] text-accent-cyan"
                   : "border-line bg-raised text-fg-muted hover:bg-overlay hover:text-fg")
@@ -102,7 +102,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
             <p className="font-mono text-step--1 text-fg-subtle">
               &ldquo;{query}&rdquo; 검색 결과 {products.length}개
             </p>
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,8rem),1fr))] gap-4 sm:grid-cols-3 lg:grid-cols-4">
               {products.map((p) => (
                 <ProductCard
                   key={p.id}
@@ -125,7 +125,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
               <h2 className="font-mono text-step--1 uppercase tracking-widest text-accent-cyan">추천 상품</h2>
               <span className="font-mono text-step--1 text-fg-subtle">MEN · WOMEN</span>
             </div>
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,8rem),1fr))] gap-4 sm:grid-cols-4">
               {picks.map((p) => (
                 <ProductCard
                   key={p.id}

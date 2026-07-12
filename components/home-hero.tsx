@@ -18,24 +18,24 @@ export function HomeHero() {
       <div className="absolute inset-0 bg-gradient-to-t from-void via-void/55 to-void/25" />
       <div className="absolute inset-0 bg-gradient-to-r from-void/70 to-transparent" />
 
-      <div className="relative z-10 flex min-h-[80vh] flex-col justify-end px-6 py-14 sm:px-12 sm:py-20">
+      <div className="relative z-10 flex min-h-[72svh] flex-col justify-end px-4 py-10 sm:min-h-[80vh] sm:px-12 sm:py-20">
         <motion.p
           initial={reduce ? false : { opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-          className="font-mono text-step--1 uppercase tracking-[0.3em] text-fg-subtle"
+          className="break-keep font-mono text-[0.72rem] uppercase tracking-[0.16em] text-fg-subtle sm:text-step--1 sm:tracking-[0.3em]"
         >
           ㈜커스텀오더 · New Season
         </motion.p>
 
-        <h1 className="mt-3 font-display text-hero font-bold text-fg">
+        <h1 className="mt-3 max-w-full text-balance break-keep font-display text-[clamp(2rem,10vw,3rem)] font-bold leading-[0.96] tracking-[-0.04em] text-fg sm:text-hero">
           {HEAD.map((w, i) => (
             <motion.span
               key={w}
               initial={reduce ? false : { opacity: 0, y: 26, filter: "blur(8px)" }}
               animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
               transition={{ duration: 0.7, delay: 0.12 + i * 0.12, ease: [0.16, 1, 0.3, 1] }}
-              className="mr-[0.25em] inline-block"
+              className="mr-[0.22em] inline-block last:mr-0"
             >
               {i === HEAD.length - 1 ? <span className="text-glow-cyan">{w}</span> : w}
             </motion.span>
@@ -46,28 +46,27 @@ export function HomeHero() {
           initial={reduce ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.8, delay: 0.55 }}
-          className="mt-5 max-w-xl text-step-1 leading-relaxed text-fg-muted"
+          className="mt-4 max-w-xl break-keep text-sm leading-6 text-fg-muted min-[360px]:text-step-0 sm:mt-5 sm:text-step-1 sm:leading-relaxed"
         >
-          남성 · 여성, 상의부터 신발까지.
-          <br />
-          매일의 코디를 공간에서 완성하는 셀렉트샵.
+          <span className="block">남성 · 여성, 상의부터 신발까지.</span>
+          <span className="block">매일의 코디를 공간에서 완성하는 셀렉트샵.</span>
         </motion.p>
 
         <motion.div
           initial={reduce ? false : { opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.7, ease: [0.16, 1, 0.3, 1] }}
-          className="mt-8 flex flex-wrap gap-3"
+          className="mt-6 flex w-full max-w-sm flex-wrap gap-3 sm:mt-8"
         >
           <Link
             href="/shop/men"
-            className="rounded-[var(--radius-pill)] bg-accent-cyan px-6 py-3 font-medium text-void shadow-glow-cyan transition-[filter] duration-fast hover:brightness-110"
+            className="flex min-h-12 min-w-0 flex-1 basis-[min(100%,7rem)] items-center justify-center break-keep rounded-[var(--radius-pill)] bg-accent-cyan px-5 py-3 text-center font-medium text-void shadow-glow-cyan transition-[filter] duration-fast hover:brightness-110 sm:px-6"
           >
             남성의류
           </Link>
           <Link
             href="/shop/women"
-            className="rounded-[var(--radius-pill)] border border-line bg-raised px-6 py-3 font-medium text-fg transition-colors duration-fast hover:bg-overlay"
+            className="flex min-h-12 min-w-0 flex-1 basis-[min(100%,7rem)] items-center justify-center break-keep rounded-[var(--radius-pill)] border border-line bg-raised px-5 py-3 text-center font-medium text-fg transition-colors duration-fast hover:bg-overlay sm:px-6"
           >
             여성의류
           </Link>

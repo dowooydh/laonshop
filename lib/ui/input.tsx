@@ -48,7 +48,7 @@ export const Checkbox = React.forwardRef<
   HTMLInputElement,
   React.InputHTMLAttributes<HTMLInputElement> & { children: React.ReactNode }
 >(({ className, children, ...props }, ref) => (
-  <label className={cn("flex cursor-pointer items-start gap-2.5 text-step--1 leading-relaxed text-fg-muted", className)}>
+  <label className={cn("flex min-h-11 cursor-pointer items-start gap-2.5 py-2 text-step--1 leading-relaxed text-fg-muted", className)}>
     <input
       ref={ref}
       type="checkbox"

@@ -67,24 +67,29 @@ export function RetryPayment({
           결제창이 닫혔거나 결제가 완료되지 않았습니다. 결제수단을 선택해 같은 주문으로 다시 결제할 수 있습니다.
         </p>
       </div>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,7rem),1fr))] gap-2 sm:grid-cols-2">
         {METHODS.map((m) => (
           <button
             key={m.id}
             type="button"
+            aria-pressed={method === m.id}
             onClick={() => {
               setMethod(m.id);
               setError("");
             }}
             className={cn(
-              "min-h-11 rounded-[var(--radius-md)] border p-3.5 text-left transition-colors duration-fast",
+              "min-h-11 min-w-0 rounded-[var(--radius-md)] border p-3 text-left transition-colors duration-fast sm:p-3.5",
               method === m.id
                 ? "border-accent-cyan bg-[color-mix(in_oklab,var(--accent-cyan)_12%,transparent)] text-fg shadow-glow-cyan"
                 : "border-line bg-raised hover:bg-overlay",
             )}
           >
-            <div className="text-step-0 font-medium text-fg">{m.label}</div>
-            <div className="mt-0.5 text-step--1 text-fg-subtle">{m.desc}</div>
+            <div className="break-keep text-[12px] font-medium leading-5 text-fg min-[360px]:text-[13px] sm:text-step-0">
+              {m.label}
+            </div>
+            <div className="mt-0.5 break-keep text-[12px] leading-4 text-fg-subtle sm:text-step--1">
+              {m.desc}
+            </div>
           </button>
         ))}
       </div>

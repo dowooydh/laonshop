@@ -80,11 +80,11 @@ export function DeleteAccountForm() {
 
   if (!open) {
     return (
-      <div className="flex items-center justify-between gap-4">
-        <p className="text-step--1 text-fg-subtle">
+      <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+        <p className="break-keep text-step--1 text-fg-subtle">
           탈퇴 시 개인정보는 파기되며, 주문·결제 기록은 법정 보존기간 동안만 보관됩니다.
         </p>
-        <Button type="button" variant="ghost" size="sm" className="text-danger hover:text-danger" onClick={() => setOpen(true)}>
+        <Button type="button" variant="ghost" size="sm" className="min-h-11 shrink-0 text-danger hover:text-danger" onClick={() => setOpen(true)}>
           회원 탈퇴
         </Button>
       </div>

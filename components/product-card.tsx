@@ -38,12 +38,12 @@ export function ProductCard({
       <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-void via-void/60 to-transparent" />
       {soldOut && (
         <div className="absolute inset-0 flex items-center justify-center bg-void/60">
-          <span className="font-mono text-step--1 uppercase tracking-[0.3em] text-fg">Sold Out</span>
+          <span className="whitespace-nowrap font-mono text-step--1 uppercase tracking-[0.3em] text-fg">Sold Out</span>
         </div>
       )}
-      <div className="absolute inset-x-0 bottom-0 p-4">
+      <div className="absolute inset-x-0 bottom-0 p-3 sm:p-4">
         {eyebrow && (
-          <div className="font-mono text-[11px] uppercase tracking-widest text-fg-subtle">{eyebrow}</div>
+          <div className="truncate whitespace-nowrap font-mono text-[11px] uppercase tracking-widest text-fg-subtle">{eyebrow}</div>
         )}
         <div className="truncate text-step-0 font-semibold text-fg">{name}</div>
         <div className="mt-0.5 font-mono text-step--1 font-bold text-fg">{formatKrw(price)}</div>

@@ -28,14 +28,14 @@ export function CancelRequest({ orderId }: { orderId: string }) {
 
   if (!open) {
     return (
-      <div className="flex items-center justify-between gap-4">
-        <p className="text-step--1 text-fg-subtle">
+      <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+        <p className="break-keep text-step--1 text-fg-subtle">
           단순 변심은 수령 후 7일 이내 신청할 수 있습니다.{" "}
           <a href="/policy/refund" className="underline underline-offset-2 hover:text-fg-muted">
             청약철회·환불 안내
           </a>
         </p>
-        <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(true)}>
+        <Button type="button" variant="ghost" size="sm" className="min-h-11 shrink-0" onClick={() => setOpen(true)}>
           취소·반품 신청
         </Button>
       </div>

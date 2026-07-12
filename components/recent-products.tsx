@@ -41,7 +41,7 @@ export function RecentProducts({ excludeId }: { excludeId?: string }) {
   return (
     <section className="border-t border-line pt-8">
       <h2 className="font-mono text-step--1 uppercase tracking-widest text-fg-subtle">최근 본 상품</h2>
-      <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="mt-5 grid grid-cols-[repeat(auto-fit,minmax(min(100%,8rem),1fr))] gap-4 sm:grid-cols-4">
         {items.map((p) => (
           <Link
             key={p.id}
@@ -58,7 +58,7 @@ export function RecentProducts({ excludeId }: { excludeId?: string }) {
               />
             )}
             <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-void via-void/60 to-transparent" />
-            <div className="absolute inset-x-0 bottom-0 p-4">
+            <div className="absolute inset-x-0 bottom-0 p-3 sm:p-4">
               <div className="truncate text-step--1 font-semibold text-fg">{p.name}</div>
               <div className="mt-0.5 font-mono text-step--1 font-bold text-fg">{formatKrw(p.price)}</div>
             </div>

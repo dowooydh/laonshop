@@ -189,27 +189,37 @@ export function CheckoutForm({
           <span className="font-mono text-step--1 text-fg-subtle">03</span>
           <span className="text-step-0 font-semibold text-fg">결제수단</span>
         </div>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,7rem),1fr))] gap-2 sm:grid-cols-2">
           {METHODS.map((m) => (
             <button
               key={m.id}
               type="button"
               disabled={!m.enabled}
+              aria-pressed={method === m.id}
               onClick={() => {
                 if (!m.enabled) return;
                 setMethod(m.id);
                 setError("");
               }}
               className={cn(
-                "min-h-11 rounded-[var(--radius-md)] border p-3.5 text-left transition-colors duration-fast",
+                "min-h-11 min-w-0 rounded-[var(--radius-md)] border p-3 text-left transition-colors duration-fast sm:p-3.5",
                 !m.enabled && "cursor-not-allowed border-line opacity-60",
                 method === m.id && m.enabled
                   ? "border-accent-cyan bg-[color-mix(in_oklab,var(--accent-cyan)_12%,transparent)] text-fg shadow-glow-cyan"
                   : "border-line bg-raised hover:bg-overlay",
               )}
             >
-              <div className={cn("text-step-0 font-medium", m.enabled ? "text-fg" : "text-fg-subtle")}>{m.label}</div>
-              <div className="mt-0.5 text-step--1 text-fg-subtle">{m.desc}</div>
+              <div
+                className={cn(
+                  "break-keep text-[12px] font-medium leading-5 min-[360px]:text-[13px] sm:text-step-0",
+                  m.enabled ? "text-fg" : "text-fg-subtle",
+                )}
+              >
+                {m.label}
+              </div>
+              <div className="mt-0.5 break-keep text-[12px] leading-4 text-fg-subtle sm:text-step--1">
+                {m.desc}
+              </div>
             </button>
           ))}
         </div>
@@ -266,7 +276,7 @@ export function CheckoutForm({
                 onChange={(e) => setManualCard({ ...manualCard, cardNo: e.target.value })}
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,7rem),1fr))] gap-3">
               <div>
                 <Label htmlFor="mc-mm">유효기간 (MM)</Label>
                 <Input id="mc-mm" inputMode="numeric" maxLength={2} placeholder="MM" value={manualCard.expMm} onChange={(e) => setManualCard({ ...manualCard, expMm: e.target.value })} />
@@ -276,7 +286,7 @@ export function CheckoutForm({
                 <Input id="mc-yy" inputMode="numeric" maxLength={2} placeholder="YY" value={manualCard.expYy} onChange={(e) => setManualCard({ ...manualCard, expYy: e.target.value })} />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,7rem),1fr))] gap-3">
               <div>
                 <Label htmlFor="mc-pw">비밀번호 앞 2자리</Label>
                 <Input id="mc-pw" type="password" inputMode="numeric" maxLength={2} value={manualCard.pw2} onChange={(e) => setManualCard({ ...manualCard, pw2: e.target.value })} />

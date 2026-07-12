@@ -51,8 +51,23 @@ module.exports = {
           "Segoe UI",
           "sans-serif",
         ],
-        display: ["var(--font-display)", "Space Grotesk", "system-ui", "sans-serif"],
-        mono: ["var(--font-mono)", "JetBrains Mono", "ui-monospace", "SFMono-Regular", "monospace"],
+        display: [
+          "var(--font-display)",
+          "Space Grotesk",
+          "Pretendard Variable",
+          "Pretendard",
+          "system-ui",
+          "sans-serif",
+        ],
+        mono: [
+          "var(--font-mono)",
+          "JetBrains Mono",
+          "Pretendard Variable",
+          "Pretendard",
+          "ui-monospace",
+          "SFMono-Regular",
+          "monospace",
+        ],
       },
       // §4.2 유동 타이포 스케일(additive — 기본 text-sm 등은 그대로)
       fontSize: {

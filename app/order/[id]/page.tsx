@@ -100,7 +100,9 @@ export default async function OrderResultPage({
       <div className="text-center">
         <StatusMark tone={s.tone} />
         <p className="mt-5 font-mono text-step--1 uppercase tracking-[0.3em] text-fg-subtle">{s.eyebrow}</p>
-        <h1 className="mt-2 font-display text-step-2 font-bold tracking-tight text-fg">{s.heading}</h1>
+        <h1 className="mt-2 text-balance break-keep font-display text-step-1 font-bold tracking-tight text-fg min-[360px]:text-step-2">
+          {s.heading}
+        </h1>
         <div className="mt-4">
           <Amount value={order.totalAmount} className="text-step-2 text-fg" />
         </div>
@@ -109,34 +111,34 @@ export default async function OrderResultPage({
       {/* 심사 캡처 요소 — 주문번호·승인번호·결제수단·결제일시가 한 화면에 (카드사 결제경로 캡처 기준) */}
       <div className="mt-8 rounded-[var(--radius-lg)] border border-line bg-raised p-5 text-left shadow-elev1">
         <dl className="space-y-2 text-step--1 text-fg-muted">
-          <div className="flex justify-between gap-4">
-            <dt>주문번호</dt>
-            <dd className="font-mono font-medium text-fg">{order.moid}</dd>
+          <div className="flex items-start justify-between gap-4">
+            <dt className="shrink-0">주문번호</dt>
+            <dd className="min-w-0 text-right font-mono font-medium text-fg [overflow-wrap:anywhere]">{order.moid}</dd>
           </div>
           {order.approvalNo && !processing && (
-            <div className="flex justify-between gap-4">
-              <dt>승인번호</dt>
-              <dd className="font-mono font-medium text-fg">{order.approvalNo}</dd>
+            <div className="flex items-start justify-between gap-4">
+              <dt className="shrink-0">승인번호</dt>
+              <dd className="min-w-0 text-right font-mono font-medium text-fg [overflow-wrap:anywhere]">{order.approvalNo}</dd>
             </div>
           )}
           {(paid || order.status === "CANCEL_REQUESTED") && (
             <>
-              <div className="flex justify-between gap-4">
-                <dt>결제수단</dt>
-                <dd className="font-medium text-fg">
+              <div className="flex items-start justify-between gap-4">
+                <dt className="shrink-0">결제수단</dt>
+                <dd className="min-w-0 text-right font-medium text-fg [overflow-wrap:anywhere]">
                   {order.cardName ? `${order.cardName} (KSPAY)` : "신용카드·간편결제 (KSPAY)"}
                 </dd>
               </div>
               {order.paidAt && (
-                <div className="flex justify-between gap-4">
-                  <dt>결제일시</dt>
-                  <dd className="font-medium text-fg">{order.paidAt.toLocaleString("ko-KR")}</dd>
+                <div className="flex items-start justify-between gap-4">
+                  <dt className="shrink-0">결제일시</dt>
+                  <dd className="min-w-0 text-right font-medium text-fg [overflow-wrap:anywhere]">{order.paidAt.toLocaleString("ko-KR")}</dd>
                 </div>
               )}
               {receiptUrl && (
-                <div className="flex justify-between gap-4">
-                  <dt>매출전표</dt>
-                  <dd>
+                <div className="flex items-start justify-between gap-4">
+                  <dt className="shrink-0">매출전표</dt>
+                  <dd className="min-w-0 text-right">
                     <a
                       href={receiptUrl}
                       target="_blank"
@@ -150,28 +152,28 @@ export default async function OrderResultPage({
               )}
             </>
           )}
-          <div className="flex justify-between gap-4">
-            <dt>받는 분</dt>
-            <dd className="font-medium text-fg">{order.receiverName}</dd>
+          <div className="flex items-start justify-between gap-4">
+            <dt className="shrink-0">받는 분</dt>
+            <dd className="min-w-0 text-right font-medium text-fg [overflow-wrap:anywhere]">{order.receiverName}</dd>
           </div>
-          <div className="flex justify-between gap-4">
-            <dt>배송지</dt>
-            <dd className="max-w-60 text-right font-medium text-fg">{order.address}</dd>
+          <div className="flex items-start justify-between gap-4">
+            <dt className="shrink-0">배송지</dt>
+            <dd className="min-w-0 max-w-60 text-right font-medium text-fg [overflow-wrap:anywhere]">{order.address}</dd>
           </div>
-          <div className="flex justify-between gap-4">
-            <dt>배송비</dt>
-            <dd className="font-medium text-success">무료</dd>
+          <div className="flex items-start justify-between gap-4">
+            <dt className="shrink-0">배송비</dt>
+            <dd className="shrink-0 font-medium text-success">무료</dd>
           </div>
         </dl>
 
         <ul className="mt-4 space-y-1.5 border-t border-line pt-4 text-step--1 text-fg-muted">
           {order.items.map((it) => (
-            <li key={it.id} className="flex justify-between gap-4">
-              <span>
+            <li key={it.id} className="flex items-start justify-between gap-4">
+              <span className="min-w-0 [overflow-wrap:anywhere]">
                 {it.name}
                 {it.size ? ` (${it.size})` : ""} × {it.qty}
               </span>
-              <span className="font-mono">{formatKrw(it.price * it.qty)}</span>
+              <span className="shrink-0 whitespace-nowrap font-mono">{formatKrw(it.price * it.qty)}</span>
             </li>
           ))}
         </ul>
@@ -180,19 +182,25 @@ export default async function OrderResultPage({
       {retryable && <RetryPayment orderId={order.id} amount={order.totalAmount} billingCards={billingCards} />}
 
       {order.status === "CANCEL_REQUESTED" && (
-        <div className="mt-4 flex items-center justify-between rounded-[var(--radius-md)] border border-line bg-raised px-4 py-3 text-step--1 text-fg-muted">
-          <span>
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius-md)] border border-line bg-raised px-4 py-3 text-step--1 text-fg-muted">
+          <span className="min-w-[min(100%,15rem)] flex-1 break-keep">
             {order.cancelRequestedAt?.toLocaleDateString("ko-KR")} 접수 — 확인 후 고객센터에서 연락드립니다.
           </span>
           <Badge variant="orange">취소 접수</Badge>
         </div>
       )}
 
-      <div className="mt-6 flex justify-center gap-3">
-        <Link href="/mypage" className={buttonVariants({ variant: "outline", size: "lg" })}>
+      <div className="mt-6 flex flex-wrap justify-center gap-3">
+        <Link
+          href="/mypage"
+          className={`${buttonVariants({ variant: "outline", size: "lg" })} min-w-[min(100%,8rem)] max-w-full flex-1 !h-auto min-h-12 py-3 text-center !whitespace-normal`}
+        >
           주문내역
         </Link>
-        <Link href="/" className={buttonVariants({ variant: "primary", size: "lg" })}>
+        <Link
+          href="/"
+          className={`${buttonVariants({ variant: "primary", size: "lg" })} min-w-[min(100%,8rem)] max-w-full flex-1 !h-auto min-h-12 py-3 text-center !whitespace-normal`}
+        >
           계속 쇼핑하기
         </Link>
       </div>

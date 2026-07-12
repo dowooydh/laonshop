@@ -37,7 +37,7 @@ export function AddToCart({ product, sizes, soldOut = false }: Props) {
 
   return (
     <motion.div
-      className="space-y-6"
+      className="min-w-0 space-y-6"
       initial={reduce ? false : { opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
@@ -54,7 +54,7 @@ export function AddToCart({ product, sizes, soldOut = false }: Props) {
                 type="button"
                 onClick={() => setSize(s)}
                 className={cn(
-                  "h-11 min-w-14 rounded-[var(--radius-md)] border px-3 text-sm font-medium transition-colors",
+                  "h-[44px] min-w-[56px] rounded-[var(--radius-md)] border px-3 text-sm font-medium transition-colors",
                   size === s
                     ? "border-accent-cyan bg-[color-mix(in_oklab,var(--accent-cyan)_12%,transparent)] text-fg shadow-glow-cyan"
                     : "border-line bg-raised text-fg-muted hover:bg-overlay hover:text-fg",
@@ -75,18 +75,18 @@ export function AddToCart({ product, sizes, soldOut = false }: Props) {
           <button
             type="button"
             onClick={() => setQty((q) => Math.max(1, q - 1))}
-            className="flex h-11 w-11 items-center justify-center text-lg text-fg-muted transition-colors hover:text-fg"
+            className="flex h-[44px] w-[44px] items-center justify-center text-lg text-fg-muted transition-colors hover:text-fg"
             aria-label="수량 감소"
           >
             −
           </button>
-          <span className="w-12 text-center font-mono text-sm font-semibold tabular-nums text-fg">
+          <span className="w-[48px] text-center font-mono text-sm font-semibold tabular-nums text-fg">
             {qty}
           </span>
           <button
             type="button"
             onClick={() => setQty((q) => Math.min(99, q + 1))}
-            className="flex h-11 w-11 items-center justify-center text-lg text-fg-muted transition-colors hover:text-fg"
+            className="flex h-[44px] w-[44px] items-center justify-center text-lg text-fg-muted transition-colors hover:text-fg"
             aria-label="수량 증가"
           >
             +
@@ -94,11 +94,25 @@ export function AddToCart({ product, sizes, soldOut = false }: Props) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 pt-2">
-        <Button type="button" variant="outline" size="xl" disabled={soldOut} onClick={() => add(false)}>
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,7rem),1fr))] gap-3 pt-2 sm:grid-cols-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="xl"
+          className="px-3 text-sm min-[360px]:px-4 min-[360px]:text-step-0 sm:px-6 sm:text-step-1"
+          disabled={soldOut}
+          onClick={() => add(false)}
+        >
           {added ? "담았습니다 ✓" : "장바구니 담기"}
         </Button>
-        <Button type="button" variant="primary" size="xl" disabled={soldOut} onClick={() => add(true)}>
+        <Button
+          type="button"
+          variant="primary"
+          size="xl"
+          className="px-3 text-sm min-[360px]:px-4 min-[360px]:text-step-0 sm:px-6 sm:text-step-1"
+          disabled={soldOut}
+          onClick={() => add(true)}
+        >
           {soldOut ? "품절" : "바로 구매"}
         </Button>
       </div>
