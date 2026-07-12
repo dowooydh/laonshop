@@ -140,8 +140,8 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         ) : (
           <div className="space-y-6">
             {reviewOrders.map((order) => (
-              <article key={order.id} className="overflow-hidden rounded-[var(--radius-lg)] border border-line bg-raised shadow-elev1">
-                <div className="space-y-5 p-5 sm:p-6">
+              <article key={order.id} className="min-w-0 overflow-hidden rounded-[var(--radius-lg)] border border-line bg-raised shadow-elev1">
+                <div className="min-w-0 space-y-5 p-5 sm:p-6">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
@@ -167,20 +167,20 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                   </ul>
                 </div>
 
-                <div className="grid border-t border-line lg:grid-cols-2 lg:divide-x lg:divide-line">
-                  <details className="group border-b border-line p-5 open:bg-[color-mix(in_oklab,var(--success)_5%,transparent)] lg:border-b-0 sm:p-6">
-                    <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between font-medium text-success marker:hidden">
-                      승인 내역 있음 — 결제완료
-                      <span aria-hidden className="transition-transform group-open:rotate-45">＋</span>
+                <div className="grid min-w-0 grid-cols-1 border-t border-line lg:grid-cols-2 lg:divide-x lg:divide-line">
+                  <details className="group min-w-0 max-w-full border-b border-line p-5 open:bg-[color-mix(in_oklab,var(--success)_5%,transparent)] lg:border-b-0 sm:p-6">
+                    <summary className="flex min-h-11 min-w-0 cursor-pointer list-none items-center justify-between gap-3 font-medium text-success marker:hidden">
+                      <span className="min-w-0 [overflow-wrap:anywhere]">승인 내역 있음 — 결제완료</span>
+                      <span aria-hidden className="shrink-0 transition-transform group-open:rotate-45">＋</span>
                     </summary>
-                    <div className="mt-5 border-t border-line pt-5"><PaymentPaidForm orderId={order.id} /></div>
+                    <div className="mt-5 min-w-0 max-w-full border-t border-line pt-5"><PaymentPaidForm orderId={order.id} /></div>
                   </details>
-                  <details className="group p-5 open:bg-[color-mix(in_oklab,var(--danger)_5%,transparent)] sm:p-6">
-                    <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between font-medium text-danger marker:hidden">
-                      승인 내역 없음 — 결제실패
-                      <span aria-hidden className="transition-transform group-open:rotate-45">＋</span>
+                  <details className="group min-w-0 max-w-full p-5 open:bg-[color-mix(in_oklab,var(--danger)_5%,transparent)] sm:p-6">
+                    <summary className="flex min-h-11 min-w-0 cursor-pointer list-none items-center justify-between gap-3 font-medium text-danger marker:hidden">
+                      <span className="min-w-0 [overflow-wrap:anywhere]">승인 내역 없음 — 결제실패</span>
+                      <span aria-hidden className="shrink-0 transition-transform group-open:rotate-45">＋</span>
                     </summary>
-                    <div className="mt-5 border-t border-line pt-5">
+                    <div className="mt-5 min-w-0 max-w-full border-t border-line pt-5">
                       <PaymentFailedForm orderId={order.id} orderMoid={order.moid} totalLabel={formatKrw(order.totalAmount)} />
                     </div>
                   </details>

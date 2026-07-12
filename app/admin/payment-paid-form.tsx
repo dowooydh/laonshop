@@ -12,7 +12,7 @@ export function PaymentPaidForm({ orderId }: { orderId: string }) {
   usePaymentResolutionNavigation(state);
 
   return (
-    <form action={action} className="space-y-4" aria-busy={pending}>
+    <form action={action} className="min-w-0 max-w-full space-y-4 [overflow-wrap:anywhere]" aria-busy={pending}>
       <input type="hidden" name="orderId" value={orderId} />
 
       <div>
@@ -29,12 +29,12 @@ export function PaymentPaidForm({ orderId }: { orderId: string }) {
         />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div>
+      <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="min-w-0">
           <Label htmlFor={`paid-approval-${orderId}`}>승인번호</Label>
           <Input id={`paid-approval-${orderId}`} name="approvalNo" maxLength={64} autoComplete="off" required />
         </div>
-        <div>
+        <div className="min-w-0">
           <Label htmlFor={`paid-pg-${orderId}`}>PG 거래번호</Label>
           <Input id={`paid-pg-${orderId}`} name="pgTrno" maxLength={100} autoComplete="off" required />
         </div>
@@ -73,7 +73,13 @@ export function PaymentPaidForm({ orderId }: { orderId: string }) {
         {state.status === "success" && <p className="text-step--1 text-success">{state.message}</p>}
       </div>
 
-      <Button type="submit" size="lg" loading={pending} disabled={pending} className="w-full sm:w-auto">
+      <Button
+        type="submit"
+        size="lg"
+        loading={pending}
+        disabled={pending}
+        className="h-auto min-h-12 min-w-0 w-full whitespace-normal px-3 py-3 leading-snug sm:h-12 sm:w-auto sm:whitespace-nowrap sm:px-5 sm:py-0"
+      >
         결제완료로 확정
       </Button>
     </form>

@@ -18,7 +18,7 @@ export function PaymentFailedForm({ orderId, orderMoid, totalLabel }: PaymentFai
   usePaymentResolutionNavigation(state);
 
   return (
-    <form action={action} className="space-y-4" aria-busy={pending}>
+    <form action={action} className="min-w-0 max-w-full space-y-4 [overflow-wrap:anywhere]" aria-busy={pending}>
       <input type="hidden" name="orderId" value={orderId} />
 
       <div className="rounded-[var(--radius-md)] border border-danger bg-[color-mix(in_oklab,var(--danger)_6%,transparent)] p-4 text-step--1">
@@ -62,7 +62,14 @@ export function PaymentFailedForm({ orderId, orderMoid, totalLabel }: PaymentFai
         {state.status === "success" && <p className="text-step--1 text-success">{state.message}</p>}
       </div>
 
-      <Button type="submit" variant="danger" size="lg" loading={pending} disabled={pending} className="w-full sm:w-auto">
+      <Button
+        type="submit"
+        variant="danger"
+        size="lg"
+        loading={pending}
+        disabled={pending}
+        className="h-auto min-h-12 min-w-0 w-full whitespace-normal px-3 py-3 leading-snug sm:h-12 sm:w-auto sm:whitespace-nowrap sm:px-5 sm:py-0"
+      >
         결제실패로 확정
       </Button>
     </form>
