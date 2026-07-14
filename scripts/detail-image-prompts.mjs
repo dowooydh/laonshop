@@ -253,7 +253,7 @@ Product name: ${product.name}
 Category: ${product.gender} / ${product.category}
 Subject: ${gender} ${itemName}
 Style/medium: photorealistic Korean online fashion mall product photography
-Composition/framing: five equal vertical panels in one row, with thin white gutters between panels. ${shots(product.category)} Keep each panel fully contained and easy to crop.
+Composition/framing: five equal vertical panels in one row, with thin white gutters between panels. Compose every panel for a centered 4:5 portrait safe area. ${shots(product.category)} Keep each panel fully contained and easy to crop or pad without stretching.
 Lighting/mood: consistent soft studio catalog lighting, premium ecommerce, neutral background
 Materials/textures: realistic material texture, seams, stitching, fasteners, and product detail
 Text (verbatim): none

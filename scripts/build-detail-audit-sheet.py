@@ -4,7 +4,7 @@ import json
 import subprocess
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 
 def load_products():
@@ -51,7 +51,7 @@ def main():
 
     products = load_products()[args.start : args.end]
     thumb_w = 180
-    thumb_h = 240
+    thumb_h = 225
     label_w = 260
     pad = 14
     row_h = thumb_h + pad * 2
@@ -79,7 +79,14 @@ def main():
             path = Path(args.root) / slug / f"{index + 1:02d}.webp"
             x = label_w + pad + index * (thumb_w + pad)
             if path.exists():
-                image = Image.open(path).convert("RGB").resize((thumb_w, thumb_h), Image.Resampling.LANCZOS)
+                with Image.open(path) as source:
+                    image = ImageOps.pad(
+                        source.convert("RGB"),
+                        (thumb_w, thumb_h),
+                        method=Image.Resampling.LANCZOS,
+                        color=(245, 245, 245),
+                        centering=(0.5, 0.5),
+                    )
                 sheet.paste(image, (x, y + pad))
             else:
                 draw.rectangle((x, y + pad, x + thumb_w, y + pad + thumb_h), outline=(220, 80, 80), width=3)

@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { formatKrw } from "@/lib/format";
+import { safeProductImageUrl, sanitizeStoredProductImages } from "@/lib/product-image";
 
 const KEY = "laonshop-recent";
 const MAX = 8;
@@ -13,7 +14,18 @@ export type RecentItem = { id: string; name: string; price: number; imageUrl: st
 
 function read(): RecentItem[] {
   try {
-    return JSON.parse(localStorage.getItem(KEY) ?? "[]") as RecentItem[];
+    const stored = JSON.parse(localStorage.getItem(KEY) ?? "[]") as RecentItem[];
+    const { items, migrated } = sanitizeStoredProductImages(stored);
+
+    // 최근 본 상품 목록은 보존하고, 재생성 전인 왜곡 상세컷 참조만 제거한다.
+    if (migrated) {
+      try {
+        localStorage.setItem(KEY, JSON.stringify(items));
+      } catch {
+        // 저장 공간 오류가 나도 현재 세션의 최근 상품 목록은 유지한다.
+      }
+    }
+    return items;
   } catch {
     return [];
   }
@@ -22,7 +34,8 @@ function read(): RecentItem[] {
 /** 상품 상세 마운트 시 열람 기록 (렌더 없음) */
 export function RecordView({ item }: { item: RecentItem }) {
   useEffect(() => {
-    const next = [item, ...read().filter((r) => r.id !== item.id)].slice(0, MAX);
+    const safeItem = { ...item, imageUrl: safeProductImageUrl(item.imageUrl) };
+    const next = [safeItem, ...read().filter((r) => r.id !== item.id)].slice(0, MAX);
     localStorage.setItem(KEY, JSON.stringify(next));
   }, [item]);
   return null;
