@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getSession } from "@/lib/session";
-import { normalizeEmail } from "@/lib/auth-input";
+import { getBoundaryWhitespaceTrimCandidate, normalizeEmail } from "@/lib/auth-input";
 import { acquireTransactionLock } from "@/lib/order-guard";
 import { Prisma } from "@prisma/client";
 
@@ -83,7 +83,17 @@ export async function loginAction(_prev: AuthState, formData: FormData): Promise
   }
 
   const user = await prisma.shopUser.findFirst({ where: { email: { equals: email, mode: "insensitive" } } });
-  if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
+  const passwordMatches = user ? await bcrypt.compare(password, user.passwordHash) : false;
+  if (!passwordMatches && user) {
+    const trimCandidate = getBoundaryWhitespaceTrimCandidate(password);
+    if (trimCandidate && (await bcrypt.compare(trimCandidate, user.passwordHash))) {
+      return {
+        error: "비밀번호 앞뒤에 공백이 포함되어 있습니다. 공백을 지우고 다시 입력해 주세요.",
+      };
+    }
+  }
+
+  if (!user || !passwordMatches) {
     if (loginFails.size > 1000) loginFails.clear(); // 메모리 상한
     const lockExpired = fail !== undefined && fail.lockedUntil !== 0 && fail.lockedUntil <= Date.now();
     const count = (lockExpired ? 0 : (fail?.count ?? 0)) + 1;
