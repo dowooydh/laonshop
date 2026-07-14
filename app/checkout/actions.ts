@@ -3,10 +3,11 @@
 import { prisma } from "@/lib/db";
 import { getPgProvider } from "@/lib/kspay";
 import { isKspayRestLiveEnabled, payOldCert } from "@/lib/kspay/webfep";
+import { createKspayResultToken } from "@/lib/kspay/result-token";
 import { sanitizePgParam } from "@/lib/format";
 import { z } from "zod";
 import { requireShopUser } from "@/lib/auth";
-import { getDisabledBillingResult, MANUAL_PAYMENT_TEST_EMAILS } from "@/lib/billing";
+import { getDisabledBillingResult, MANUAL_PAYMENT_DISABLED_MESSAGE } from "@/lib/billing";
 import {
   acquireTransactionLock,
   createIdempotentMoid,
@@ -72,9 +73,7 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
 
   if (d.method === "manual") {
     if (!d.manualCard) return { ok: false, error: "카드 정보를 입력해 주세요." };
-    if (!isKspayRestLiveEnabled() && !MANUAL_PAYMENT_TEST_EMAILS.includes(user.email)) {
-      return { ok: false, error: "수기결제는 서비스 준비 중입니다. 카드·간편결제를 이용해 주세요." };
-    }
+    if (!isKspayRestLiveEnabled()) return { ok: false, error: MANUAL_PAYMENT_DISABLED_MESSAGE };
   }
 
   // 동일 사용자·동일 체크아웃 요청은 같은 moid를 사용한다. DB advisory lock으로 다중 탭과
@@ -131,7 +130,6 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
   // ── 수기결제(구인증) — KSNET WEBFEP /card/pay/oldcert. 카드정보는 즉시 폐기 ──
   if (d.method === "manual") {
     const mc = d.manualCard!;
-    const masked = `${mc.cardNo.slice(0, 4)}-${mc.cardNo.slice(4, 6)}**-****-${mc.cardNo.slice(-4)}`;
     // 일반 KSPAY callback과 같은 2단계 처리: 외부 승인 전에 마커를 별도 트랜잭션으로
     // 먼저 커밋한다. timeout/503 또는 승인 후 DB 장애가 나도 같은 주문의 재호출을 막는다.
     const manualPrepared = await prisma.$transaction(async (tx) => {
@@ -198,14 +196,9 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
       if (result === null) {
         await tx.shopOrder.update({
           where: { id: current.id },
-          data: {
-            status: "PAID",
-            paidAt: new Date(),
-            approvalNo: `MB${Date.now().toString().slice(-8)}`,
-            cardName: `수기결제 ${masked}`,
-          },
+          data: { status: "FAILED", approvalNo: null },
         });
-        return { ok: true as const };
+        return { ok: false as const, error: MANUAL_PAYMENT_DISABLED_MESSAGE };
       }
       if (!result.ok) {
         await tx.shopOrder.update({
@@ -249,11 +242,12 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
     storeId: "2999199999", // 테스트 MID (실제 sndStoreid는 KSPAY_STORE_ID env 사용)
     returnUrl: `${base}/order/${order.id}`,
     callbackUrl: `${base}/api/pg/kspay/callback`,
+    resultToken: createKspayResultToken(order),
   });
 
   if (res.formAction && res.formFields) {
     return { ok: true, formAction: res.formAction, formFields: res.formFields };
   }
-  // mock 모드 등 — shop은 kspay 전제
+  // 지원하지 않는 PG 응답 — shop은 kspay 폼 전제
   return { ok: false, error: "결제창을 열 수 없습니다. (PG 설정 확인)" };
 }

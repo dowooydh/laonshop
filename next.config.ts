@@ -7,6 +7,10 @@ const nextConfig: NextConfig = {
   // dev server 전용이라 프로덕션 빌드에는 영향 없음. 10.0.2.2 = 에뮬레이터→호스트 루프백.
   allowedDevOrigins: ["127.0.0.1", "10.0.2.2"],
   images: {
+    localPatterns: [
+      { pathname: "/products/detail/**", search: "?v=20260714-4x5" },
+      { pathname: "/brand/**", search: "" },
+    ],
     remotePatterns: [
       { protocol: "https", hostname: "images.unsplash.com" }, // 엄선 상품·모델 이미지
       { protocol: "https", hostname: "picsum.photos" },

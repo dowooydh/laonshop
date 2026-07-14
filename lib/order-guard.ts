@@ -42,7 +42,8 @@ export function shouldStartKspayApproval(
   return (
     status === "PENDING" &&
     approvalNo !== PAYMENT_PROCESSING_MARKER &&
-    (hasCommConId || isCanceled)
+    hasCommConId &&
+    !isCanceled
   );
 }
 

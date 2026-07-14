@@ -5,7 +5,12 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { formatKrw } from "@/lib/format";
-import { safeProductImageUrl, sanitizeStoredProductImages } from "@/lib/product-image";
+import {
+  hydrateMissingProductImages,
+  mergeResolvedProductImages,
+  safeProductImageUrl,
+  sanitizeStoredProductImages,
+} from "@/lib/product-image";
 
 const KEY = "laonshop-recent";
 const MAX = 8;
@@ -46,7 +51,27 @@ export function RecentProducts({ excludeId }: { excludeId?: string }) {
   const [items, setItems] = useState<RecentItem[]>([]);
 
   useEffect(() => {
-    setItems(read().filter((r) => r.id !== excludeId).slice(0, 4));
+    let cancelled = false;
+    const stored = read();
+    setItems(stored.filter((r) => r.id !== excludeId).slice(0, 4));
+
+    void hydrateMissingProductImages(stored, (item) => item.id).then((hydrated) => {
+      if (cancelled || !hydrated.migrated) return;
+      const resolved = Object.fromEntries(hydrated.items.map((item) => [item.id, item.imageUrl]));
+      const latest = read();
+      const merged = mergeResolvedProductImages(latest, (item) => item.id, resolved);
+      if (!merged.migrated) return;
+      try {
+        localStorage.setItem(KEY, JSON.stringify(merged.items));
+      } catch {
+        // 저장 실패 시에도 현재 화면에서는 복구된 이미지를 보여준다.
+      }
+      setItems(merged.items.filter((r) => r.id !== excludeId).slice(0, 4));
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [excludeId]);
 
   if (items.length === 0) return null;

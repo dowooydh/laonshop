@@ -5,14 +5,35 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { cartTotal, getCart, saveCart, type CartItem } from "@/lib/cart";
+import { hydrateMissingProductImages, mergeResolvedProductImages } from "@/lib/product-image";
 
 export default function CartPage() {
   const [items, setItems] = useState<CartItem[]>([]);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    setItems(getCart());
+    let cancelled = false;
+    const stored = getCart();
+    setItems(stored);
     setReady(true);
+
+    void hydrateMissingProductImages(stored, (item) => item.productId).then((hydrated) => {
+      if (cancelled || !hydrated.migrated) return;
+      const resolved = Object.fromEntries(hydrated.items.map((item) => [item.productId, item.imageUrl]));
+      const latest = getCart();
+      const merged = mergeResolvedProductImages(latest, (item) => item.productId, resolved);
+      if (!merged.migrated) return;
+      setItems(merged.items);
+      try {
+        saveCart(merged.items);
+      } catch {
+        // 저장공간이 차단돼도 현재 화면의 복구 이미지와 장바구니 조작은 유지한다.
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const setQty = (idx: number, qty: number) => {

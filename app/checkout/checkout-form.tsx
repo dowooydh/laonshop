@@ -16,7 +16,13 @@ export type CheckoutInitial = {
   address: string;
   addressDetail: string;
 };
-export function CheckoutForm({ initial }: { initial: CheckoutInitial }) {
+export function CheckoutForm({
+  initial,
+  manualPaymentEnabled,
+}: {
+  initial: CheckoutInitial;
+  manualPaymentEnabled: boolean;
+}) {
   // 결제수단 구성 — KSNET 김민규 팀장 가이드(2026-07): 카드/카카오/네이버/실시간계좌이체/수기(구인증).
   // 가상계좌는 KSNET 미지원+심사 거절 사유로 제외.
   const METHODS = [
@@ -24,7 +30,9 @@ export function CheckoutForm({ initial }: { initial: CheckoutInitial }) {
     { id: "kakaopay", label: "카카오페이", desc: "카카오페이 간편결제", enabled: true },
     { id: "naverpay", label: "네이버페이", desc: "네이버페이 간편결제", enabled: true },
     { id: "bank", label: "실시간 계좌이체", desc: "은행 계좌 즉시 이체", enabled: true },
-    { id: "manual", label: "수기결제", desc: "카드번호 직접 입력 (구인증)", enabled: true },
+    ...(manualPaymentEnabled
+      ? [{ id: "manual", label: "수기결제", desc: "카드번호 직접 입력 (구인증)", enabled: true }]
+      : []),
   ];
   const [items, setItems] = useState<CartItem[]>([]);
   const [ready, setReady] = useState(false);

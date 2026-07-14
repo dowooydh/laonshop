@@ -23,6 +23,33 @@ test("WEBFEP 실승인은 API 키와 명시적 운영 스위치가 모두 필요
       env: { KSPAY_API_KEY: "issued-key", KSPAY_REST_LIVE: "1" },
       expected: true,
     },
+    {
+      name: "공식 개발 HTTPS origin",
+      env: {
+        KSPAY_API_KEY: "issued-key",
+        KSPAY_REST_LIVE: "1",
+        KSPAY_WEBFEP_BASE: "https://paydev.ksnet.co.kr",
+      },
+      expected: true,
+    },
+    {
+      name: "HTTP 또는 비공식 WEBFEP origin",
+      env: {
+        KSPAY_API_KEY: "issued-key",
+        KSPAY_REST_LIVE: "1",
+        KSPAY_WEBFEP_BASE: "http://127.0.0.1:3999",
+      },
+      expected: false,
+    },
+    {
+      name: "공식 host 하위 경로 주입",
+      env: {
+        KSPAY_API_KEY: "issued-key",
+        KSPAY_REST_LIVE: "1",
+        KSPAY_WEBFEP_BASE: "https://pay.ksnet.co.kr/evil",
+      },
+      expected: false,
+    },
   ];
 
   for (const { name, env, expected } of cases) {
@@ -74,7 +101,7 @@ test("WEBFEP 503 응답은 재승인 가능한 실패가 아니라 불명확 결
   try {
     process.env.KSPAY_API_KEY = "issued-key";
     process.env.KSPAY_REST_LIVE = "1";
-    process.env.KSPAY_WEBFEP_BASE = "https://stub.invalid";
+    process.env.KSPAY_WEBFEP_BASE = "https://paydev.ksnet.co.kr";
     globalThis.fetch = (async () => {
       fetchCount += 1;
       return new Response("unavailable", { status: 503 });
@@ -94,6 +121,60 @@ test("WEBFEP 503 응답은 재승인 가능한 실패가 아니라 불명확 결
     assert.equal(fetchCount, 1);
     assert.equal(result?.ok, false);
     if (result && !result.ok) assert.equal(result.indeterminate, true);
+  } finally {
+    if (originalApiKey === undefined) delete process.env.KSPAY_API_KEY;
+    else process.env.KSPAY_API_KEY = originalApiKey;
+    if (originalRestLive === undefined) delete process.env.KSPAY_REST_LIVE;
+    else process.env.KSPAY_REST_LIVE = originalRestLive;
+    if (originalBase === undefined) delete process.env.KSPAY_WEBFEP_BASE;
+    else process.env.KSPAY_WEBFEP_BASE = originalBase;
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("WEBFEP 카드 원문 POST는 redirect를 따르지 않고 성공 식별자를 모두 요구한다", async () => {
+  const originalApiKey = process.env.KSPAY_API_KEY;
+  const originalRestLive = process.env.KSPAY_REST_LIVE;
+  const originalBase = process.env.KSPAY_WEBFEP_BASE;
+  const originalFetch = globalThis.fetch;
+  let redirectMode: RequestRedirect | undefined;
+  let responseMode: "success" | "missing-tid" = "success";
+
+  try {
+    process.env.KSPAY_API_KEY = "issued-key";
+    process.env.KSPAY_REST_LIVE = "1";
+    process.env.KSPAY_WEBFEP_BASE = "https://paydev.ksnet.co.kr";
+    globalThis.fetch = (async (_input, init) => {
+      redirectMode = init?.redirect;
+      return Response.json({
+        code: "A0200",
+        data: {
+          respCode: "0000",
+          tid: responseMode === "success" ? " TID-1 " : " ",
+          approvalNumb: " APP-1 ",
+          issuerCardName: " 테스트카드 ",
+        },
+      });
+    }) as typeof fetch;
+
+    const request = {
+      orderNumb: "ORDER-SUCCESS",
+      userName: "테스트",
+      productName: "테스트 상품",
+      totalAmount: 1,
+      cardNumb: "0000000000000000",
+      expiryDate: "3012",
+      password2: "00",
+      userInfo: "000000",
+    };
+    const success = await payOldCert(request);
+    assert.equal(redirectMode, "error");
+    assert.deepEqual(success, { ok: true, tid: "TID-1", approvalNumb: "APP-1", cardName: "테스트카드" });
+
+    responseMode = "missing-tid";
+    const malformed = await payOldCert(request);
+    assert.equal(malformed?.ok, false);
+    if (malformed && !malformed.ok) assert.equal(malformed.indeterminate, true);
   } finally {
     if (originalApiKey === undefined) delete process.env.KSPAY_API_KEY;
     else process.env.KSPAY_API_KEY = originalApiKey;

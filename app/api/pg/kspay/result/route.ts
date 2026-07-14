@@ -1,6 +1,9 @@
 // KSPAY 최종 결과(result) — goResult 폼 수신 → recv_post.jsp 서버승인 → 주문 확정.
 import { prisma } from "@/lib/db";
 import { getPgProvider } from "@/lib/kspay";
+import { isKspayResultApprovalEnabled } from "@/lib/kspay/approval-gate";
+import { validateKspayApprovalBinding } from "@/lib/kspay/approval-validation";
+import { verifyKspayResultToken } from "@/lib/kspay/result-token";
 import {
   acquireTransactionLock,
   lockAndValidateInventory,
@@ -18,6 +21,7 @@ export async function POST(req: NextRequest) {
   const orderId = String(form.get("a") ?? ""); // 패스스루 a = ShopOrder id
   const reCommConId = String(form.get("reCommConId") ?? "");
   const reCnclType = String(form.get("reCnclType") ?? "");
+  const resultToken = String(form.get("c") ?? "");
 
   const base = process.env.SHOP_APP_URL ?? new URL(req.url).origin;
   if (!orderId) return NextResponse.redirect(`${base}/`, 303);
@@ -28,7 +32,13 @@ export async function POST(req: NextRequest) {
     await acquireTransactionLock(tx, `order:${orderId}`);
     const order = await tx.shopOrder.findUnique({ where: { id: orderId }, include: { items: true } });
     if (!order) return null;
-    if (!shouldStartKspayApproval(order.status, order.approvalNo, Boolean(reCommConId), reCnclType === "1")) {
+    if (!verifyKspayResultToken(order, resultToken)) return null;
+    if (!isKspayResultApprovalEnabled()) {
+      console.error("[pg:security] reHash 결박 규격 확인 전 실 MID 서버승인을 차단했습니다.");
+      return { shouldApprove: false as const, order };
+    }
+    const hasValidCommConId = reCommConId.length > 0 && reCommConId.length <= 1024;
+    if (!shouldStartKspayApproval(order.status, order.approvalNo, hasValidCommConId, reCnclType === "1")) {
       return { shouldApprove: false as const, order };
     }
 
@@ -65,9 +75,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.redirect(`${base}/order/${prepared.order.id}`, 303);
   }
 
-  if (result.success && result.amount > 0 && result.amount !== prepared.order.totalAmount) {
+  const binding = validateKspayApprovalBinding(prepared.order, result);
+  if (!binding.ok) {
     console.error(
-      `[pg:security] 승인금액 불일치 (orderId=${prepared.order.id}, moid=${prepared.order.moid}) — 운영자 확인·KSTA 취소 필요`,
+      `[pg:security] ${binding.reason} (orderId=${prepared.order.id}, moid=${prepared.order.moid}) — 운영자 확인·KSTA 대조 필요`,
     );
     return NextResponse.redirect(`${base}/order/${prepared.order.id}`, 303);
   }

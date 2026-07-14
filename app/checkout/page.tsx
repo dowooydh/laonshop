@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { requireShopUser } from "@/lib/auth";
+import { isKspayRestLiveEnabled } from "@/lib/kspay/webfep";
 import { CheckoutForm } from "./checkout-form";
 
 export const metadata = { title: "주문/결제" };
@@ -18,6 +19,7 @@ export default async function CheckoutPage() {
 
   return (
     <CheckoutForm
+      manualPaymentEnabled={isKspayRestLiveEnabled()}
       initial={{
         receiverName: lastOrder?.receiverName ?? user.name ?? "",
         receiverPhone: lastOrder?.receiverPhone ?? user.phone ?? "",

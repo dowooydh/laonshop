@@ -8,10 +8,12 @@
   },
   "scripts": {
     "dev": "next dev -p 3003",
+    "prebuild": "pnpm validate:images",
     "build": "prisma generate && next build",
     "start": "next start -p 3003",
     "lint": "eslint .",
-    "test": "tsx --test tests/**/*.test.ts",
+    "test": "tsx --test tests/**/*.test.ts && pnpm validate:images",
+    "validate:images": "node scripts/validate-detail-assets.mjs",
     "typecheck": "tsc --noEmit",
     "postinstall": "prisma generate",
     "db:push": "prisma db push",

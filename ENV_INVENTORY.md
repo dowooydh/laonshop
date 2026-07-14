@@ -13,15 +13,15 @@
 | `DIRECT_URL` | Neon **direct** 연결(`prisma db push`/migrate 전용, 런타임 미사용) | **필수** | 로컬·Vercel | 로컬 `.env` · Vercel env · 원본: Neon 콘솔 | 존재 / Prod+Preview 존재 | 마이그레이션 시 사용(재배포 무관) |
 | `SESSION_SECRET` | iron-session 쿠키 암호화 키(≥32자). 빌드/런타임에 필요 | **필수** | 로컬·Vercel | 로컬 `.env` · Vercel env · 원본: 최초 `openssl rand -base64 32` 생성값(별도 원본 없음) | 존재 / Prod+Preview 존재 | 변경 시 **전 세션 무효 + 재배포** |
 | `PG_MODE` | PG 프로바이더 선택. 값 `kspay`(기본값 `kspay`) | 필수(기본값 있음) | 로컬·Vercel | 로컬 `.env` · Vercel env | 존재 / Prod+Preview 존재 | 재배포 |
-| `KSPAY_STORE_ID` | KSNET 상점 MID. **현재 테스트 MID `2999199999`** (기본값 동일) | **필수** | 로컬·Vercel | 로컬 `.env` · Vercel env · **원본: KSNET 계약** | 존재(테스트값) / Prod+Preview 존재 | 실 MID 교체 시 **재배포** |
+| `KSPAY_STORE_ID` | KSNET 상점 MID. **현재 테스트 MID `2999199999`**. `reHash` 주문 결박 규격 구현 전에는 코드가 실 MID 서버승인을 차단 | **필수** | 로컬·Vercel | 로컬 `.env` · Vercel env · **원본: KSNET 계약** | 존재(테스트값) / Prod+Preview 존재 | 스펙 구현·회귀 후 실 MID 교체 및 **재배포** |
 | `SHOP_APP_URL` | 결제 콜백(rcv)/복귀 절대 URL = 배포 도메인. 미설정 시 코드가 `http://localhost:3003` 폴백 | **필수** | 로컬·Vercel | 로컬 `.env` · Vercel env | 존재 / Prod+Preview 존재(`https://laonshop.com`) | 재배포 |
 | `KSPAY_STORE_KEY` | KSPAY 상점키. 결제창 V1.4엔 미사용, `KspayProvider`/WEBFEP 계열에서 참조 | 선택(계약 후) | (미설정) | 로컬 `.env` **주석 처리**, Vercel 없음 · 원본: KSNET 계약 | **누락(의도 — 계약 전)** / 없음 | 설정 시 재배포 |
-| `KSPAY_API_KEY` | KSNET **WEBFEP REST** 인증키(수기/구인증 실연동). `lib/kspay/webfep.ts` | 선택(계약 후) | (미설정) | 로컬·Vercel 없음 · **원본: KSNET 사업부 별도 계약** | **누락(의도 — 미설정 시 mock 폴백)** / 없음 | 설정 시 재배포 |
+| `KSPAY_API_KEY` | KSNET **WEBFEP REST** 인증키(수기/구인증 실연동). `lib/kspay/webfep.ts` | 선택(계약 후) | (미설정) | 로컬·Vercel 없음 · **원본: KSNET 사업부 별도 계약** | **누락(의도 — 미설정 시 UI·서버 비활성)** / 없음 | 설정 시 재배포 |
 | `KSPAY_REST_LIVE` | WEBFEP 실제 승인 명시적 차단 스위치. 값 `1`일 때만 `KSPAY_API_KEY`와 함께 실호출 | 선택(계약 후) | (미설정) | 로컬·Vercel 없음 · 운영 설정값(비밀 아님) | **누락(의도 — 기본 비활성)** / 없음 | `1` 설정 시 재배포 |
 | `KSPAY_WEBFEP_BASE` | WEBFEP API base URL. **기본값 `https://pay.ksnet.co.kr`** | 선택(기본값 있음) | (미설정) | 로컬·Vercel 없음(기본값 동작) · 원본: KSNET 문서 | **누락(기본값 사용)** / 없음 | 설정 시 재배포 |
 | `NODE_ENV` | 런타임 모드(development/production) | 자동 | Next.js/Vercel 자동 주입 | (설정 불필요) | 자동 | — |
 
-**요약:** 코드가 쓰는 변수 총 10종(+NODE_ENV 자동). 운영에 반드시 있어야 할 6종은 로컬·Vercel(Prod+Preview) 모두 존재. `KSPAY_STORE_KEY`/`KSPAY_API_KEY`/`KSPAY_REST_LIVE`/`KSPAY_WEBFEP_BASE`는 **KSNET 실연동 계약 전이라 의도적으로 미설정**이다. 수기결제는 이중 가드가 꺼진 제한 계정에서만 기존 mock 폴백을 유지하며, 원클릭 빌링은 mock 발급·승인 경로를 제거하고 모든 계정에서 비활성화했다.
+**요약:** 코드가 쓰는 변수 총 10종(+NODE_ENV 자동). 운영에 반드시 있어야 할 6종은 로컬·Vercel(Prod+Preview) 모두 존재. `KSPAY_STORE_KEY`/`KSPAY_API_KEY`/`KSPAY_REST_LIVE`/`KSPAY_WEBFEP_BASE`는 **KSNET 실연동 계약 전이라 의도적으로 미설정**이다. 수기결제는 API 키와 운영 스위치가 모두 없으면 UI·서버에서 차단하며 mock 승인 경로가 없다. 원클릭 빌링도 mock 발급·승인 경로를 제거하고 모든 계정에서 비활성화했다.
 
 ## 2. 원본(마스터) 보관 위치 — 시스템별
 
@@ -55,8 +55,8 @@
 ## 5. 미완료 — 외부 계약·사람 확인·키 발급 필요
 
 1. **통신판매업신고번호** — 신고 완료 후 번호 확정 → footer/정책 반영(현재 "신고 예정"). 카드사 심사의 **유일한 남은 외부 리스크**. [행정/사람]
-2. **KSPAY 실 MID·상점키** — KSNET 정식 계약 후 `KSPAY_STORE_ID`(+`KSPAY_STORE_KEY`) 테스트값→실값 교체. [외부 계약]
-3. **`KSPAY_API_KEY` + `KSPAY_REST_LIVE=1`(WEBFEP)** — 수기/구인증 **실연동**은 KSNET 사업부 별도 계약 + API키 발급 + 실 MID 확인 후 이중 가드를 함께 활성화해야 한다. 현재 둘 다 미설정 → 제한된 계정만 기존 mock 폴백. [외부 계약·키 발급]
+2. **KSPAY 실 MID·상점키·결과 결박 규격** — KSNET 정식 계약 후 `reCommConId`/`reHash`를 주문에 사전 결박하는 공식 규격을 구현·검증하고 `KSPAY_STORE_ID`(+`KSPAY_STORE_KEY`)를 실값으로 교체한다. 현재 코드는 테스트 MID 외 서버승인을 차단한다. [외부 계약·PG 스펙·보안 검토]
+3. **`KSPAY_API_KEY` + `KSPAY_REST_LIVE=1`(WEBFEP)** — 수기/구인증 **실연동**은 KSNET 사업부 별도 계약 + API키 발급 + 실 MID + 개인정보처리 고지를 확인한 후 이중 가드를 함께 활성화해야 한다. 현재 둘 다 미설정 → UI·서버 완전 비활성, mock 승인 없음. [외부 계약·키 발급·보안 검토]
 4. **원클릭 빌링 계약·스펙** — 현재 카드 등록·원클릭 승인은 안전하게 비활성화했다. KSNET의 PG 호스팅 카드 등록 또는 동등한 카드 원문 비수집 방식, 빌링키 등록·승인·해지 API, 별도 운영 가드를 모두 확정한 뒤에만 재구현한다. [외부 계약·보안 검토]
 5. **현금영수증 발급** — 계좌이체/가상계좌 오픈 시 의류 소매 의무발행 대상. KSNET 발급 API 이식 필요(라온페이에 실연동 존재). [향후]
 6. **Neon 콜드스타트** — 무료 티어 오토서스펜드 웨이크업(수 초)으로 첫 요청 지연·간헐 500 발생 이력. `DATABASE_URL`/`DIRECT_URL`에 `connect_timeout`/`pool_timeout` 파라미터로 완화 적용됨. 완전 제거는 **Neon 유료 전환** 필요(비용 결정). [비용]

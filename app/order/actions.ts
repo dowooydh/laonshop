@@ -6,6 +6,7 @@ import { requireShopUser } from "@/lib/auth";
 import { getPgProvider } from "@/lib/kspay";
 import { sanitizePgParam } from "@/lib/format";
 import { getDisabledBillingResult } from "@/lib/billing";
+import { createKspayResultToken } from "@/lib/kspay/result-token";
 import { acquireTransactionLock, lockAndValidateInventory, PAYMENT_PROCESSING_MARKER } from "@/lib/order-guard";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -110,6 +111,7 @@ export async function retryPaymentAction(input: {
     storeId: "2999199999", // 테스트 MID (실제 sndStoreid는 KSPAY_STORE_ID env 사용)
     returnUrl: `${base}/order/${order.id}`,
     callbackUrl: `${base}/api/pg/kspay/callback`,
+    resultToken: createKspayResultToken(order),
   });
 
   if (res.formAction && res.formFields) {

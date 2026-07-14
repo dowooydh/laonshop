@@ -124,7 +124,7 @@ export class KspayProvider implements PgProvider {
       // 필드명은 샘플(kspay_wh_order.html / result.jsp) 기준 a/b/c/d. a=우리 paymentId, b=결과 복귀 경로
       a: req.paymentId,
       b: req.returnUrl,
-      c: "",
+      c: req.resultToken,
       d: "",
     };
     return { formAction: KSPAY_PWEB_URL, formFields };
@@ -173,6 +173,7 @@ export class KspayProvider implements PgProvider {
     const success = r.authyn === "O"; // 유일한 성공 판정 기준 (대문자 O)
     return {
       success,
+      moid: r.ordno,
       approvalNo: success ? r.authno : undefined, // 거절 시 authno=에러코드 — 노출 금지
       pgTrno: r.trno, // 영수증/취소 Key (성공/실패 무관 유니크)
       cardName: success ? issuerName(r.isscd) : undefined, // cardLast4는 비저장 (cardno 미요청)
@@ -186,12 +187,12 @@ export class KspayProvider implements PgProvider {
 
   // NEEDS_PG_SPEC: 구인증(직접입력) API — KSNET V1.4 샘플에 없음. 별도 스펙 요청 중 (pgmodule@ksnet.co.kr)
   async payOldAuth(_req: OldAuthRequest): Promise<PgApprovalResult> {
-    throw new Error("NEEDS_PG_SPEC: KSNET 구인증 직접입력 API 스펙 미수령 — PG_MODE=mock 사용");
+    throw new Error("NEEDS_PG_SPEC: KSNET 구인증 직접입력 API 스펙 미수령 — 기능 비활성");
   }
 
   // NEEDS_PG_SPEC: 간편결제(네이버페이 등)는 PG 결제창에 통합 — PG사·수단 확정 후 createAuthOrder에 반영
   async payEasy(_req: EasyPayRequest): Promise<PgApprovalResult> {
-    throw new Error("NEEDS_PG_SPEC: 간편결제 PG 연동 미확정 — PG_MODE=mock 사용");
+    throw new Error("NEEDS_PG_SPEC: 간편결제 직접 API 미계약 — KSPAY 결제창 수단만 사용");
   }
 
   // NEEDS_PG_SPEC: V1.4 문서·샘플에 취소 API 없음 — KSTA 관리자페이지(ksta.ksnet.co.kr) 수동 취소
@@ -206,7 +207,7 @@ export class KspayProvider implements PgProvider {
 
   // NEEDS_PG_SPEC: 빌링키 없는 정기결제의 PG 구현 방식 확인 중 (지시서 11장 3)
   async chargeRecurring(_req: RecurringChargeRequest): Promise<PgApprovalResult> {
-    throw new Error("NEEDS_PG_SPEC: 빌링키 없는 정기결제 방식 미확정 — PG_MODE=mock 사용");
+    throw new Error("NEEDS_PG_SPEC: 빌링키 없는 정기결제 방식 미확정 — 기능 비활성");
   }
 
   /** 신용카드 매출전표: ?tr_no={trno} */

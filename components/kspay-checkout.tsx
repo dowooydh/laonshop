@@ -7,6 +7,7 @@ import { Button, Spinner } from "@/lib/ui";
 
 const KSPAY_JS = "https://kspay.ksnet.to/store/KSPayWebV1.4/js/kspay_web_ssl.js";
 const JQUERY_JS = "https://code.jquery.com/jquery-1.12.4.min.js"; // kspay_web_ssl.js의 $ 의존
+const JQUERY_INTEGRITY = "sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=";
 
 declare global {
   interface Window {
@@ -51,11 +52,16 @@ export function KspayCheckout({
     };
     window.mcancel = () => window.location.reload();
 
-    const loadScript = (src: string) =>
+    const loadScript = (src: string, integrity?: string) =>
       new Promise<void>((resolve, reject) => {
         if (document.querySelector(`script[src="${src}"]`)) return resolve();
         const s = document.createElement("script");
         s.src = src;
+        if (integrity) {
+          s.integrity = integrity;
+          s.crossOrigin = "anonymous";
+        }
+        s.referrerPolicy = "no-referrer";
         const timer = window.setTimeout(() => reject(new Error("timeout")), 8_000);
         s.addEventListener("load", () => resolve());
         s.addEventListener("error", () => reject(new Error(src)));
@@ -66,7 +72,7 @@ export function KspayCheckout({
 
     void (async () => {
       try {
-        if (!window.jQuery) await loadScript(JQUERY_JS);
+        if (!window.jQuery) await loadScript(JQUERY_JS, JQUERY_INTEGRITY);
         await loadScript(KSPAY_JS);
         if (!window._pay) throw new Error("KSPAY unavailable");
         window._pay(form);

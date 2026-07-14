@@ -2,7 +2,7 @@
 // 스펙: laonpay_docs/04_PG_KSNET/KSNET_WEBFEP_REST_API_레퍼런스.md (paydev.ksnet.co.kr/kspay/webfep/doc)
 //   POST {base}/kspay/webfep/api/v1/card/pay/oldcert · Authorization: pgapi {apiKey}
 // ★사업부 별도 계약 필요 — KSPAY_API_KEY + KSPAY_REST_LIVE=1이 모두 있어야 실호출.
-// 둘 중 하나라도 없으면 null 반환(호출부에서 허용된 테스트 계정만 mock 폴백).
+// 둘 중 하나라도 없으면 null 반환하며 UI·서버 모두 비활성화한다.
 // 절대 규칙 2: 카드정보는 요청 후 즉시 폐기, 저장·로그 금지.
 
 export type OldCertRequest = {
@@ -25,7 +25,29 @@ export type OldCertResult =
 export type KspayRestEnv = {
   KSPAY_API_KEY?: string;
   KSPAY_REST_LIVE?: string;
+  KSPAY_WEBFEP_BASE?: string;
 };
+
+const DEFAULT_WEBFEP_BASE = "https://pay.ksnet.co.kr";
+const ALLOWED_WEBFEP_HOSTS = new Set(["pay.ksnet.co.kr", "paydev.ksnet.co.kr"]);
+
+function isAllowedWebfepBase(value: string | undefined): boolean {
+  try {
+    const url = new URL(value ?? DEFAULT_WEBFEP_BASE);
+    return (
+      url.protocol === "https:" &&
+      ALLOWED_WEBFEP_HOSTS.has(url.hostname) &&
+      !url.username &&
+      !url.password &&
+      !url.port &&
+      url.pathname === "/" &&
+      !url.search &&
+      !url.hash
+    );
+  } catch {
+    return false;
+  }
+}
 
 /**
  * WEBFEP 실승인 이중 가드.
@@ -35,16 +57,21 @@ export function isKspayRestLiveEnabled(
   env: KspayRestEnv = {
     KSPAY_API_KEY: process.env.KSPAY_API_KEY,
     KSPAY_REST_LIVE: process.env.KSPAY_REST_LIVE,
+    KSPAY_WEBFEP_BASE: process.env.KSPAY_WEBFEP_BASE,
   },
 ): boolean {
-  return env.KSPAY_REST_LIVE === "1" && Boolean(env.KSPAY_API_KEY?.trim());
+  return (
+    env.KSPAY_REST_LIVE === "1" &&
+    Boolean(env.KSPAY_API_KEY?.trim()) &&
+    isAllowedWebfepBase(env.KSPAY_WEBFEP_BASE)
+  );
 }
 
 export async function payOldCert(req: OldCertRequest): Promise<OldCertResult | null> {
   const apiKey = process.env.KSPAY_API_KEY?.trim();
-  if (!isKspayRestLiveEnabled() || !apiKey) return null; // 계약 전/운영 스위치 OFF — 호출부가 제한적으로 mock 폴백
+  if (!isKspayRestLiveEnabled() || !apiKey) return null; // 계약 전/운영 스위치 OFF — UI·서버 모두 비활성
 
-  const base = process.env.KSPAY_WEBFEP_BASE ?? "https://pay.ksnet.co.kr";
+  const base = process.env.KSPAY_WEBFEP_BASE ?? DEFAULT_WEBFEP_BASE;
   const mid = process.env.KSPAY_STORE_ID ?? "2999199999";
 
   try {
@@ -71,6 +98,8 @@ export async function payOldCert(req: OldCertRequest): Promise<OldCertResult | n
         userInfo: req.userInfo,
       }),
       cache: "no-store",
+      // 카드 원문이 담긴 POST body를 301/302/307/308 목적지로 재전송하지 않는다.
+      redirect: "error",
       signal: AbortSignal.timeout(8_000),
     });
     if (!res.ok) {
@@ -86,11 +115,21 @@ export async function payOldCert(req: OldCertRequest): Promise<OldCertResult | n
     if (json.code !== "A0200" || json.data?.respCode !== "0000") {
       return { ok: false, message: json.data?.respMessage ?? json.message ?? "카드사 승인이 거절되었습니다." };
     }
+    const tid = json.data.tid?.trim();
+    const approvalNumb = json.data.approvalNumb?.trim();
+    if (!tid || tid.length > 128 || !approvalNumb || approvalNumb.length > 64) {
+      // 성공 envelope만으로 PAID를 만들지 않는다. 식별자가 없으면 승인 성립 여부가 불명확하다.
+      return {
+        ok: false,
+        message: "결제 승인 식별값을 확인하지 못했습니다. 중복 결제를 피하려면 주문내역을 확인해 주세요.",
+        indeterminate: true,
+      };
+    }
     return {
       ok: true,
-      tid: json.data.tid ?? "",
-      approvalNumb: json.data.approvalNumb ?? "",
-      cardName: json.data.issuerCardName ?? "카드",
+      tid,
+      approvalNumb,
+      cardName: json.data.issuerCardName?.trim().slice(0, 64) || "카드",
     };
   } catch {
     // 네트워크/파싱 오류 — 카드정보가 포함될 수 있는 원문은 절대 로깅하지 않는다

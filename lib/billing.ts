@@ -2,10 +2,8 @@
 // 카드 원문을 쇼핑몰 서버가 받거나 mock 승인으로 주문을 완료하지 않도록 운영 경로를 닫아 둔다.
 export const ONECLICK_PAYMENT_DISABLED_MESSAGE =
   "원클릭 결제는 현재 이용할 수 없습니다. 일반 카드결제를 이용해 주세요.";
-
-// 수기결제의 기존 제한 계정 mock 정책은 이번 원클릭 비활성화 범위에서 유지한다.
-// NEEDS_PG_SPEC: WEBFEP 실연동 계약 후 수기결제 mock과 이 목록도 제거한다.
-export const MANUAL_PAYMENT_TEST_EMAILS = ["test@laonshop.com", "laontest@laontest.com"];
+export const MANUAL_PAYMENT_DISABLED_MESSAGE =
+  "수기결제는 현재 이용할 수 없습니다. 일반 카드결제를 이용해 주세요.";
 
 export type DisabledBillingResult = { ok: false; error: string };
 
