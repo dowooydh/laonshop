@@ -1,10 +1,12 @@
 "use client";
 // 간편결제(원클릭) 카드 관리 — 안전 연동 전까지 신규 등록은 닫고 과거 레코드 삭제만 제공한다.
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { deleteBillingCardAction } from "../actions";
 
 export type BillingCardRow = { id: string; maskedCardNumb: string; dateLabel: string };
+
+const DELETE_ERROR_MESSAGE = "카드 삭제 상태를 확인하지 못했습니다. 네트워크 연결을 확인한 뒤 다시 시도해 주세요.";
 
 function CardMark() {
   return (
@@ -20,18 +22,42 @@ function CardMark() {
 export function BillingCards({ cards }: { cards: BillingCardRow[] }) {
   const router = useRouter();
   const [deleting, startDelete] = useTransition();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const remove = (id: string) =>
+  const remove = (id: string) => {
+    setDeleteError(null);
+    setDeletingId(id);
     startDelete(async () => {
-      await deleteBillingCardAction(id);
-      router.refresh();
+      try {
+        const result = await deleteBillingCardAction(id);
+        if (!result.ok) {
+          setDeleteError(result.error ?? DELETE_ERROR_MESSAGE);
+          return;
+        }
+        router.refresh();
+      } catch {
+        setDeleteError(DELETE_ERROR_MESSAGE);
+      } finally {
+        setDeletingId(null);
+      }
     });
+  };
 
   return (
     <div className="space-y-4">
       <div className="rounded-[var(--radius-md)] border border-line bg-overlay p-[16px] text-step--1 text-fg-subtle">
         카드 등록과 원클릭 결제는 현재 이용할 수 없습니다. 결제 시 일반 카드결제의 KSPAY 인증결제창을 이용해 주세요.
       </div>
+      {deleteError ? (
+        <p
+          id="billing-card-delete-error"
+          role="alert"
+          className="rounded-[var(--radius-md)] border border-danger bg-[color-mix(in_oklab,var(--danger)_6%,transparent)] p-[12px] text-step--1 text-danger"
+        >
+          {deleteError}
+        </p>
+      ) : null}
       {cards.length === 0 ? (
         <p className="text-step--1 text-fg-subtle">삭제할 기존 카드 정보가 없습니다.</p>
       ) : (
@@ -47,9 +73,11 @@ export function BillingCards({ cards }: { cards: BillingCardRow[] }) {
                 type="button"
                 disabled={deleting}
                 onClick={() => remove(c.id)}
+                aria-busy={deletingId === c.id}
+                aria-describedby={deleteError ? "billing-card-delete-error" : undefined}
                 className="inline-flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center whitespace-nowrap px-[8px] text-step--1 text-fg-subtle transition-colors duration-fast hover:text-danger"
               >
-                삭제
+                {deletingId === c.id ? "삭제 중" : "삭제"}
               </button>
             </li>
           ))}
