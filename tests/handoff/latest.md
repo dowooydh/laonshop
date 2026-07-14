@@ -4,52 +4,55 @@
 
 담당: Codex QA/테스트 세션
 
-대상: `main` / `46f40f6c5000fec55ef050c42fd9073da65559cb`
+대상: `main` / `07916d402c8bea72668ae8ddbeac682a7b963fc2`
 
-비교 범위: `22c229bb7c7ae59620dbc1e53223adc8800d602c..46f40f6c5000fec55ef050c42fd9073da65559cb`
+비교 범위: `30321c1b2450524fda2a79e8b493ce4dbe931673..07916d402c8bea72668ae8ddbeac682a7b963fc2`
 
 결과: **PASS**
 
-출시 판정: **GO - 로그인 공백 안내·입력 보존·모바일 보기 토글 회귀 통과**
+출시 판정: **GO - 미연동 원클릭 차단과 원본 상품 이미지 전환 회귀 통과**
 
 ## 요약
 
 - 제품 코드는 수정하지 않았습니다.
-- Node 22.23.1 + pnpm 11.5.3에서 test 25/25, skip 0, lint, typecheck, Prisma validate, production audit, build와 diff check가 모두 통과했습니다.
-- raw password를 먼저 비교하고, 실패 시 trim 후보가 실제 hash와 일치할 때만 공백 안내를 반환하는 것을 독립 코드 검토했습니다. 자동 trim 로그인은 없습니다.
-- 운영 공개 `/login`을 320/390/412px에서 직접 검증해 문서 오버플로 0, 폼 컨트롤 이탈 0, 44px 보기 토글과 56px 로그인 버튼을 확인했습니다.
-- 보기/숨김 type·aria-label·aria-pressed 전환과 합성 generic 오류 후 이메일·비밀번호 보존, 버튼 재활성을 확인했습니다.
-- 사용자 지시에 따라 동일 SHA에서 DEV가 확보한 Samsung Internet UA exact 로그인·Secure/HttpOnly 세션·`/mypage`·공백 전용 안내 증거를 교차 근거로 사용했습니다. QA는 credential/hash/cookie 값을 읽거나 출력하지 않았습니다.
-- 상세 보고서: [2026-07-14 `46f40f6` 모바일 로그인 입력 회귀 QA 보고서](../reports/2026-07-14-46f40f6-login-input-regression/report.md)
+- Node 22.23.1 + pnpm 11.5.3에서 test 33/33, skip 0, 이미지 파이프라인 1/1, lint, typecheck, Prisma validate, production audit, build, diff check를 통과했습니다.
+- checkout/retry stale oneclick은 주문·상태 변경 전에 동일 안내로 차단됐고 주문·항목·재고 예약·감사로그 변경이 없었습니다.
+- raw 카드 등록, mock billing token, PG 호출 없는 합성 PAID 경로는 제거됐고 설정에는 과거 mock 카드의 본인 삭제만 남았습니다.
+- 본인 카드 삭제와 타인 `cardId` IDOR 차단을 UI·DB로 확인했습니다.
+- legacy cart/recent는 상품·수량·사이즈·nonce를 보존하고 이미지 URL만 제거했습니다. storage write 실패에서도 현재 장바구니는 유지됐습니다.
+- 원본 상품 이미지는 로컬과 운영 320/412px에서 4:5 frame, `object-fit: cover`, 가로 overflow 0, legacy URL 0으로 확인됐습니다.
+- 상세 보고서: [2026-07-14 `07916d4` 원클릭 차단·상품 이미지 회귀 QA 보고서](../reports/2026-07-14-07916d4-billing-image-regression/report.md)
 
 ## 핵심 결과
 
 | 영역 | 결과 | 실제 증거 |
 | --- | --- | --- |
-| 정적 검증 | PASS | test 25/25, lint/typecheck/prisma/audit/build/diff check PASS |
-| 인증 코드 경계 | PASS | raw bcrypt 우선, 진단 후보만 trim, generic 오류·5회 잠금 유지 |
-| 320px | PASS | `sw=cw=320`, input 246×44, toggle 44×44, submit 246×56 |
-| 390px | PASS | `sw=cw=390`, input 316×44, toggle 44×44, submit 316×56 |
-| 412px | PASS | `sw=cw=412`, input 338×44, toggle 44×44, submit 338×56 |
-| 오류 복구 | PASS | generic 오류, 이메일·비밀번호 보존, 토글 초기화, submit enabled |
-| `www` host | PASS | 공개 로그인 폼, 320px 가로 overflow 0, 44px 토글 |
-| 운영 exact 인증 | PASS | DEV Samsung Internet UA 증거: 인증 헤더, Secure/HttpOnly 세션, `/mypage` |
+| 정적 검증 | PASS | test 33/33, 이미지 pipeline 1/1, lint/typecheck/prisma/audit/build/diff check PASS |
+| 신규 카드 등록 제거 | PASS | raw 카드 입력·등록 버튼·mock token·합성 PAID 경로 0 |
+| stale oneclick | PASS | checkout/retry 공통 거부, 주문·상태·audit 변경 0 |
+| 카드 소유권 | PASS | 본인 삭제 성공, 타인 `cardId` DB 보존 |
+| 일반 KSPAY | PASS | 카드·카카오·네이버·계좌이체 UI 및 인증 폼 생성, 외부 승인 미실행 |
+| cart/recent 마이그레이션 | PASS | 구매 의미·nonce 보존, legacy image URL만 제거 |
+| 로컬 반응형 | PASS | 320/390/412px, 100%/200%, 주요 화면 overflow/clipping 0 |
+| 운영 이미지 | PASS | 320/412px 4:5 frame, 원본 로드, legacy URL 0, console error 0 |
+| 배포 | PASS | Vercel READY, production SHA `07916d4`, 최근 1시간 runtime 오류 0 |
 
 ## 결함과 위험
 
 - 신규 제품 결함은 발견하지 못했습니다.
-- 로그인 실패 잠금은 기존 Vercel 인스턴스 메모리 기반이라 다중 인스턴스 일관성 위험이 남습니다.
-- 실제 Samsung Internet 앱, Safari/WebKit, iOS 실제 기기는 QA가 직접 실행하지 않았습니다.
-- QA는 승인 범위에 따라 실제 credential 재제출, DB fixture, 5회 잠금 반복을 생략했습니다.
+- `QA-079-OBS-01` P3 기존 UX: 과거 카드 삭제 중 네트워크 실패 시 DB 카드는 보존되고 reload로 복구되지만 인라인 오류 안내가 없습니다. 후속 개선과 offline/500 회귀 테스트를 권장합니다.
+- 제한 계정의 수기결제 mock PAID는 기존 정책 위험이며 이번 변경의 신규 결함이 아닙니다.
+- 기존 왜곡 파일 1,645개는 직접 URL 접근 가능하지만 제품 렌더링 참조에서는 제외됐습니다.
+- 실 PG 승인·취소·영수증, Safari/WebKit/iOS 실제 기기는 실행하지 않았습니다.
 
 ## cleanup
 
-- DB fixture와 DB 쓰기는 없으며 삭제할 데이터가 없습니다.
-- 존재하지 않는 합성 계정의 generic 오류 요청 1회만 실행했고 세션·사용자 데이터는 생성되지 않았습니다.
+- QA 사용자 2명, 주문 2건과 항목, 카드 3개를 삭제했습니다.
+- 최종 DB `users 10 / orders 9 / items 9 / cards 4 / audits 0 / wishlists 0`으로 시작 기준선과 일치합니다.
+- 로컬 3003 서버, 임시 fixture·브라우저 스크립트·스크린샷·secret 파일을 정리했습니다.
 - 브라우저 viewport override와 QA 탭을 정리했습니다.
-- OCR, 추가 설치, secret 추출, 임시 credential 파일, 제품 코드 변경은 없습니다.
-- 실결제, 운영·마스터 데이터, PG/Vercel 설정 변경은 없습니다.
+- 운영·마스터 데이터, Vercel 설정, 실 PG 상태 변경은 없습니다.
 
 ## 개발 회귀 요청
 
-추가 제품 수정 없이 현재 제품 커밋을 출시 후보로 유지합니다. 인스턴스 간 로그인 잠금 일관성과 Safari/iOS 실제 기기는 별도 위험으로 관리합니다.
+제품 커밋 `07916d4`를 출시 후보로 유지합니다. 후속 변경에서는 카드 삭제 offline/500 오류 안내를 보강하고 row 유지·버튼 재활성·DB 보존을 자동 회귀로 추가합니다.
