@@ -12,6 +12,7 @@ export default async function SettingsPage() {
   const billingCards = await prisma.shopBillingCard.findMany({
     where: { userId: user.id },
     orderBy: { createdAt: "asc" },
+    select: { id: true, maskedCardNumb: true, createdAt: true },
   });
 
   return (
@@ -44,7 +45,7 @@ export default async function SettingsPage() {
       <section className="space-y-5 border-t border-line pt-8">
         <div className="space-y-1">
           <h2 className="font-mono text-step--1 uppercase tracking-widest text-accent-cyan">간편결제 카드 관리</h2>
-          <p className="text-step--1 text-fg-subtle">등록한 카드로 주문서에서 원클릭 결제를 이용할 수 있습니다.</p>
+          <p className="text-step--1 text-fg-subtle">기존 카드 정보를 확인하거나 삭제할 수 있습니다.</p>
         </div>
         <BillingCards
           cards={billingCards.map((c) => ({

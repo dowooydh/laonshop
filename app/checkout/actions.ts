@@ -6,7 +6,7 @@ import { isKspayRestLiveEnabled, payOldCert } from "@/lib/kspay/webfep";
 import { sanitizePgParam } from "@/lib/format";
 import { z } from "zod";
 import { requireShopUser } from "@/lib/auth";
-import { BILLING_TEST_EMAILS } from "@/lib/billing";
+import { getDisabledBillingResult, MANUAL_PAYMENT_TEST_EMAILS } from "@/lib/billing";
 import {
   acquireTransactionLock,
   createIdempotentMoid,
@@ -16,7 +16,7 @@ import {
 
 const schema = z.object({
   // KSPAY 결제창 수단 — 가상계좌는 KSNET 미지원으로 제외.
-  // oneclick = 등록 카드(빌링) 결제창 없는 승인 / manual = 수기결제(구인증) 카드정보 직접 입력.
+  // oneclick = 폐기된 화면의 재전송 호환값(항상 거부) / manual = 수기결제(구인증) 카드정보 직접 입력.
   method: z.enum(["card", "kakaopay", "naverpay", "bank", "oneclick", "manual"]).default("card"),
   items: z
     .array(
@@ -34,7 +34,7 @@ const schema = z.object({
   zipcode: z.union([z.string().trim().max(10), z.literal("")]).optional(),
   address: z.string().trim().min(1, "배송지를 입력해 주세요.").max(200),
   addressDetail: z.union([z.string().trim().max(100), z.literal("")]).optional(),
-  // oneclick 전용 — 결제에 사용할 등록 카드 (미지정 시 첫 카드)
+  // 폐기된 oneclick 화면의 재전송 호환용. 서버에서 주문 생성 전에 항상 거부한다.
   billingCardId: z.string().optional(),
   // manual(구인증) 전용 — 카드정보는 승인 요청 후 즉시 폐기, 저장·로그 금지 (절대 규칙 2)
   manualCard: z
@@ -61,6 +61,8 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
   const parsed = schema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.errors[0]?.message ?? "입력값을 확인해 주세요." };
   const d = parsed.data;
+  const disabledBilling = getDisabledBillingResult(d.method);
+  if (disabledBilling) return disabledBilling;
 
   // 우편번호·상세주소는 주문 스냅샷 문자열로 합성 보관 (ShopOrder.address 단일 컬럼 유지)
   const fullAddress = [d.zipcode ? `[${d.zipcode}]` : "", d.address, d.addressDetail || ""]
@@ -68,27 +70,9 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
     .join(" ")
     .trim();
 
-  let billingCard: { id: string; maskedCardNumb: string } | null = null;
-  if (d.method === "oneclick") {
-    billingCard = d.billingCardId
-      ? await prisma.shopBillingCard.findFirst({
-          where: { id: d.billingCardId, userId: user.id },
-          select: { id: true, maskedCardNumb: true },
-        })
-      : await prisma.shopBillingCard.findFirst({
-          where: { userId: user.id },
-          orderBy: { createdAt: "asc" },
-          select: { id: true, maskedCardNumb: true },
-        });
-    if (!billingCard) return { ok: false, error: "등록된 카드가 없습니다. 설정에서 카드를 먼저 등록해 주세요." };
-    if (!BILLING_TEST_EMAILS.includes(user.email)) {
-      return { ok: false, error: "원클릭 결제는 서비스 준비 중입니다. 카드·간편결제를 이용해 주세요." };
-    }
-  }
-
   if (d.method === "manual") {
     if (!d.manualCard) return { ok: false, error: "카드 정보를 입력해 주세요." };
-    if (!isKspayRestLiveEnabled() && !BILLING_TEST_EMAILS.includes(user.email)) {
+    if (!isKspayRestLiveEnabled() && !MANUAL_PAYMENT_TEST_EMAILS.includes(user.email)) {
       return { ok: false, error: "수기결제는 서비스 준비 중입니다. 카드·간편결제를 이용해 주세요." };
     }
   }
@@ -143,36 +127,6 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
   if (order.status === "PAID") return { ok: true, redirect: `/order/${order.id}?receipt=1` };
   const goodsName =
     order.items.length > 1 ? `${order.items[0].name} 외 ${order.items.length - 1}건` : order.items[0].name;
-
-  // ── 원클릭(빌링) — 결제창 없이 등록 카드로 승인 ──────────────────────
-  if (d.method === "oneclick") {
-    // NEEDS_PG_SPEC: 실제 빌링 승인 호출 위치 — 계약 후 billingToken으로 KSNET /billing/pay 요청.
-    const approved = await prisma.$transaction(async (tx) => {
-      await acquireTransactionLock(tx, `order:${order.id}`);
-      const current = await tx.shopOrder.findUnique({ where: { id: order.id }, include: { items: true } });
-      if (!current || current.userId !== user.id) return { ok: false as const, error: "주문을 찾을 수 없습니다." };
-      if (current.status === "PAID") return { ok: true as const };
-      if (current.status !== "PENDING") return { ok: false as const, error: "이미 처리된 주문입니다." };
-      const inventory = await lockAndValidateInventory(tx, current.items, current.id);
-      if (!inventory.ok) {
-        await tx.shopOrder.update({ where: { id: current.id }, data: { status: "FAILED" } });
-        return inventory;
-      }
-      await tx.shopOrder.update({
-        where: { id: current.id },
-        data: {
-          status: "PAID",
-          paidAt: new Date(),
-          approvalNo: `MB${Date.now().toString().slice(-8)}`,
-          cardName: `등록카드 ${billingCard!.maskedCardNumb}`,
-        },
-      });
-      return { ok: true as const };
-    }, TX_OPTIONS).catch(() => null);
-    if (!approved) return { ok: false, error: "결제 상태를 확인하지 못했습니다. 주문내역을 확인해 주세요." };
-    if (!approved.ok) return { ok: false, error: approved.error };
-    return { ok: true, redirect: `/order/${order.id}?receipt=1` };
-  }
 
   // ── 수기결제(구인증) — KSNET WEBFEP /card/pay/oldcert. 카드정보는 즉시 폐기 ──
   if (d.method === "manual") {
@@ -284,7 +238,7 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
 
   const res = await getPgProvider().createAuthOrder({
     paymentId: order.id, // 패스스루 a = orderId
-    payMethod: d.method as "card" | "kakaopay" | "naverpay" | "bank", // oneclick은 위에서 조기 반환
+    payMethod: d.method as "card" | "kakaopay" | "naverpay" | "bank", // oneclick은 주문 생성 전에 거부
 
     moid: order.moid,
     amount: order.totalAmount,

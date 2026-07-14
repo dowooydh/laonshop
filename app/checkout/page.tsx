@@ -10,18 +10,11 @@ export default async function CheckoutPage() {
   const user = await requireShopUser();
 
   // 네이버식 프리필: 설정의 기본 배송지 → 최근 주문 배송지 → 회원 프로필(이름·휴대폰) 순
-  const [lastOrder, billingCards] = await Promise.all([
-    prisma.shopOrder.findFirst({
-      where: { userId: user.id, address: { not: null } },
-      orderBy: { createdAt: "desc" },
-      select: { receiverName: true, receiverPhone: true, address: true },
-    }),
-    prisma.shopBillingCard.findMany({
-      where: { userId: user.id },
-      orderBy: { createdAt: "asc" },
-      select: { id: true, maskedCardNumb: true },
-    }),
-  ]);
+  const lastOrder = await prisma.shopOrder.findFirst({
+    where: { userId: user.id, address: { not: null } },
+    orderBy: { createdAt: "desc" },
+    select: { receiverName: true, receiverPhone: true, address: true },
+  });
 
   return (
     <CheckoutForm
@@ -32,7 +25,6 @@ export default async function CheckoutPage() {
         address: user.address ?? lastOrder?.address ?? "",
         addressDetail: user.addressDetail ?? "",
       }}
-      billingCards={billingCards}
     />
   );
 }

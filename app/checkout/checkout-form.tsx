@@ -16,35 +16,20 @@ export type CheckoutInitial = {
   address: string;
   addressDetail: string;
 };
-export type BillingCardOption = { id: string; maskedCardNumb: string };
-
-export function CheckoutForm({
-  initial,
-  billingCards = [],
-}: {
-  initial: CheckoutInitial;
-  billingCards?: BillingCardOption[];
-}) {
-  // 결제수단 구성 — KSNET 김민규 팀장 가이드(2026-07): 카드/카카오/네이버/실시간계좌이체/원클릭(빌링)/수기(구인증).
+export function CheckoutForm({ initial }: { initial: CheckoutInitial }) {
+  // 결제수단 구성 — KSNET 김민규 팀장 가이드(2026-07): 카드/카카오/네이버/실시간계좌이체/수기(구인증).
   // 가상계좌는 KSNET 미지원+심사 거절 사유로 제외.
   const METHODS = [
     { id: "card", label: "카드결제", desc: "신용카드 (인증결제)", enabled: true },
     { id: "kakaopay", label: "카카오페이", desc: "카카오페이 간편결제", enabled: true },
     { id: "naverpay", label: "네이버페이", desc: "네이버페이 간편결제", enabled: true },
     { id: "bank", label: "실시간 계좌이체", desc: "은행 계좌 즉시 이체", enabled: true },
-    {
-      id: "oneclick",
-      label: "원클릭 결제",
-      desc: billingCards.length > 0 ? `등록 카드 ${billingCards.length}장` : "설정에서 카드 등록 후 이용",
-      enabled: billingCards.length > 0,
-    },
     { id: "manual", label: "수기결제", desc: "카드번호 직접 입력 (구인증)", enabled: true },
   ];
   const [items, setItems] = useState<CartItem[]>([]);
   const [ready, setReady] = useState(false);
   const [form, setForm] = useState(initial);
   const [method, setMethod] = useState("card");
-  const [billingCardId, setBillingCardId] = useState(billingCards[0]?.id ?? "");
   const [manualCard, setManualCard] = useState({ cardNo: "", expMm: "", expYy: "", pw2: "", birth6: "" });
   const [pay, setPay] = useState<{ formAction: string; formFields: Record<string, string> } | null>(null);
   const [error, setError] = useState("");
@@ -82,10 +67,9 @@ export function CheckoutForm({
         return;
       }
       const orderInput = {
-        method: method as "card" | "kakaopay" | "naverpay" | "bank" | "oneclick" | "manual",
+        method: method as "card" | "kakaopay" | "naverpay" | "bank" | "manual",
         items: currentItems.map((i) => ({ productId: i.productId, qty: i.qty, size: i.size })),
         ...form,
-        ...(method === "oneclick" && billingCardId ? { billingCardId } : {}),
         ...(method === "manual"
           ? { manualCard: { ...manualCard, cardNo: manualCard.cardNo.replace(/[\s-]/g, "") } }
           : {}),
@@ -95,7 +79,7 @@ export function CheckoutForm({
       if (!res.ok) {
         setError(res.error);
       } else if ("redirect" in res) {
-        // 원클릭(빌링) — 결제창 없이 승인 완료 후 주문 확인으로 이동
+        // 결제창 없는 수기결제 승인 완료 후 주문 확인으로 이동
         window.location.href = res.redirect;
         return;
       } else {
@@ -228,48 +212,6 @@ export function CheckoutForm({
             </button>
           ))}
         </div>
-        {/* 원클릭 선택 시 — 결제에 사용할 등록 카드 선택 */}
-        {method === "oneclick" && billingCards.length > 0 && (
-          <div className="min-w-0 space-y-2 rounded-[var(--radius-md)] border border-line bg-overlay p-[16px]">
-            {billingCards.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                aria-pressed={billingCardId === c.id}
-                onClick={() => setBillingCardId(c.id)}
-                className="flex min-h-[44px] w-full min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-2 text-left text-step--1"
-              >
-                <span className="flex min-w-[min(100%,8rem)] flex-1 flex-wrap items-center gap-2">
-                  <span
-                    className={cn(
-                      "flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-full border",
-                      billingCardId === c.id ? "border-accent-cyan" : "border-line",
-                    )}
-                    aria-hidden
-                  >
-                    {billingCardId === c.id && <span className="h-[8px] w-[8px] rounded-full bg-accent-cyan" />}
-                  </span>
-                  <span className="min-w-[min(100%,6rem)] flex-1 font-mono font-semibold tabular-nums text-fg [overflow-wrap:anywhere]">
-                    {c.maskedCardNumb}
-                  </span>
-                </span>
-                {billingCardId === c.id && (
-                  <span className="max-w-full shrink-0 whitespace-nowrap rounded-[var(--radius-sm)] bg-[color-mix(in_oklab,var(--accent-cyan)_16%,transparent)] px-2 py-0.5 font-mono text-[11px] text-accent-cyan ring-1 ring-inset ring-[color-mix(in_oklab,var(--accent-cyan)_38%,transparent)]">
-                    결제 카드
-                  </span>
-                )}
-              </button>
-            ))}
-            <p className="text-step--1 text-fg-subtle">
-              카드 관리는{" "}
-              <Link href="/mypage/settings" className="underline underline-offset-2 hover:text-fg">
-                설정
-              </Link>
-              에서 할 수 있습니다.
-            </p>
-          </div>
-        )}
-
         {/* 수기결제(구인증) 선택 시 — 카드정보 직접 입력. 서버에서 승인 요청 후 즉시 폐기 */}
         {method === "manual" && (
           <div className="min-w-0 space-y-3 rounded-[var(--radius-md)] border border-line bg-overlay p-[16px]">

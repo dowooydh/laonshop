@@ -7,28 +7,20 @@ import { Button, FieldError, cn } from "@/lib/ui";
 import { KspayCheckout } from "@/components/kspay-checkout";
 import { retryPaymentAction } from "../actions";
 
-export type RetryBillingCard = { id: string; maskedCardNumb: string };
-
 export function RetryPayment({
   orderId,
   amount,
-  billingCards,
 }: {
   orderId: string;
   amount: number;
-  billingCards: RetryBillingCard[];
 }) {
   const METHODS = [
     { id: "card", label: "카드결제", desc: "신용카드 (인증결제)" },
     { id: "kakaopay", label: "카카오페이", desc: "카카오페이 간편결제" },
     { id: "naverpay", label: "네이버페이", desc: "네이버페이 간편결제" },
     { id: "bank", label: "실시간 계좌이체", desc: "은행 계좌 즉시 이체" },
-    ...(billingCards.length > 0
-      ? [{ id: "oneclick", label: "원클릭 결제", desc: `등록 카드 ${billingCards.length}장` }]
-      : []),
   ];
   const [method, setMethod] = useState("card");
-  const [billingCardId, setBillingCardId] = useState(billingCards[0]?.id ?? "");
   const [pay, setPay] = useState<{ formAction: string; formFields: Record<string, string> } | null>(null);
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
@@ -39,8 +31,7 @@ export function RetryPayment({
     try {
       const res = await retryPaymentAction({
         orderId,
-        method: method as "card" | "kakaopay" | "naverpay" | "bank" | "oneclick",
-        ...(method === "oneclick" && billingCardId ? { billingCardId } : {}),
+        method: method as "card" | "kakaopay" | "naverpay" | "bank",
       });
       if (!res.ok) {
         setError(res.error);
@@ -93,39 +84,6 @@ export function RetryPayment({
           </button>
         ))}
       </div>
-      {method === "oneclick" && billingCards.length > 0 && (
-        <div className="min-w-0 space-y-2 rounded-[var(--radius-md)] border border-line bg-overlay p-[16px]">
-          {billingCards.map((c) => (
-            <button
-              key={c.id}
-              type="button"
-              aria-pressed={billingCardId === c.id}
-              onClick={() => setBillingCardId(c.id)}
-              className="flex min-h-[44px] w-full min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-2 text-left text-step--1"
-            >
-              <span className="flex min-w-[min(100%,8rem)] flex-1 flex-wrap items-center gap-2">
-                <span
-                  className={cn(
-                    "flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-full border",
-                    billingCardId === c.id ? "border-accent-cyan" : "border-line",
-                  )}
-                  aria-hidden
-                >
-                  {billingCardId === c.id && <span className="h-[8px] w-[8px] rounded-full bg-accent-cyan" />}
-                </span>
-                <span className="min-w-[min(100%,6rem)] flex-1 font-mono font-semibold tabular-nums text-fg [overflow-wrap:anywhere]">
-                  {c.maskedCardNumb}
-                </span>
-              </span>
-              {billingCardId === c.id && (
-                <span className="max-w-full shrink-0 whitespace-nowrap rounded-[var(--radius-sm)] bg-[color-mix(in_oklab,var(--accent-cyan)_16%,transparent)] px-2 py-0.5 font-mono text-[11px] text-accent-cyan ring-1 ring-inset ring-[color-mix(in_oklab,var(--accent-cyan)_38%,transparent)]">
-                  결제 카드
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
-      )}
       <FieldError>{error}</FieldError>
       <Button
         type="button"

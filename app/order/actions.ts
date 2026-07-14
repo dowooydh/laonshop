@@ -5,7 +5,7 @@ import { prisma } from "@/lib/db";
 import { requireShopUser } from "@/lib/auth";
 import { getPgProvider } from "@/lib/kspay";
 import { sanitizePgParam } from "@/lib/format";
-import { BILLING_TEST_EMAILS } from "@/lib/billing";
+import { getDisabledBillingResult } from "@/lib/billing";
 import { acquireTransactionLock, lockAndValidateInventory, PAYMENT_PROCESSING_MARKER } from "@/lib/order-guard";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -42,7 +42,7 @@ export async function requestCancelAction(input: { orderId: string; reason?: str
 const retrySchema = z.object({
   orderId: z.string().min(1),
   method: z.enum(["card", "kakaopay", "naverpay", "bank", "oneclick"]),
-  billingCardId: z.string().optional(), // oneclick 전용 — 미지정 시 첫 등록 카드
+  billingCardId: z.string().optional(), // 폐기된 oneclick 화면의 재전송 호환용
 });
 
 export type RetryPaymentResult =
@@ -60,19 +60,9 @@ export async function retryPaymentAction(input: {
   const user = await requireShopUser();
   const parsed = retrySchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "입력값을 확인해 주세요." };
-  const { orderId, method, billingCardId } = parsed.data;
-
-  let card: { maskedCardNumb: string } | null = null;
-  if (method === "oneclick") {
-    // 카드 선택: billingCardId 지정 시 본인 소유 검증(IDOR 차단), 미지정 시 첫 등록 카드
-    card = billingCardId
-      ? await prisma.shopBillingCard.findFirst({ where: { id: billingCardId, userId: user.id }, select: { maskedCardNumb: true } })
-      : await prisma.shopBillingCard.findFirst({ where: { userId: user.id }, orderBy: { createdAt: "asc" }, select: { maskedCardNumb: true } });
-    if (!card) return { ok: false, error: "등록된 카드가 없습니다. 설정에서 카드를 먼저 등록해 주세요." };
-    if (!BILLING_TEST_EMAILS.includes(user.email)) {
-      return { ok: false, error: "원클릭 결제는 서비스 준비 중입니다. 카드·간편결제를 이용해 주세요." };
-    }
-  }
+  const { orderId, method } = parsed.data;
+  const disabledBilling = getDisabledBillingResult(method);
+  if (disabledBilling) return disabledBilling;
 
   // 주문 잠금과 상품 행 잠금 안에서 재고를 다시 확인한다. 실패 주문도 같은 주문번호로만
   // 재개하며, 이미 결제된 주문은 어떤 재시도도 상태를 바꾸지 않는다.
@@ -92,19 +82,6 @@ export async function retryPaymentAction(input: {
       }
       return inventory;
     }
-    if (method === "oneclick") {
-      const paid = await tx.shopOrder.update({
-        where: { id: order.id },
-        data: {
-          status: "PAID",
-          paidAt: new Date(),
-          approvalNo: `MB${Date.now().toString().slice(-8)}`,
-          cardName: `등록카드 ${card!.maskedCardNumb}`,
-        },
-        include: { items: true },
-      });
-      return { ok: true as const, order: paid };
-    }
     const pendingOrder = await tx.shopOrder.update({
       where: { id: order.id },
       data: { status: "PENDING" },
@@ -116,11 +93,6 @@ export async function retryPaymentAction(input: {
   if (!prepared) return { ok: false, error: "결제 상태를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요." };
   if (!prepared.ok) return { ok: false, error: prepared.error };
   const order = prepared.order;
-  if (method === "oneclick") {
-    revalidatePath(`/order/${order.id}`);
-    return { ok: true, redirect: `/order/${order.id}?receipt=1` };
-  }
-
   const base = process.env.SHOP_APP_URL ?? "http://localhost:3003";
   const goodsName =
     order.items.length > 1 ? `${order.items[0].name} 외 ${order.items.length - 1}건` : order.items[0].name;
@@ -128,7 +100,7 @@ export async function retryPaymentAction(input: {
   // 승인 전 시도는 동일 moid 재사용 가능 — 새 주문을 만들지 않아 주문번호가 유지된다
   const res = await getPgProvider().createAuthOrder({
     paymentId: order.id,
-    payMethod: method,
+    payMethod: method as "card" | "kakaopay" | "naverpay" | "bank",
     moid: order.moid,
     amount: order.totalAmount,
     goodsName: sanitizePgParam(goodsName),

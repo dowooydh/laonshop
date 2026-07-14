@@ -21,7 +21,7 @@
 | `KSPAY_WEBFEP_BASE` | WEBFEP API base URL. **기본값 `https://pay.ksnet.co.kr`** | 선택(기본값 있음) | (미설정) | 로컬·Vercel 없음(기본값 동작) · 원본: KSNET 문서 | **누락(기본값 사용)** / 없음 | 설정 시 재배포 |
 | `NODE_ENV` | 런타임 모드(development/production) | 자동 | Next.js/Vercel 자동 주입 | (설정 불필요) | 자동 | — |
 
-**요약:** 코드가 쓰는 변수 총 10종(+NODE_ENV 자동). 운영에 반드시 있어야 할 6종은 로컬·Vercel(Prod+Preview) 모두 존재. `KSPAY_STORE_KEY`/`KSPAY_API_KEY`/`KSPAY_REST_LIVE`/`KSPAY_WEBFEP_BASE`는 **KSNET 실연동 계약 전이라 의도적으로 미설정**이며, 미설정 시 결제 실연동 대신 안전한 mock/기본값으로 동작한다(카드사 심사용 흐름).
+**요약:** 코드가 쓰는 변수 총 10종(+NODE_ENV 자동). 운영에 반드시 있어야 할 6종은 로컬·Vercel(Prod+Preview) 모두 존재. `KSPAY_STORE_KEY`/`KSPAY_API_KEY`/`KSPAY_REST_LIVE`/`KSPAY_WEBFEP_BASE`는 **KSNET 실연동 계약 전이라 의도적으로 미설정**이다. 수기결제는 이중 가드가 꺼진 제한 계정에서만 기존 mock 폴백을 유지하며, 원클릭 빌링은 mock 발급·승인 경로를 제거하고 모든 계정에서 비활성화했다.
 
 ## 2. 원본(마스터) 보관 위치 — 시스템별
 
@@ -56,9 +56,10 @@
 
 1. **통신판매업신고번호** — 신고 완료 후 번호 확정 → footer/정책 반영(현재 "신고 예정"). 카드사 심사의 **유일한 남은 외부 리스크**. [행정/사람]
 2. **KSPAY 실 MID·상점키** — KSNET 정식 계약 후 `KSPAY_STORE_ID`(+`KSPAY_STORE_KEY`) 테스트값→실값 교체. [외부 계약]
-3. **`KSPAY_API_KEY` + `KSPAY_REST_LIVE=1`(WEBFEP)** — 수기/구인증·원클릭(빌링) **실연동**은 KSNET 사업부 별도 계약 + API키 발급 + 실 MID 확인 후 이중 가드를 함께 활성화해야 한다. 현재 둘 다 미설정 → 제한된 테스트 계정만 mock 폴백. [외부 계약·키 발급]
-4. **현금영수증 발급** — 계좌이체/가상계좌 오픈 시 의류 소매 의무발행 대상. KSNET 발급 API 이식 필요(라온페이에 실연동 존재). [향후]
-5. **Neon 콜드스타트** — 무료 티어 오토서스펜드 웨이크업(수 초)으로 첫 요청 지연·간헐 500 발생 이력. `DATABASE_URL`/`DIRECT_URL`에 `connect_timeout`/`pool_timeout` 파라미터로 완화 적용됨. 완전 제거는 **Neon 유료 전환** 필요(비용 결정). [비용]
+3. **`KSPAY_API_KEY` + `KSPAY_REST_LIVE=1`(WEBFEP)** — 수기/구인증 **실연동**은 KSNET 사업부 별도 계약 + API키 발급 + 실 MID 확인 후 이중 가드를 함께 활성화해야 한다. 현재 둘 다 미설정 → 제한된 계정만 기존 mock 폴백. [외부 계약·키 발급]
+4. **원클릭 빌링 계약·스펙** — 현재 카드 등록·원클릭 승인은 안전하게 비활성화했다. KSNET의 PG 호스팅 카드 등록 또는 동등한 카드 원문 비수집 방식, 빌링키 등록·승인·해지 API, 별도 운영 가드를 모두 확정한 뒤에만 재구현한다. [외부 계약·보안 검토]
+5. **현금영수증 발급** — 계좌이체/가상계좌 오픈 시 의류 소매 의무발행 대상. KSNET 발급 API 이식 필요(라온페이에 실연동 존재). [향후]
+6. **Neon 콜드스타트** — 무료 티어 오토서스펜드 웨이크업(수 초)으로 첫 요청 지연·간헐 500 발생 이력. `DATABASE_URL`/`DIRECT_URL`에 `connect_timeout`/`pool_timeout` 파라미터로 완화 적용됨. 완전 제거는 **Neon 유료 전환** 필요(비용 결정). [비용]
 
 ## 6. 재배포·재시작 규칙
 
