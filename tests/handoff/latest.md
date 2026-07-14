@@ -4,50 +4,55 @@
 
 담당: Codex QA/테스트 세션
 
-대상: `main` / `cc80f578da0a626c9407c64d9b92567bd2739909`
+대상: `main` / `b234b3204d205c2d75b322894dfb6049593b932c`
 
-비교 범위: `d4653f6ced7ee30d55939669b025db95ad95895c..cc80f578da0a626c9407c64d9b92567bd2739909`
+비교 범위: `a51524dfda96604e818e1019303af05aa1587a61..b234b3204d205c2d75b322894dfb6049593b932c`
 
 결과: **PASS**
 
-출시 판정: **GO - 전 상품 5장 갤러리·4:5 비율·캐시 버전 회귀 통과**
+출시 판정: **GO - 테스트 MID 카드사 심사 범위 / 실 MID는 공식 사전 결박 스펙 전 NO-GO**
 
 ## 요약
 
 - 제품 코드는 수정하지 않았습니다.
-- Node 22.23.1 + pnpm 11.5.3에서 test 35/35, skip 0, 이미지 파이프라인 2/2, lint, typecheck, Prisma validate, production audit, build, diff check를 통과했습니다.
-- 상품 329개와 slug 329개를 전수 비교했고 1,645개 WebP가 모두 상품별 5장·1200x1500이며 누락·추가·decode 실패·exact duplicate가 0임을 확인했습니다.
-- 남녀 17개 카테고리의 329개 상품 5컷을 모두 시각 감사해 색상·실루엣 불일치, 다른 상품 혼입, 빈 패널, 가로 늘어짐을 발견하지 못했습니다.
-- 로컬 production 상품 상세 329/329가 HTTP 200과 버전된 01~05 URL을 반환했습니다.
-- Vercel production은 `READY`, Git SHA `cc80f57`, 최근 1시간 runtime 오류와 error/fatal 로그 0입니다.
-- 상세 보고서: [2026-07-15 `cc80f57` 상품 상세 5장 갤러리 회귀 QA 보고서](../reports/2026-07-15-cc80f57-detail-gallery-regression/report.md)
+- Node 22.23.1 + pnpm 11.5.3에서 test 49/49, skip 0, 이미지 gate, lint, typecheck, Prisma validate, production audit, build, diff check를 통과했습니다.
+- 실제 route+DB+provider stub에서 변조·취소·실 MID 외부 호출 0회/DB 무변경, PG 필드 불일치 `PENDING+marker`, 병렬 valid result 외부 호출 1회·`PAID` 1건을 확인했습니다.
+- WEBFEP redirect/timeout/503/connection close/파싱·식별자 오류 9종이 모두 불명확 결과로 보류되고 재호출되지 않는 경계를 확인했습니다.
+- 상품 329개·자산 1,645개·로컬 HTML 329개를 전수 확인했고 구형 cart/recent 이미지 복구와 수량·사이즈·nonce 보존을 확인했습니다.
+- 로컬 Chrome 320/360/390/412px 100%·200%, 실제 Android Chrome 412px, 운영 공개 배포가 모두 통과했습니다.
+- Vercel production은 `READY`, Git SHA `b234b32`, 최근 1시간 runtime 오류와 error/fatal 로그 0입니다.
+- 상세 보고서: [2026-07-15 `b234b32` 결제 승인 경계·상품 이미지 복구 회귀 QA 보고서](../reports/2026-07-15-b234b32-payment-image-security-regression/report.md)
 
 ## 핵심 결과
 
 | 영역 | 결과 | 실제 증거 |
 | --- | --- | --- |
-| 정적 검증 | PASS | test 35/35, pipeline 2/2, lint/typecheck/prisma/audit/build/diff check PASS |
-| 자산 전수 검사 | PASS | products/slugs 329, WebP 1,645, 1200x1500, 실패 0 |
-| 전 상품 시각 감사 | PASS | 17개 카테고리 329개 상품, 5컷 일관성·왜곡·혼입 검사 PASS |
-| HTML 전수 검사 | PASS | 329/329 HTTP 200, 버전된 01~05 URL 누락 0 |
-| 저장 URL 경계 | PASS | 무버전 URL 마이그레이션, 수량·사이즈·nonce 보존, 비 HTTP(S) 제거 |
-| 실제 브라우저 교차 | PASS | 320/390/412/1280px, 5장, natural ratio 0.8, broken·overflow·console 오류 0 |
-| 운영 배포 | PASS | Vercel READY, production SHA `cc80f57`, aliases 일치, 오류 0 |
+| 정적 검증 | PASS | test 49/49, skip 0, image gate/lint/typecheck/prisma/audit/build/diff check PASS |
+| result 보안 경계 | PASS | invalid·타 주문·취소·길이 초과·실 MID provider 0회/DB 변화 0 |
+| PG 결과 결박 | PASS | moid/금액/승인번호/거래번호 불일치 `PENDING+marker`, 재호출 0 |
+| 병렬 멱등성 | PASS | 동일 valid result 2개 병렬 제출, 외부 승인 1회·`PAID` 1건 |
+| WEBFEP fault | PASS | 307/308/503/timeout/close/parse/식별자 9종 모두 indeterminate, redirect error |
+| 미계약 결제 차단 | PASS | checkout 수기·원클릭 0개, 카드 원문 등록 0개, mock 승인 경로 0 |
+| 이미지 전수 검사 | PASS | 329상품, 1,645 고유 자산, 329 HTML 모두 버전된 5장 |
+| 저장 복구 | PASS | null·악성 URL 복구, API 503·quota에서 항목/수량/사이즈/nonce 보존 |
+| 모바일·Android | PASS | Chrome 8조합 + Android Chrome 133, overflow·console 제품 오류 0 |
+| 운영 배포 | PASS | Vercel READY, production SHA·aliases 일치, 공개 WebP 5장 1200x1500, 오류 0 |
 
 ## 결함과 위험
 
-- 이번 변경의 신규 제품 결함은 발견하지 못했습니다.
-- 원본 330개 생성 시트와 폐기본 1개의 원시 매칭 과정은 저장소 외 원본이 없어 QA가 재현하지 못했고, 최종 manifest·배포 자산 329개를 대신 전수 대조했습니다.
-- 실제 촬영본이 아닌 AI 생성 시트이므로 실제 판매 이미지 교체 시 색상·소재·상표·인물 표현을 별도 검수해야 합니다.
-- headless CDP 스크롤이 한 표본의 native lazy 요청을 깨우지 못했으나 파일·HTML·optimizer와 DEV 실제 브라우저가 모두 정상이라 QA 도구 제약으로 분리했습니다.
+- 이번 변경의 신규 P0/P1/P2 제품 결함은 발견하지 못했습니다.
+- KSNET `reHash`/`reCommConId` 주문 사전 결박 공식 스펙이 없어 테스트 MID의 악의적 교차 comm ID는 사후 보류·KSTA 대조가 필요합니다.
+- 실 MID는 코드가 fail-closed이며 공식 스펙 구현과 실 KSNET 검증 전까지 NO-GO입니다.
+- 공개 이미지 복구 API 반복 요청 비용은 P2 운영 관찰 항목입니다.
 - Safari/WebKit/iOS 실제 기기와 실 KSNET 승인·취소·영수증은 실행하지 않았습니다.
 
 ## cleanup
 
-- DB fixture를 생성하지 않았고 운영·테스트 DB 데이터 변경도 없습니다.
-- 로컬 3003 서버와 임시 브라우저·HTML·이미지 감사 스크립트·감사 시트를 삭제했습니다.
+- `qa.b234.*` 사용자·주문·상품 잔존 0입니다.
+- 최종 DB는 users 10/active 9/products 329/orders 9/items 9/audits 0/cards 4/wishlists 0입니다.
+- 로컬 3013 서버, 임시 QA 러너, Android CDP 포워딩을 종료·삭제했습니다.
 - 운영·마스터 데이터, Vercel 설정, 실 PG 상태 변경은 없습니다.
 
 ## 개발 회귀 요청
 
-제품 커밋 `cc80f57`을 출시 후보로 유지합니다. 실제 판매 상품 이미지로 교체하거나 갤러리 fallback 기준을 바꿀 때 상품별 5장·4:5·버전 URL·storage 마이그레이션 전수 회귀를 다시 실행합니다.
+제품 커밋 `b234b32`을 테스트 MID 카드사 심사 출시 후보로 유지합니다. 실 MID 전환 전에는 KSNET 공식 사전 결박 스펙을 확보해 `reHash`/`reCommConId` 교차 주문 방지와 실제 승인·취소·영수증 회귀를 별도 수행해야 합니다.
