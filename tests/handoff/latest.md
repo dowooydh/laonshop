@@ -4,55 +4,53 @@
 
 담당: Codex QA/테스트 세션
 
-대상: `main` / `07916d402c8bea72668ae8ddbeac682a7b963fc2`
+대상: `main` / `328ee874f8c6b681ad386b561888ed6d6c69486d`
 
-비교 범위: `30321c1b2450524fda2a79e8b493ce4dbe931673..07916d402c8bea72668ae8ddbeac682a7b963fc2`
+비교 범위: `8a51fc42fad6652b37140e03c5256117764cbc85..328ee874f8c6b681ad386b561888ed6d6c69486d`
 
 결과: **PASS**
 
-출시 판정: **GO - 미연동 원클릭 차단과 원본 상품 이미지 전환 회귀 통과**
+출시 판정: **GO - 카드 삭제 통신 실패·500 복구와 소유권 회귀 통과**
 
 ## 요약
 
 - 제품 코드는 수정하지 않았습니다.
-- Node 22.23.1 + pnpm 11.5.3에서 test 33/33, skip 0, 이미지 파이프라인 1/1, lint, typecheck, Prisma validate, production audit, build, diff check를 통과했습니다.
-- checkout/retry stale oneclick은 주문·상태 변경 전에 동일 안내로 차단됐고 주문·항목·재고 예약·감사로그 변경이 없었습니다.
-- raw 카드 등록, mock billing token, PG 호출 없는 합성 PAID 경로는 제거됐고 설정에는 과거 mock 카드의 본인 삭제만 남았습니다.
-- 본인 카드 삭제와 타인 `cardId` IDOR 차단을 UI·DB로 확인했습니다.
-- legacy cart/recent는 상품·수량·사이즈·nonce를 보존하고 이미지 URL만 제거했습니다. storage write 실패에서도 현재 장바구니는 유지됐습니다.
-- 원본 상품 이미지는 로컬과 운영 320/412px에서 4:5 frame, `object-fit: cover`, 가로 overflow 0, legacy URL 0으로 확인됐습니다.
-- 상세 보고서: [2026-07-14 `07916d4` 원클릭 차단·상품 이미지 회귀 QA 보고서](../reports/2026-07-14-07916d4-billing-image-regression/report.md)
+- Node 22.23.1 + pnpm 11.5.3에서 test 34/34, skip 0, 이미지 파이프라인 1/1, lint, typecheck, Prisma validate, production audit, build, diff check를 통과했습니다.
+- 실제 Server Action POST를 abort와 HTTP 500으로 주입해 카드 행·DB count 유지, `role=alert`, `aria-busy` 종료, 삭제 버튼 재활성을 확인했습니다.
+- 네트워크 복구 후 같은 버튼 재시도는 alert를 제거하고 DB 카드를 정확히 1건만 삭제했습니다.
+- 빠른 이중 클릭은 POST 2회가 발생했지만 조건부 `deleteMany(id,userId)`로 DB 부작용은 한 번뿐이었습니다.
+- 타인 `cardId` 직접 Server Action 호출은 응답 200 뒤에도 foreign card를 DB에 보존해 IDOR를 차단했습니다.
+- 320/390/412px·200%에서 문서 overflow와 가시 요소 이탈 0, alert·삭제 중 버튼 clipping 0, 44px 타깃을 확인했습니다.
+- 상세 보고서: [2026-07-14 `328ee87` 카드 삭제 실패 복구 회귀 QA 보고서](../reports/2026-07-14-328ee87-card-delete-recovery-regression/report.md)
 
 ## 핵심 결과
 
 | 영역 | 결과 | 실제 증거 |
 | --- | --- | --- |
-| 정적 검증 | PASS | test 33/33, 이미지 pipeline 1/1, lint/typecheck/prisma/audit/build/diff check PASS |
-| 신규 카드 등록 제거 | PASS | raw 카드 입력·등록 버튼·mock token·합성 PAID 경로 0 |
-| stale oneclick | PASS | checkout/retry 공통 거부, 주문·상태·audit 변경 0 |
-| 카드 소유권 | PASS | 본인 삭제 성공, 타인 `cardId` DB 보존 |
-| 일반 KSPAY | PASS | 카드·카카오·네이버·계좌이체 UI 및 인증 폼 생성, 외부 승인 미실행 |
-| cart/recent 마이그레이션 | PASS | 구매 의미·nonce 보존, legacy image URL만 제거 |
-| 로컬 반응형 | PASS | 320/390/412px, 100%/200%, 주요 화면 overflow/clipping 0 |
-| 운영 이미지 | PASS | 320/412px 4:5 frame, 원본 로드, legacy URL 0, console error 0 |
-| 배포 | PASS | Vercel READY, production SHA `07916d4`, 최근 1시간 runtime 오류 0 |
+| 정적 검증 | PASS | test 34/34, pipeline 1/1, lint/typecheck/prisma/audit/build/diff check PASS |
+| offline/abort | PASS | 행·DB 보존, alert 표시, busy 종료, 버튼 재활성 |
+| HTTP 500 | PASS | 행·DB 보존, alert 표시, busy 종료, 버튼 재활성 |
+| 복구 재시도 | PASS | alert 제거, 카드 정확히 1건 삭제 |
+| 빠른 이중 클릭 | PASS | POST 2회, 조건부 삭제 부작용 1회, owner cards 0 |
+| IDOR | PASS | 타인 cardId 직접 호출 후 foreign card DB 보존 |
+| 모바일·200% | PASS | 320/390/412px overflow·clipping 0, 버튼 높이 44px |
+| 결제 경계 | PASS | 신규 카드 입력 0, oneclick 차단·KSPAY 경계 변경 없음 |
+| 운영 배포 | PASS | Vercel READY, production SHA `328ee87`, 최근 1시간 runtime 오류 0 |
 
 ## 결함과 위험
 
 - 신규 제품 결함은 발견하지 못했습니다.
-- `QA-079-OBS-01` P3 기존 UX: 과거 카드 삭제 중 네트워크 실패 시 DB 카드는 보존되고 reload로 복구되지만 인라인 오류 안내가 없습니다. 후속 개선과 offline/500 회귀 테스트를 권장합니다.
-- 제한 계정의 수기결제 mock PAID는 기존 정책 위험이며 이번 변경의 신규 결함이 아닙니다.
-- 기존 왜곡 파일 1,645개는 직접 URL 접근 가능하지만 제품 렌더링 참조에서는 제외됐습니다.
-- 실 PG 승인·취소·영수증, Safari/WebKit/iOS 실제 기기는 실행하지 않았습니다.
+- 빠른 이중 클릭은 HTTP 요청 자체를 2회 보냅니다. 현재 조건부 삭제가 멱등이라 부작용은 한 번이며 출시 차단은 아닙니다.
+- 응답 유실 시 보수적 문구 뒤 재시도·새로고침으로 최종 서버 상태를 확인하는 정책입니다.
+- 실 PG 승인·취소·영수증과 Safari/WebKit/iOS 실제 기기는 실행하지 않았습니다.
 
 ## cleanup
 
-- QA 사용자 2명, 주문 2건과 항목, 카드 3개를 삭제했습니다.
-- 최종 DB `users 10 / orders 9 / items 9 / cards 4 / audits 0 / wishlists 0`으로 시작 기준선과 일치합니다.
-- 로컬 3003 서버, 임시 fixture·브라우저 스크립트·스크린샷·secret 파일을 정리했습니다.
-- 브라우저 viewport override와 QA 탭을 정리했습니다.
+- 일회용 QA 사용자 2명과 mock 카드 4개를 모두 정리했습니다.
+- 최종 DB `users 10 / cards 4 / orders 9 / items 9 / audits 0 / wishlists 0`으로 시작 기준선과 일치합니다.
+- 로컬 3003 서버와 임시 fixture·브라우저 스크립트·credential 파일을 삭제했습니다.
 - 운영·마스터 데이터, Vercel 설정, 실 PG 상태 변경은 없습니다.
 
 ## 개발 회귀 요청
 
-제품 커밋 `07916d4`를 출시 후보로 유지합니다. 후속 변경에서는 카드 삭제 offline/500 오류 안내를 보강하고 row 유지·버튼 재활성·DB 보존을 자동 회귀로 추가합니다.
+제품 커밋 `328ee87`을 출시 후보로 유지합니다. 향후 카드 삭제가 비멱등 외부 해지 호출을 포함하면 클릭 잠금 외에 요청 단위 멱등키·dedupe를 추가 검토합니다.
