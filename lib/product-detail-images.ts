@@ -1,3 +1,6 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
+
 import { safeProductImageUrl } from "@/lib/product-image";
 
 export type DetailImageProduct = {
@@ -28,8 +31,23 @@ export function productDetailSlug(product: Pick<DetailImageProduct, "name" | "ca
 }
 
 export function getProductDetailImages(product: DetailImageProduct): DetailImage[] {
-  // 기존 로컬 상세컷은 5분할 시트에서 비균등 리사이즈되어 원본 비율이 훼손됐다.
-  // 비율을 보존해 재생성·검수하기 전까지는 큐레이션된 원본 대표 이미지만 사용한다.
+  const slug = productDetailSlug(product);
+  const detailDir = join(process.cwd(), "public", "products", "detail", slug);
+  const generated = Array.from({ length: 5 }, (_, index) => {
+    const fileName = `${String(index + 1).padStart(2, "0")}.webp`;
+    return {
+      path: join(detailDir, fileName),
+      src: safeProductImageUrl(`/products/detail/${slug}/${fileName}`),
+      alt: `${product.name} 상세 이미지 ${index + 1}`,
+    };
+  }).filter((image): image is { path: string; src: string; alt: string } => Boolean(image.src) && existsSync(image.path));
+
+  // 상세컷이 최소 4장 갖춰졌을 때만 사용한다. 일부 파일만 배포된 경우에는
+  // 대표 이미지로 대체해 사용자가 불완전한 갤러리를 보지 않도록 한다.
+  if (generated.length >= 4) {
+    return generated.map(({ src, alt }) => ({ src, alt }));
+  }
+
   const imageUrl = safeProductImageUrl(product.imageUrl);
   return imageUrl ? [{ src: imageUrl, alt: `${product.name} 대표 이미지` }] : [];
 }
