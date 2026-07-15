@@ -247,13 +247,13 @@ function prompt(product) {
   const gender = product.gender === "women" ? "women's" : "men's";
   const itemName = englishName(product.name, product.category);
   return `Use case: product-mockup
-Asset type: LAON SHOP ecommerce product detail image source sheet, to be split into five separate product photos
+Asset type: LAON SHOP ecommerce product detail source sheet, used to build four editorial diptych photos
 Primary request: Create one clean 5-panel product photography contact sheet for a single SKU. Each panel must show the same exact ${gender} ${itemName} with identical color, material, silhouette, construction, and fit. Do not show a different product in any panel.
 Product name: ${product.name}
 Category: ${product.gender} / ${product.category}
 Subject: ${gender} ${itemName}
 Style/medium: photorealistic Korean online fashion mall product photography
-Composition/framing: five equal vertical panels in one row, with thin white gutters between panels. Compose every panel for a centered 4:5 portrait safe area. ${shots(product.category)} Keep each panel fully contained and easy to crop or pad without stretching.
+Composition/framing: five equal narrow vertical panels in one row, with thin white gutters between panels. ${shots(product.category)} Keep the subject fully contained from top to bottom inside each panel. The site pairs two panels side by side into a 4:5 editorial frame, so never stretch one panel or assume that a single panel fills 4:5.
 Lighting/mood: consistent soft studio catalog lighting, premium ecommerce, neutral background
 Materials/textures: realistic material texture, seams, stitching, fasteners, and product detail
 Text (verbatim): none

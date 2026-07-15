@@ -55,7 +55,7 @@ def main():
     label_w = 260
     pad = 14
     row_h = thumb_h + pad * 2
-    width = label_w + thumb_w * 5 + pad * 7
+    width = label_w + thumb_w * 4 + pad * 6
     height = row_h * len(products)
 
     sheet = Image.new("RGB", (width, height), "white")
@@ -75,7 +75,7 @@ def main():
         draw.text((pad, y + pad + 54), meta, fill=(95, 104, 116), font=meta_font)
 
         slug = product["slug"]
-        for index in range(5):
+        for index in range(4):
             path = Path(args.root) / slug / f"{index + 1:02d}.webp"
             x = label_w + pad + index * (thumb_w + pad)
             if path.exists():

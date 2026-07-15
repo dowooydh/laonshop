@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { formatKrw } from "@/lib/format";
 import { getShopUser } from "@/lib/auth";
 import { getProductDetailImages } from "@/lib/product-detail-images";
+import { safeProductImageUrl } from "@/lib/product-image";
 import { Amount } from "@/lib/ui";
 import type { Metadata } from "next";
 import Image from "next/image";
@@ -148,7 +149,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
                   {galleryImages.length} photos
                 </p>
               </div>
-              <div className="grid grid-cols-2 gap-3 sm:gap-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
                 {galleryImages.slice(1).map((image, index) => (
                   <div
                     key={`${image.src}-${index}`}
@@ -158,7 +159,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
                       src={image.src}
                       alt={image.alt}
                       fill
-                      sizes="(min-width: 768px) 25vw, 50vw"
+                      sizes="(min-width: 768px) 25vw, (min-width: 640px) 50vw, 100vw"
                       className="object-cover"
                     />
                     <div className="pointer-events-none absolute left-2 top-2 rounded-full border border-line bg-void/55 px-2 py-1 font-mono text-[10px] uppercase tracking-widest text-fg-subtle backdrop-blur">
@@ -195,28 +196,31 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
             </Link>
           </div>
           <div className="mt-5 grid grid-cols-[repeat(auto-fit,minmax(min(100%,8rem),1fr))] gap-4 sm:grid-cols-4">
-            {related.map((p) => (
-              <Link
-                key={p.id}
-                href={`/product/${p.id}`}
-                className="group relative block aspect-[4/5] overflow-hidden rounded-[var(--radius-lg)] border border-line bg-raised transition-[border-color,box-shadow] duration-base hover:border-accent-cyan hover:shadow-glow-cyan"
-              >
-                {p.imageUrl && (
-                  <Image
-                    src={p.imageUrl}
-                    alt={p.name}
-                    fill
-                    sizes="(min-width: 640px) 25vw, 50vw"
-                    className="object-cover transition-transform duration-slow ease-out-expo group-hover:scale-[1.06]"
-                  />
-                )}
-                <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-void via-void/60 to-transparent" />
-                <div className="absolute inset-x-0 bottom-0 p-4">
-                  <div className="truncate text-step--1 font-semibold text-fg">{p.name}</div>
-                  <div className="mt-0.5 font-mono text-step--1 font-bold text-fg">{formatKrw(p.price)}</div>
-                </div>
-              </Link>
-            ))}
+            {related.map((p) => {
+              const safeImageUrl = safeProductImageUrl(p.imageUrl);
+              return (
+                <Link
+                  key={p.id}
+                  href={`/product/${p.id}`}
+                  className="group relative block aspect-[4/5] overflow-hidden rounded-[var(--radius-lg)] border border-line bg-raised transition-[border-color,box-shadow] duration-base hover:border-accent-cyan hover:shadow-glow-cyan"
+                >
+                  {safeImageUrl && (
+                    <Image
+                      src={safeImageUrl}
+                      alt={p.name}
+                      fill
+                      sizes="(min-width: 640px) 25vw, 50vw"
+                      className="object-cover transition-transform duration-slow ease-out-expo group-hover:scale-[1.02]"
+                    />
+                  )}
+                  <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-void via-void/60 to-transparent" />
+                  <div className="absolute inset-x-0 bottom-0 p-4">
+                    <div className="truncate text-step--1 font-semibold text-fg">{p.name}</div>
+                    <div className="mt-0.5 font-mono text-step--1 font-bold text-fg">{formatKrw(p.price)}</div>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </section>
       )}

@@ -6,6 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion, useReducedMotion } from "motion/react";
 import { formatKrw } from "@/lib/format";
+import { safeProductImageUrl } from "@/lib/product-image";
 import { EmptyState, Select } from "@/lib/ui";
 
 type Card = {
@@ -100,41 +101,44 @@ export function CategoryShop({
       ) : (
         /* 그리드 (탭 전환 시 재애니메이션 위해 key=cat) */
         <div key={cat} className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,8rem),1fr))] gap-4 sm:grid-cols-3 lg:grid-cols-4">
-          {list.map((p, i) => (
-            <motion.div
-              key={p.id}
-              initial={reduce ? false : { opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.45, delay: (i % 4) * 0.05, ease: [0.16, 1, 0.3, 1] }}
-            >
-              <Link
-                href={`/product/${p.id}`}
-                className="group relative block aspect-[4/5] overflow-hidden rounded-[var(--radius-lg)] border border-line bg-raised transition-[border-color,box-shadow] duration-base hover:border-accent-cyan hover:shadow-glow-cyan"
+          {list.map((p, i) => {
+            const safeImageUrl = safeProductImageUrl(p.imageUrl);
+            return (
+              <motion.div
+                key={p.id}
+                initial={reduce ? false : { opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.45, delay: (i % 4) * 0.05, ease: [0.16, 1, 0.3, 1] }}
               >
-                {p.imageUrl && (
-                  <Image
-                    src={p.imageUrl}
-                    alt={p.name}
-                    fill
-                    // 첫 카드만 LCP 후보 — priority로 preload (Next Image LCP 경고 해소)
-                    priority={i === 0}
-                    sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
-                    className="object-cover transition-transform duration-slow ease-out-expo group-hover:scale-[1.06]"
-                  />
-                )}
-                <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-void via-void/60 to-transparent" />
-                {p.soldOut && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-void/60">
-                    <span className="whitespace-nowrap font-mono text-step--1 uppercase tracking-[0.3em] text-fg">Sold Out</span>
+                <Link
+                  href={`/product/${p.id}`}
+                  className="group relative block aspect-[4/5] overflow-hidden rounded-[var(--radius-lg)] border border-line bg-raised transition-[border-color,box-shadow] duration-base hover:border-accent-cyan hover:shadow-glow-cyan"
+                >
+                  {safeImageUrl && (
+                    <Image
+                      src={safeImageUrl}
+                      alt={p.name}
+                      fill
+                      // 첫 카드만 LCP 후보 — priority로 preload (Next Image LCP 경고 해소)
+                      priority={i === 0}
+                      sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
+                      className="object-cover transition-transform duration-slow ease-out-expo group-hover:scale-[1.02]"
+                    />
+                  )}
+                  <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-void via-void/60 to-transparent" />
+                  {p.soldOut && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-void/60">
+                      <span className="whitespace-nowrap font-mono text-step--1 uppercase tracking-[0.3em] text-fg">Sold Out</span>
+                    </div>
+                  )}
+                  <div className="absolute inset-x-0 bottom-0 p-3 sm:p-4">
+                    <div className="truncate text-step-0 font-semibold text-fg">{p.name}</div>
+                    <div className="mt-0.5 font-mono text-step--1 font-bold text-fg">{formatKrw(p.price)}</div>
                   </div>
-                )}
-                <div className="absolute inset-x-0 bottom-0 p-3 sm:p-4">
-                  <div className="truncate text-step-0 font-semibold text-fg">{p.name}</div>
-                  <div className="mt-0.5 font-mono text-step--1 font-bold text-fg">{formatKrw(p.price)}</div>
-                </div>
-              </Link>
-            </motion.div>
-          ))}
+                </Link>
+              </motion.div>
+            );
+          })}
         </div>
       )}
     </div>

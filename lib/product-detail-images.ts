@@ -69,7 +69,7 @@ export function productDetailSlug(product: DetailImageProduct) {
 export function getProductDetailImages(product: DetailImageProduct): DetailImage[] {
   const slug = productDetailSlug(product);
   const detailDir = join(process.cwd(), "public", "products", "detail", slug);
-  const generated = Array.from({ length: 5 }, (_, index) => {
+  const generated = Array.from({ length: 4 }, (_, index) => {
     const fileName = `${String(index + 1).padStart(2, "0")}.webp`;
     return {
       path: join(detailDir, fileName),
@@ -78,12 +78,14 @@ export function getProductDetailImages(product: DetailImageProduct): DetailImage
     };
   }).filter((image): image is { path: string; src: string; alt: string } => Boolean(image.src) && existsSync(image.path));
 
-  // 상세컷이 최소 4장 갖춰졌을 때만 사용한다. 일부 파일만 배포된 경우에는
-  // 대표 이미지로 대체해 사용자가 불완전한 갤러리를 보지 않도록 한다.
-  if (generated.length >= 4) {
-    return generated.map(({ src, alt }) => ({ src, alt }));
+  const imageUrl = safeProductImageUrl(product.imageUrl);
+
+  // 스마트 4:5 대표컷 1장과 무왜곡 에디토리얼 2컷 4장이 모두 있을 때만
+  // 완성된 5장 갤러리를 사용한다. 일부 파일만 배포된 경우에는 대표컷만 남긴다.
+  if (generated.length === 4) {
+    const detailImages = generated.map(({ src, alt }) => ({ src, alt }));
+    return imageUrl ? [{ src: imageUrl, alt: `${product.name} 대표 이미지` }, ...detailImages] : detailImages;
   }
 
-  const imageUrl = safeProductImageUrl(product.imageUrl);
   return imageUrl ? [{ src: imageUrl, alt: `${product.name} 대표 이미지` }] : [];
 }

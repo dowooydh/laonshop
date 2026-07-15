@@ -69,9 +69,9 @@ const digestToFile = new Map();
 for (const slug of slugs) {
   const folder = join(ROOT, slug);
   const files = readdirSync(folder).sort();
-  const expectedFiles = Array.from({ length: 5 }, (_, index) => `${String(index + 1).padStart(2, "0")}.webp`);
+  const expectedFiles = Array.from({ length: 4 }, (_, index) => `${String(index + 1).padStart(2, "0")}.webp`);
   if (JSON.stringify(files) !== JSON.stringify(expectedFiles)) {
-    throw new Error(`${slug}: 01.webp~05.webp 정확히 5장이 필요합니다. actual=${files.join(",")}`);
+    throw new Error(`${slug}: 01.webp~04.webp 에디토리얼 2컷 정확히 4장이 필요합니다. actual=${files.join(",")}`);
   }
   for (const name of expectedFiles) {
     const file = join(folder, name);

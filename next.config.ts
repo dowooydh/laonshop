@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1", "10.0.2.2"],
   images: {
     localPatterns: [
-      { pathname: "/products/detail/**", search: "?v=20260714-4x5" },
+      { pathname: "/products/detail/**", search: "?v=20260715-editorial" },
       { pathname: "/brand/**", search: "" },
     ],
     remotePatterns: [

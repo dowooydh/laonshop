@@ -1,8 +1,22 @@
-const PRODUCT_DETAIL_IMAGE_PATH = /^\/products\/detail\/p-[a-z0-9]+\/0[1-5]\.webp$/;
+const PRODUCT_DETAIL_IMAGE_PATH = /^\/products\/detail\/p-[a-z0-9]+\/0[1-4]\.webp$/;
 const BRAND_IMAGE_PATH = /^\/brand\/[a-z0-9][a-z0-9/_-]*\.(?:avif|jpe?g|png|webp)$/i;
-const PRODUCT_DETAIL_IMAGE_VERSION = "20260714-4x5";
+const PRODUCT_DETAIL_IMAGE_VERSION = "20260715-editorial";
 const LOCAL_IMAGE_HOSTS = new Set(["laonshop.com", "www.laonshop.com"]);
 const REMOTE_IMAGE_HOSTS = new Set(["images.unsplash.com", "picsum.photos"]);
+
+function normalizeRemoteImageUrl(url: URL): string {
+  if (url.hostname !== "images.unsplash.com") return url.toString();
+
+  // 원본 사진을 서버에서 4:5로 자를 때 얼굴·정보량을 우선해 중앙 강제 크롭을 피한다.
+  url.search = "";
+  url.searchParams.set("w", "1200");
+  url.searchParams.set("h", "1500");
+  url.searchParams.set("q", "85");
+  url.searchParams.set("auto", "format");
+  url.searchParams.set("fit", "crop");
+  url.searchParams.set("crop", "faces,entropy");
+  return url.toString();
+}
 
 function normalizeLocalImageUrl(url: URL): string | null {
   if (PRODUCT_DETAIL_IMAGE_PATH.test(url.pathname)) {
@@ -40,7 +54,7 @@ export function safeProductImageUrl(imageUrl: string | null | undefined): string
     if (LOCAL_IMAGE_HOSTS.has(url.hostname)) return normalizeLocalImageUrl(url);
     if (!REMOTE_IMAGE_HOSTS.has(url.hostname)) return null;
 
-    return url.toString();
+    return normalizeRemoteImageUrl(url);
   } catch {
     return null;
   }

@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { formatKrw } from "@/lib/format";
 import { EmptyState } from "@/lib/ui";
 import { requireShopUser } from "@/lib/auth";
+import { safeProductImageUrl } from "@/lib/product-image";
 import Image from "next/image";
 import Link from "next/link";
 import { OrderHistory, type OrderRow } from "./order-history";
@@ -96,28 +97,31 @@ export default async function MyPage() {
           <EmptyState title="찜한 상품이 없습니다" description="상품 상세의 하트를 눌러 담아보세요" />
         ) : (
           <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,8rem),1fr))] gap-4 sm:grid-cols-4">
-            {wishlist.map(({ product: p }) => (
-              <Link
-                key={p.id}
-                href={`/product/${p.id}`}
-                className="group relative block aspect-[4/5] overflow-hidden rounded-[var(--radius-lg)] border border-line bg-raised transition-[border-color,box-shadow] duration-base hover:border-accent-cyan hover:shadow-glow-cyan"
-              >
-                {p.imageUrl && (
-                  <Image
-                    src={p.imageUrl}
-                    alt={p.name}
-                    fill
-                    sizes="(min-width: 640px) 25vw, 50vw"
-                    className="object-cover transition-transform duration-slow ease-out-expo group-hover:scale-[1.06]"
-                  />
-                )}
-                <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-void via-void/60 to-transparent" />
-                <div className="absolute inset-x-0 bottom-0 p-3">
-                  <div className="truncate text-step--1 font-semibold text-fg">{p.name}</div>
-                  <div className="mt-0.5 font-mono text-step--1 font-bold text-fg">{formatKrw(p.price)}</div>
-                </div>
-              </Link>
-            ))}
+            {wishlist.map(({ product: p }) => {
+              const safeImageUrl = safeProductImageUrl(p.imageUrl);
+              return (
+                <Link
+                  key={p.id}
+                  href={`/product/${p.id}`}
+                  className="group relative block aspect-[4/5] overflow-hidden rounded-[var(--radius-lg)] border border-line bg-raised transition-[border-color,box-shadow] duration-base hover:border-accent-cyan hover:shadow-glow-cyan"
+                >
+                  {safeImageUrl && (
+                    <Image
+                      src={safeImageUrl}
+                      alt={p.name}
+                      fill
+                      sizes="(min-width: 640px) 25vw, 50vw"
+                      className="object-cover transition-transform duration-slow ease-out-expo group-hover:scale-[1.02]"
+                    />
+                  )}
+                  <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-void via-void/60 to-transparent" />
+                  <div className="absolute inset-x-0 bottom-0 p-3">
+                    <div className="truncate text-step--1 font-semibold text-fg">{p.name}</div>
+                    <div className="mt-0.5 font-mono text-step--1 font-bold text-fg">{formatKrw(p.price)}</div>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         )}
       </section>

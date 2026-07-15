@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { formatKrw } from "@/lib/format";
+import { safeProductImageUrl } from "@/lib/product-image";
 
 export function ProductCard({
   id,
@@ -21,18 +22,20 @@ export function ProductCard({
   soldOut?: boolean;
   sizes?: string;
 }) {
+  const safeImageUrl = safeProductImageUrl(imageUrl);
+
   return (
     <Link
       href={`/product/${id}`}
       className="group relative block aspect-[4/5] overflow-hidden rounded-[var(--radius-lg)] border border-line bg-raised transition-[border-color,box-shadow] duration-base hover:border-accent-cyan hover:shadow-glow-cyan"
     >
-      {imageUrl && (
+      {safeImageUrl && (
         <Image
-          src={imageUrl}
+          src={safeImageUrl}
           alt={name}
           fill
           sizes={sizes}
-          className="object-cover transition-transform duration-slow ease-out-expo group-hover:scale-[1.06]"
+          className="object-cover transition-transform duration-slow ease-out-expo group-hover:scale-[1.02]"
         />
       )}
       <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-void via-void/60 to-transparent" />

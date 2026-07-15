@@ -10,7 +10,7 @@ export interface ProductDef {
   id: string; // Unsplash photo ID
 }
 
-const IMG = "?w=800&q=80&auto=format&fit=crop";
+const IMG = "?w=1200&h=1500&q=85&auto=format&fit=crop&crop=faces%2Centropy";
 export const u = (id: string) => `https://images.unsplash.com/photo-${id}${IMG}`;
 
 export const SIZES: Record<Category, Record<Gender, string>> = {
