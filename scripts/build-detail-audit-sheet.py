@@ -8,7 +8,7 @@ from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 
 def load_products():
-    raw = subprocess.check_output(["node", "scripts/detail-image-prompts.mjs", "--json"], text=True)
+    raw = subprocess.check_output(["node", "scripts/catalog-image-manifest.mjs", "--json"], text=True)
     return json.loads(raw)
 
 
@@ -47,7 +47,11 @@ def main():
     parser.add_argument("--end", type=int, required=True)
     parser.add_argument("--out", required=True)
     parser.add_argument("--root", default="public/products/detail")
+    parser.add_argument("--count", type=int, default=4)
     args = parser.parse_args()
+
+    if args.count < 1 or args.count > 8:
+        parser.error("--count must be between 1 and 8")
 
     products = load_products()[args.start : args.end]
     thumb_w = 180
@@ -55,7 +59,7 @@ def main():
     label_w = 260
     pad = 14
     row_h = thumb_h + pad * 2
-    width = label_w + thumb_w * 4 + pad * 6
+    width = label_w + thumb_w * args.count + pad * (args.count + 2)
     height = row_h * len(products)
 
     sheet = Image.new("RGB", (width, height), "white")
@@ -75,7 +79,7 @@ def main():
         draw.text((pad, y + pad + 54), meta, fill=(95, 104, 116), font=meta_font)
 
         slug = product["slug"]
-        for index in range(4):
+        for index in range(args.count):
             path = Path(args.root) / slug / f"{index + 1:02d}.webp"
             x = label_w + pad + index * (thumb_w + pad)
             if path.exists():

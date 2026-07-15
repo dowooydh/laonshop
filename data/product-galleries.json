@@ -1,0 +1,215 @@
+{
+  "version": "20260716-b01",
+  "products": [
+    {
+      "batch": "b01",
+      "slug": "p-1dtc2le",
+      "photoId": "1607345366928-199ea26cfe3e",
+      "name": "타탄 체크 오버셔츠",
+      "gender": "men",
+      "category": "상의",
+      "canonical": {
+        "color": "네이비·다크그린 바탕, 머스터드·러스트 타탄 체크",
+        "material": "중간 두께 코튼 플란넬",
+        "silhouette": "긴팔 릴랙스 오버핏 오버셔츠",
+        "construction": "셔츠 칼라, 전면 단추, 가슴 패치 포켓, 로고 없음"
+      },
+      "shots": [
+        { "role": "hero", "description": "콘크리트 갤러리 복도에서 걷는 3/4 전신 대표 착용컷" },
+        { "role": "lifestyle", "description": "도심 카페 테라스에서 소매를 한 번 걷고 앉은 자연스러운 라이프스타일컷" },
+        { "role": "silhouette", "description": "밝은 스튜디오에서 후면과 옆 실루엣이 드러나는 단일 착용컷" },
+        { "role": "product-only", "description": "짙은 원목 행거에 단독으로 걸린 제품 전체컷" },
+        { "role": "detail", "description": "타탄 조직, 가슴 포켓, 단추와 봉제선을 보여주는 소재 접사" }
+      ]
+    },
+    {
+      "batch": "b01",
+      "slug": "p-1acjf79",
+      "photoId": "1714249090984-cbc595b0f3b8",
+      "name": "오버핏 반팔 티셔츠",
+      "gender": "men",
+      "category": "상의",
+      "canonical": {
+        "color": "무지 블랙",
+        "material": "탄탄한 코튼 저지",
+        "silhouette": "드롭숄더 오버핏 반팔 크루넥",
+        "construction": "포켓·프린트·로고 없음, 넓은 소매와 곧은 밑단"
+      },
+      "shots": [
+        { "role": "hero", "description": "밝은 회색 스튜디오에서 한 손을 주머니에 둔 3/4 전신 대표 착용컷" },
+        { "role": "lifestyle", "description": "노출 콘크리트 계단에서 움직이는 자연스러운 스트리트 착용컷" },
+        { "role": "silhouette", "description": "화이트 스튜디오에서 드롭숄더와 등판 폭이 보이는 후면 착용컷" },
+        { "role": "product-only", "description": "검은 금속 행거에 단독으로 걸어 전체 형태를 보여주는 제품컷" },
+        { "role": "detail", "description": "블랙 코튼 조직, 크루넥 립과 어깨 봉제선을 보여주는 접사" }
+      ]
+    },
+    {
+      "batch": "b01",
+      "slug": "p-epq5m3",
+      "photoId": "1574201635302-388dd92a4c3f",
+      "name": "미니멀 크루넥 니트",
+      "gender": "men",
+      "category": "상의",
+      "canonical": {
+        "color": "웜 아이보리",
+        "material": "중간 게이지 소프트 니트",
+        "silhouette": "레귤러 릴랙스핏 긴팔 크루넥",
+        "construction": "무지, 립 넥·소매·밑단, 로고 없음"
+      },
+      "shots": [
+        { "role": "hero", "description": "우드톤 미니멀 카페 창가의 자연광 대표 착용컷" },
+        { "role": "lifestyle", "description": "초록 식물이 있는 서점에서 책을 고르는 편안한 라이프스타일컷" },
+        { "role": "silhouette", "description": "따뜻한 베이지 스튜디오에서 옆선과 밑단 핏을 보여주는 측면 착용컷" },
+        { "role": "product-only", "description": "린넨 천 위에 단독으로 펼친 정돈된 플랫레이 제품컷" },
+        { "role": "detail", "description": "아이보리 니트 조직, 크루넥 립과 소매 마감을 보여주는 접사" }
+      ]
+    },
+    {
+      "batch": "b01",
+      "slug": "p-16bll89",
+      "photoId": "1603252110481-7ba873bf42ab",
+      "name": "링클프리 드레스 셔츠",
+      "gender": "men",
+      "category": "상의",
+      "canonical": {
+        "color": "단일 화이트",
+        "material": "매끈한 링클프리 코튼 블렌드 포플린",
+        "silhouette": "레귤러핏 긴팔 드레스 셔츠",
+        "construction": "스프레드 칼라, 흰 단추, 가슴 포켓 없음, 로고 없음"
+      },
+      "shots": [
+        { "role": "hero", "description": "모던 오피스 로비에서 재킷 없이 단정하게 선 대표 착용컷" },
+        { "role": "lifestyle", "description": "큰 창이 있는 회의 공간에서 서류를 든 자연스러운 비즈니스 착용컷" },
+        { "role": "silhouette", "description": "회색 스튜디오에서 등판과 커프스가 보이는 후면 착용컷" },
+        { "role": "product-only", "description": "원목 행거에 단독으로 걸린 화이트 셔츠 전체 제품컷" },
+        { "role": "detail", "description": "스프레드 칼라, 흰 단추, 매끈한 포플린과 커프스 봉제를 보여주는 접사" }
+      ]
+    },
+    {
+      "batch": "b01",
+      "slug": "p-1uouwr1",
+      "photoId": "1629871870289-21efd577d820",
+      "name": "스트라이프 옥스포드 셔츠",
+      "gender": "men",
+      "category": "상의",
+      "canonical": {
+        "color": "블루·화이트 가는 세로 스트라이프",
+        "material": "탄탄한 코튼 옥스포드",
+        "silhouette": "레귤러 릴랙스핏 긴팔 옥스포드 셔츠",
+        "construction": "포인트 칼라, 흰 단추, 단일 가슴 포켓, 로고 없음"
+      },
+      "shots": [
+        { "role": "hero", "description": "밝은 벽돌 건물 입구에서 소매를 내린 대표 착용컷" },
+        { "role": "lifestyle", "description": "주말 마켓 골목에서 가방을 든 자연스러운 워킹 착용컷" },
+        { "role": "silhouette", "description": "화이트 스튜디오에서 스트라이프 정렬과 등판이 보이는 후면 착용컷" },
+        { "role": "product-only", "description": "밝은 원목 행거에 단독으로 걸린 셔츠 전체 제품컷" },
+        { "role": "detail", "description": "포인트 칼라, 가슴 포켓, 스트라이프 옥스포드 조직 접사" }
+      ]
+    },
+    {
+      "batch": "b01",
+      "slug": "p-d3xnl2",
+      "photoId": "1623113526959-6a3fb04378e4",
+      "name": "헤비웨이트 맨투맨",
+      "gender": "men",
+      "category": "상의",
+      "canonical": {
+        "color": "헤더 그레이",
+        "material": "두꺼운 루프백 코튼 스웨트",
+        "silhouette": "여유 있는 레귤러핏 긴팔 크루넥 맨투맨",
+        "construction": "무지, 립 넥·소매·밑단, 로고·포켓 없음"
+      },
+      "shots": [
+        { "role": "hero", "description": "산업적인 벽돌 스튜디오에서 선 편안한 대표 착용컷" },
+        { "role": "lifestyle", "description": "강변 산책로 벤치 옆에서 걷는 캐주얼 라이프스타일컷" },
+        { "role": "silhouette", "description": "다크 그레이 스튜디오에서 어깨와 등판이 보이는 후면 착용컷" },
+        { "role": "product-only", "description": "회색 콘크리트 바닥 위에 단독으로 펼친 플랫레이 제품컷" },
+        { "role": "detail", "description": "헤더 조직, 두꺼운 원단 단면, 립 소매와 봉제선 접사" }
+      ]
+    },
+    {
+      "batch": "b01",
+      "slug": "p-1pqtxz7",
+      "photoId": "1622622016645-7b7065e7c129",
+      "name": "슬림핏 폴로 셔츠",
+      "gender": "men",
+      "category": "상의",
+      "canonical": {
+        "color": "스톤 베이지",
+        "material": "코튼 피케",
+        "silhouette": "슬림 레귤러핏 반팔 폴로",
+        "construction": "플랫 니트 칼라, 2버튼 플래킷, 로고·포켓 없음"
+      },
+      "shots": [
+        { "role": "hero", "description": "테라조 벽의 밝은 라운지에서 단정하게 선 대표 착용컷" },
+        { "role": "lifestyle", "description": "잔디가 보이는 클럽하우스 테라스의 자연스러운 착용컷" },
+        { "role": "silhouette", "description": "오프화이트 스튜디오에서 슬림한 옆선과 소매 길이를 보여주는 측면 착용컷" },
+        { "role": "product-only", "description": "밝은 나무 행거에 단독으로 걸린 폴로 전체 제품컷" },
+        { "role": "detail", "description": "스톤 베이지 피케 조직, 칼라, 2버튼 플래킷 봉제 접사" }
+      ]
+    },
+    {
+      "batch": "b01",
+      "slug": "p-1vjw7ri",
+      "photoId": "1781271573324-7e43bfec8c3d",
+      "name": "워시드 데님 셔츠",
+      "gender": "men",
+      "category": "상의",
+      "canonical": {
+        "color": "미드 블루 워시드 인디고",
+        "material": "중간 두께 코튼 데님",
+        "silhouette": "레귤러 릴랙스핏 긴팔 셔츠",
+        "construction": "포인트 칼라, 금속 스냅 또는 금속 단추, 좌우 가슴 포켓, 로고 없음"
+      },
+      "shots": [
+        { "role": "hero", "description": "빈티지 벽돌 창고 앞에서 선 대표 착용컷" },
+        { "role": "lifestyle", "description": "레코드숍 내부에서 소매를 걷고 음반을 보는 라이프스타일컷" },
+        { "role": "silhouette", "description": "밝은 스튜디오에서 워시드 등판과 밑단을 보여주는 후면 착용컷" },
+        { "role": "product-only", "description": "철제 행거에 단독으로 걸린 데님 셔츠 전체 제품컷" },
+        { "role": "detail", "description": "워시드 데님 결, 가슴 포켓, 금속 단추와 이중 봉제 접사" }
+      ]
+    },
+    {
+      "batch": "b01",
+      "slug": "p-1eg2rd6",
+      "photoId": "1595211877493-41a4e5f236b3",
+      "name": "베이직 롱슬리브 티",
+      "gender": "men",
+      "category": "상의",
+      "canonical": {
+        "color": "무지 블랙",
+        "material": "부드러운 코튼 저지",
+        "silhouette": "레귤러핏 긴팔 크루넥 티셔츠",
+        "construction": "포켓·프린트·로고 없음, 곧은 밑단"
+      },
+      "shots": [
+        { "role": "hero", "description": "오프화이트 사진 스튜디오에서 자연스럽게 선 대표 착용컷" },
+        { "role": "lifestyle", "description": "모던 주방에서 커피를 준비하는 편안한 라이프스타일컷" },
+        { "role": "silhouette", "description": "회색 스튜디오에서 소매와 등판 핏이 보이는 후면 착용컷" },
+        { "role": "product-only", "description": "차콜 패브릭 배경에 단독으로 펼친 플랫레이 제품컷" },
+        { "role": "detail", "description": "블랙 코튼 조직, 크루넥 바인딩과 소매 끝 봉제 접사" }
+      ]
+    },
+    {
+      "batch": "b01",
+      "slug": "p-irwhuw",
+      "photoId": "1767164521355-855b4502abc1",
+      "name": "릴랙스핏 카라 니트",
+      "gender": "men",
+      "category": "상의",
+      "canonical": {
+        "color": "딥 네이비",
+        "material": "세로 립 조직의 소프트 니트",
+        "silhouette": "릴랙스핏 반팔 카라 니트",
+        "construction": "짧은 금속 지퍼 플래킷, 니트 칼라, 로고·포켓 없음"
+      },
+      "shots": [
+        { "role": "hero", "description": "밝은 석재 벽의 호텔 라운지에서 선 대표 착용컷" },
+        { "role": "lifestyle", "description": "바다가 보이는 테라스에서 앉은 여름 라이프스타일컷" },
+        { "role": "silhouette", "description": "오프화이트 스튜디오에서 반팔 길이와 릴랙스핏 옆선을 보여주는 측면 착용컷" },
+        { "role": "product-only", "description": "원목 행거에 단독으로 걸린 네이비 반팔 카라 니트 제품컷" },
+        { "role": "detail", "description": "딥 네이비 세로 립 조직, 니트 칼라와 짧은 지퍼 플래킷 접사" }
+      ]
+    }
+  ]
+}

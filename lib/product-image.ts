@@ -1,11 +1,23 @@
+import {
+  getProductGalleryByPhotoId,
+  isProductGalleryImagePath,
+  productGalleryImagePath,
+} from "@/lib/product-gallery";
+
 const PRODUCT_DETAIL_IMAGE_PATH = /^\/products\/detail\/p-[a-z0-9]+\/0[1-4]\.webp$/;
+const PRODUCT_GALLERY_IMAGE_PATH = /^\/products\/gallery\/b\d{2}\/p-[a-z0-9]+\/0[1-5]\.webp$/;
 const BRAND_IMAGE_PATH = /^\/brand\/[a-z0-9][a-z0-9/_-]*\.(?:avif|jpe?g|png|webp)$/i;
 const PRODUCT_DETAIL_IMAGE_VERSION = "20260715-editorial";
 const LOCAL_IMAGE_HOSTS = new Set(["laonshop.com", "www.laonshop.com"]);
 const REMOTE_IMAGE_HOSTS = new Set(["images.unsplash.com", "picsum.photos"]);
+const UNSPLASH_PHOTO_ID_PATTERN = /^\/photo-([^/]+)$/;
 
 function normalizeRemoteImageUrl(url: URL): string {
   if (url.hostname !== "images.unsplash.com") return url.toString();
+
+  const photoId = url.pathname.match(UNSPLASH_PHOTO_ID_PATTERN)?.[1];
+  const curatedGallery = photoId ? getProductGalleryByPhotoId(photoId) : null;
+  if (curatedGallery) return productGalleryImagePath(curatedGallery, 1);
 
   // 원본 사진을 서버에서 4:5로 자를 때 얼굴·정보량을 우선해 중앙 강제 크롭을 피한다.
   url.search = "";
@@ -19,6 +31,13 @@ function normalizeRemoteImageUrl(url: URL): string {
 }
 
 function normalizeLocalImageUrl(url: URL): string | null {
+  if (PRODUCT_GALLERY_IMAGE_PATH.test(url.pathname)) {
+    if (!isProductGalleryImagePath(url.pathname)) return null;
+    url.search = "";
+    url.hash = "";
+    return url.pathname;
+  }
+
   if (PRODUCT_DETAIL_IMAGE_PATH.test(url.pathname)) {
     url.search = "";
     url.hash = "";

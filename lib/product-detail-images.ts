@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 
+import { getProductGalleryByPhotoId, productGalleryImagePath } from "@/lib/product-gallery";
 import { safeProductImageUrl } from "@/lib/product-image";
 import { CATALOG, type Category, type Gender } from "@/prisma/catalog";
 
@@ -68,6 +69,26 @@ export function productDetailSlug(product: DetailImageProduct) {
 
 export function getProductDetailImages(product: DetailImageProduct): DetailImage[] {
   const slug = productDetailSlug(product);
+  const photoId = catalogPhotoId(product.imageUrl);
+  const curatedGallery = photoId ? getProductGalleryByPhotoId(photoId) : null;
+  if (curatedGallery) {
+    const images = curatedGallery.shots.map((shot, index) => {
+      const src = productGalleryImagePath(curatedGallery, index + 1);
+      return {
+        path: join(process.cwd(), "public", src),
+        src,
+        alt: `${product.name} — ${shot.description}`,
+      };
+    });
+
+    const missing = images.filter((image) => !existsSync(image.path));
+    if (missing.length > 0) {
+      throw new Error(`${slug}: curated gallery assets missing: ${missing.map((image) => image.src).join(", ")}`);
+    }
+
+    return images.map(({ src, alt }) => ({ src, alt }));
+  }
+
   const detailDir = join(process.cwd(), "public", "products", "detail", slug);
   const generated = Array.from({ length: 4 }, (_, index) => {
     const fileName = `${String(index + 1).padStart(2, "0")}.webp`;
