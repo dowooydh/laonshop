@@ -37,7 +37,18 @@ async function assertIndependentSingleFrame(file) {
   while (left < previewInfo.width && neutralColumnRatio(left) >= 0.98) left += 1;
   let right = 0;
   while (right < previewInfo.width && neutralColumnRatio(previewInfo.width - 1 - right) >= 0.98) right += 1;
-  if ((left + right) / previewInfo.width > 0.12) {
+
+  function hasHardBoundary(edgeWidth, direction) {
+    if (edgeWidth / previewInfo.width <= 0.04) return false;
+    const boundary = direction === 1 ? edgeWidth : previewInfo.width - 1 - edgeWidth;
+    if (boundary < 0 || boundary >= previewInfo.width) return false;
+    return neutralColumnRatio(boundary) < 0.94;
+  }
+
+  const artificialSidePadding =
+    (left + right) / previewInfo.width > 0.12 &&
+    (hasHardBoundary(left, 1) || hasHardBoundary(right, -1));
+  if (artificialSidePadding) {
     throw new Error(`${file}: 좌우 인공 레터박스가 의심됩니다.`);
   }
 
@@ -156,6 +167,7 @@ if (new Set(gallerySlugs).size !== gallerySlugs.length) throw new Error("큐레�
 if (new Set(galleryPhotoIds).size !== galleryPhotoIds.length) throw new Error("큐레이션 갤러리 원본 사진 ID가 중복되었습니다.");
 
 const expectedByBatch = new Map();
+const expectedShotRoles = ["hero", "lifestyle", "silhouette", "product-only", "detail"];
 let galleryImageCount = 0;
 for (const gallery of galleryManifest.products) {
   const catalogProduct = productBySlug.get(gallery.slug);
@@ -168,8 +180,11 @@ for (const gallery of galleryManifest.products) {
   ) {
     throw new Error(`${gallery.slug}: 큐레이션 manifest와 상품 카탈로그가 일치하지 않습니다.`);
   }
-  if (!Array.isArray(gallery.shots) || gallery.shots.length !== 5) {
-    throw new Error(`${gallery.slug}: 독립 촬영 역할 5개가 필요합니다.`);
+  if (
+    !Array.isArray(gallery.shots) ||
+    JSON.stringify(gallery.shots.map((shot) => shot.role)) !== JSON.stringify(expectedShotRoles)
+  ) {
+    throw new Error(`${gallery.slug}: hero·lifestyle·silhouette·product-only·detail 역할을 순서대로 1개씩 지정해야 합니다.`);
   }
 
   const expectedSlugsForBatch = expectedByBatch.get(gallery.batch) ?? new Set();

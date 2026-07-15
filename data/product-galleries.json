@@ -1,5 +1,5 @@
 {
-  "version": "20260716-b01",
+  "version": "20260716-b02",
   "products": [
     {
       "batch": "b01",
@@ -209,6 +209,216 @@
         { "role": "silhouette", "description": "오프화이트 스튜디오에서 반팔 길이와 릴랙스핏 옆선을 보여주는 측면 착용컷" },
         { "role": "product-only", "description": "원목 행거에 단독으로 걸린 네이비 반팔 카라 니트 제품컷" },
         { "role": "detail", "description": "딥 네이비 세로 립 조직, 니트 칼라와 짧은 지퍼 플래킷 접사" }
+      ]
+    },
+    {
+      "batch": "b02",
+      "slug": "p-1knof6q",
+      "photoId": "1611312449412-6cefac5dc3e4",
+      "name": "플란넬 체크 셔츠",
+      "gender": "men",
+      "category": "상의",
+      "canonical": {
+        "color": "버건디·차콜 바탕에 크림 가는 타탄 체크",
+        "material": "기모 코튼 플란넬",
+        "silhouette": "릴랙스 레귤러핏 긴팔 셔츠",
+        "construction": "일반 포인트 칼라, 다크 혼 버튼, 왼쪽 패치 포켓 1개, 곡선 밑단, 로고 없음"
+      },
+      "shots": [
+        { "role": "hero", "description": "겨울 벽돌 골목에서 셔츠 앞면이 선명하게 보이는 대표 착용컷" },
+        { "role": "lifestyle", "description": "목재 카페 창가에서 소매를 한 번 걷고 앉은 라이프스타일컷" },
+        { "role": "silhouette", "description": "밝은 회색 스튜디오에서 등판과 곡선 밑단이 보이는 후면 3/4 착용컷" },
+        { "role": "product-only", "description": "따뜻한 회벽 앞 원목 행거에 단독으로 걸린 셔츠 전체컷" },
+        { "role": "detail", "description": "기모 결, 체크 정렬 포켓, 혼 버튼과 이중 봉제 단일 접사" }
+      ]
+    },
+    {
+      "batch": "b02",
+      "slug": "p-b5sxa7",
+      "photoId": "1608975321561-176c1b187d24",
+      "name": "터틀넥 니트",
+      "gender": "men",
+      "category": "상의",
+      "canonical": {
+        "color": "무지 딥 차콜",
+        "material": "미세한 메리노 혼방 중간 게이지 니트",
+        "silhouette": "단정한 레귤러 슬림핏 긴팔 니트",
+        "construction": "이중 접힘 터틀넥, 립 소매와 밑단, 로고·포켓 없음"
+      },
+      "shots": [
+        { "role": "hero", "description": "미니멀 미술관에서 블랙 슬랙스와 연출한 대표 전신 착용컷" },
+        { "role": "lifestyle", "description": "조용한 도서관에서 책을 고르는 자연스러운 측면 라이프스타일컷" },
+        { "role": "silhouette", "description": "웜그레이 스튜디오에서 목 높이와 허리선이 보이는 측후면 착용컷" },
+        { "role": "product-only", "description": "밝은 석재 바닥에 단독으로 펼친 니트 전체 플랫레이" },
+        { "role": "detail", "description": "터틀넥 이중 립, 니트 루프와 소매 립 연결부 단일 접사" }
+      ]
+    },
+    {
+      "batch": "b02",
+      "slug": "p-11njnp7",
+      "photoId": "1775817104298-522393e1d72b",
+      "name": "그래픽 반팔 티",
+      "gender": "men",
+      "category": "상의",
+      "canonical": {
+        "color": "오프화이트 바탕에 중앙 코발트블루 단색 추상 파도 그래픽 1개",
+        "material": "탄탄한 코튼 저지",
+        "silhouette": "드롭숄더 릴랙스핏 반팔 티셔츠",
+        "construction": "립 크루넥, 포켓·문자·브랜드 없음, 뒷면 무지"
+      },
+      "shots": [
+        { "role": "hero", "description": "밝은 스튜디오에서 그래픽 전체가 보이는 대표 전신 착용컷" },
+        { "role": "lifestyle", "description": "독립 레코드숍에서 음반을 고르는 자연스러운 라이프스타일컷" },
+        { "role": "silhouette", "description": "흰 스튜디오에서 무지 등판과 소매 폭이 보이는 후면 3/4 착용컷" },
+        { "role": "product-only", "description": "회색 종이 배경에 단독으로 펼친 티셔츠 전체 플랫레이" },
+        { "role": "detail", "description": "동일 파도 프린트 가장자리, 잉크 질감, 저지와 립넥 단일 접사" }
+      ]
+    },
+    {
+      "batch": "b02",
+      "slug": "p-226lpy",
+      "photoId": "1679763826392-2e98988e2752",
+      "name": "코듀로이 셔츠",
+      "gender": "men",
+      "category": "상의",
+      "canonical": {
+        "color": "토바코 브라운",
+        "material": "촘촘한 16웨일 코튼 코듀로이",
+        "silhouette": "릴랙스 레귤러핏 긴팔 셔츠",
+        "construction": "포인트 칼라, 무광 톤온톤 버튼, 왼쪽 패치 포켓 1개, 로고 없음"
+      },
+      "shots": [
+        { "role": "hero", "description": "차가운 콘크리트 공간에서 앞면이 보이는 대표 전신 착용컷" },
+        { "role": "lifestyle", "description": "빈티지 서점에서 책을 꺼내는 자연스러운 라이프스타일컷" },
+        { "role": "silhouette", "description": "베이지 스튜디오에서 요크와 밑단이 보이는 후면 3/4 착용컷" },
+        { "role": "product-only", "description": "짙은 슬레이트 벽 원목 행거에 단독으로 걸린 셔츠 전체컷" },
+        { "role": "detail", "description": "세로 골, 포켓 모서리, 톤온톤 버튼과 결 방향 단일 접사" }
+      ]
+    },
+    {
+      "batch": "b02",
+      "slug": "p-ys2snp",
+      "photoId": "1455356060759-cb72385c67c9",
+      "name": "헨리넥 티셔츠",
+      "gender": "men",
+      "category": "상의",
+      "canonical": {
+        "color": "오트밀 멜란지",
+        "material": "부드러운 슬럽 코튼 저지",
+        "silhouette": "레귤러핏 긴팔 티셔츠",
+        "construction": "3버튼 헨리 플래킷, 작은 무광 단추, 포켓·로고 없음"
+      },
+      "shots": [
+        { "role": "hero", "description": "햇빛 드는 로프트에서 편안하게 선 대표 전신 착용컷" },
+        { "role": "lifestyle", "description": "도예 작업실에서 컵을 드는 자연스러운 라이프스타일컷" },
+        { "role": "silhouette", "description": "밝은 회색 스튜디오에서 어깨와 소매선이 보이는 측후면 착용컷" },
+        { "role": "product-only", "description": "내추럴 린넨 위에 단독으로 펼친 티셔츠 전체 플랫레이" },
+        { "role": "detail", "description": "3버튼 플래킷, 슬럽 조직, 넥 바인딩과 소매 봉제 단일 접사" }
+      ]
+    },
+    {
+      "batch": "b02",
+      "slug": "p-1y03j9m",
+      "photoId": "1617171594207-430a01a9da3f",
+      "name": "풀오버 후디",
+      "gender": "men",
+      "category": "상의",
+      "canonical": {
+        "color": "딥 포레스트 그린",
+        "material": "헤비 루프백 코튼 스웨트",
+        "silhouette": "드롭숄더 릴랙스핏 풀오버 후디",
+        "construction": "동일색 끈의 후드, 캥거루 포켓, 립 소매와 밑단, 지퍼·로고 없음"
+      },
+      "shots": [
+        { "role": "hero", "description": "흐린 날 도심 보행교에서 후드를 내리고 걷는 대표 전신 착용컷" },
+        { "role": "lifestyle", "description": "강변 산책로에서 걷는 자연스러운 라이프스타일컷" },
+        { "role": "silhouette", "description": "밝은 스튜디오에서 후드 크기와 등판이 보이는 후면 착용컷" },
+        { "role": "product-only", "description": "회색 콘크리트 바닥에 단독으로 펼친 후디 전체 플랫레이" },
+        { "role": "detail", "description": "후드 봉제, 끈 아일렛, 캥거루 포켓 입구와 립 조직 단일 접사" }
+      ]
+    },
+    {
+      "batch": "b02",
+      "slug": "p-1r1c436",
+      "photoId": "1713881587420-113c1c43e28a",
+      "name": "린넨 셔츠",
+      "gender": "men",
+      "category": "상의",
+      "canonical": {
+        "color": "샌드 베이지",
+        "material": "통기성 높은 린넨 혼방 슬럽 조직",
+        "silhouette": "여유 있는 레귤러핏 긴팔 셔츠",
+        "construction": "일반 포인트 칼라, 아이보리 자개풍 버튼, 왼쪽 패치 포켓 1개, 곡선 밑단"
+      },
+      "shots": [
+        { "role": "hero", "description": "밝은 해안 테라스에서 소매를 내리고 선 대표 전신 착용컷" },
+        { "role": "lifestyle", "description": "주말 마켓에서 소매를 한 번 걷고 걷는 라이프스타일컷" },
+        { "role": "silhouette", "description": "화이트 스튜디오에서 자연스러운 주름과 곡선 밑단이 보이는 후면 3/4 착용컷" },
+        { "role": "product-only", "description": "밝은 원목 행거에 단독으로 걸고 사방 여백을 둔 셔츠 전체컷" },
+        { "role": "detail", "description": "린넨 슬럽, 칼라 끝, 자개풍 버튼과 포켓 봉제 단일 접사" }
+      ]
+    },
+    {
+      "batch": "b02",
+      "slug": "p-1hipjhj",
+      "photoId": "1599032909736-0155c1d43a6c",
+      "name": "브이넥 니트",
+      "gender": "men",
+      "category": "상의",
+      "canonical": {
+        "color": "무지 딥 버건디",
+        "material": "파인 게이지 메리노 혼방 니트",
+        "silhouette": "레귤러핏 긴팔 브이넥 니트",
+        "construction": "중간 깊이 V넥, 립 소매와 밑단, 자카드·페이즐리·프린트·로고 없음"
+      },
+      "shots": [
+        { "role": "hero", "description": "모던 호텔 라운지에서 앞면이 보이는 대표 전신 착용컷" },
+        { "role": "lifestyle", "description": "작은 갤러리에서 작품을 보는 자연스러운 측면 라이프스타일컷" },
+        { "role": "silhouette", "description": "웜그레이 스튜디오에서 어깨와 밑단 핏이 보이는 측후면 착용컷" },
+        { "role": "product-only", "description": "밝은 모직 배경에 단독으로 펼친 니트 전체 플랫레이" },
+        { "role": "detail", "description": "V넥 립 결합부, 무늬 없는 파인 게이지 편직과 소매 립 단일 접사" }
+      ]
+    },
+    {
+      "batch": "b02",
+      "slug": "p-3izim6",
+      "photoId": "1558171813-2ffcb3d2ea27",
+      "name": "샴브레이 셔츠",
+      "gender": "men",
+      "category": "상의",
+      "canonical": {
+        "color": "라이트 인디고 블루",
+        "material": "흰 위사가 보이는 얇은 코튼 샴브레이",
+        "silhouette": "레귤러 릴랙스핏 긴팔 셔츠",
+        "construction": "포인트 칼라, 흰 단추, 왼쪽 비플랩 패치 포켓 1개, 금속 부자재 없음"
+      },
+      "shots": [
+        { "role": "hero", "description": "밝은 해안 주택 입구에서 셔츠 앞면이 보이는 대표 전신 착용컷" },
+        { "role": "lifestyle", "description": "식물 작업실에서 소매를 걷고 화분을 보는 라이프스타일컷" },
+        { "role": "silhouette", "description": "화이트 스튜디오에서 얇은 원단과 요크가 보이는 후면 3/4 착용컷" },
+        { "role": "product-only", "description": "밝은 회벽 원목 행거에 단독으로 걸린 셔츠 전체컷" },
+        { "role": "detail", "description": "청백 교차 직조, 포켓, 흰 단추와 이중 봉제 단일 접사" }
+      ]
+    },
+    {
+      "batch": "b02",
+      "slug": "p-ijqnm5",
+      "photoId": "1603924217873-6bab89f381de",
+      "name": "포켓 반팔 티",
+      "gender": "men",
+      "category": "상의",
+      "canonical": {
+        "color": "무늬 없는 뮤트 올리브",
+        "material": "중간 두께 코튼 저지",
+        "silhouette": "여유 있는 레귤러핏 반팔 티셔츠",
+        "construction": "립 크루넥, 왼쪽 사각 패치 포켓 1개, 페이즐리·음각·프린트·로고 없음"
+      },
+      "shots": [
+        { "role": "hero", "description": "밝은 시멘트 스튜디오에서 앞면이 보이는 대표 전신 착용컷" },
+        { "role": "lifestyle", "description": "식물 편집숍에서 걷는 자연스러운 라이프스타일컷" },
+        { "role": "silhouette", "description": "오프화이트 스튜디오에서 소매와 등판 폭이 보이는 측후면 착용컷" },
+        { "role": "product-only", "description": "웜그레이 종이 배경에 사방 여백을 둔 티셔츠 전체 플랫레이" },
+        { "role": "detail", "description": "포켓 상단 이중 봉제, 무늬 없는 저지, 립넥과 소매 끝 단일 접사" }
       ]
     }
   ]

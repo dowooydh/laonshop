@@ -27,7 +27,36 @@ class ProductImagePipelineTest(unittest.TestCase):
         right = 0
         while right < preview.width and cls._neutral_edge_ratio(preview, preview.width - 1 - right) >= 0.98:
             right += 1
-        return (left + right) / preview.width
+
+        def has_hard_boundary(edge_width, direction):
+            if edge_width / preview.width <= 0.04:
+                return False
+            boundary = edge_width if direction == 1 else preview.width - 1 - edge_width
+            if not 0 <= boundary < preview.width:
+                return False
+            return cls._neutral_edge_ratio(preview, boundary) < 0.94
+
+        padding_ratio = (left + right) / preview.width
+        if padding_ratio > 0.12 and (
+            has_hard_boundary(left, 1) or has_hard_boundary(right, -1)
+        ):
+            return padding_ratio
+        return 0
+
+    def test_padding_detector_distinguishes_clean_studio_space_from_hard_letterbox(self):
+        studio = Image.new("RGB", (120, 150), (245, 245, 245))
+        studio_draw = ImageDraw.Draw(studio)
+        studio_draw.polygon(
+            [(60, 18), (42, 30), (15, 70), (33, 140), (87, 140), (105, 70), (78, 30)],
+            fill=(98, 105, 74),
+        )
+
+        padded = Image.new("RGB", (120, 150), (245, 245, 245))
+        padded_draw = ImageDraw.Draw(padded)
+        padded_draw.rectangle((18, 0, 101, 149), fill=(98, 105, 74))
+
+        self.assertEqual(self._artificial_side_padding(studio), 0)
+        self.assertGreater(self._artificial_side_padding(padded), 0.12)
 
     def test_preparer_preserves_geometry_on_non_target_source_ratio(self):
         with tempfile.TemporaryDirectory() as temp_dir:

@@ -27,6 +27,13 @@ type ProductGalleryManifest = {
 };
 
 const manifest = galleryManifestJson as ProductGalleryManifest;
+const EXPECTED_SHOT_ROLES: ProductGalleryShotRole[] = [
+  "hero",
+  "lifestyle",
+  "silhouette",
+  "product-only",
+  "detail",
+];
 
 export const PRODUCT_GALLERY_VERSION = manifest.version;
 export const PRODUCT_GALLERIES = manifest.products;
@@ -38,7 +45,9 @@ const galleryImagePaths = new Set<string>();
 for (const gallery of PRODUCT_GALLERIES) {
   if (galleryBySlug.has(gallery.slug)) throw new Error(`Duplicate curated gallery slug: ${gallery.slug}`);
   if (galleryByPhotoId.has(gallery.photoId)) throw new Error(`Duplicate curated gallery photo id: ${gallery.photoId}`);
-  if (gallery.shots.length !== 5) throw new Error(`${gallery.slug}: curated gallery requires exactly five shots`);
+  if (JSON.stringify(gallery.shots.map((shot) => shot.role)) !== JSON.stringify(EXPECTED_SHOT_ROLES)) {
+    throw new Error(`${gallery.slug}: curated gallery requires hero, lifestyle, silhouette, product-only, detail in order`);
+  }
   galleryBySlug.set(gallery.slug, gallery);
   galleryByPhotoId.set(gallery.photoId, gallery);
   for (let imageNumber = 1; imageNumber <= gallery.shots.length; imageNumber++) {
