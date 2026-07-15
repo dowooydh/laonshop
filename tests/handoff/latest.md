@@ -4,55 +4,56 @@
 
 담당: Codex QA/테스트 세션
 
-대상: `main` / `b234b3204d205c2d75b322894dfb6049593b932c`
+대상: `main` / `fbc2312d0ded7a66ebab4a929a15a08fdf16e63f`
 
-비교 범위: `a51524dfda96604e818e1019303af05aa1587a61..b234b3204d205c2d75b322894dfb6049593b932c`
+비교 범위: `1308b919478dc2f930ad6d369c1046864c310bda..fbc2312d0ded7a66ebab4a929a15a08fdf16e63f`
 
 결과: **PASS**
 
-출시 판정: **GO - 테스트 MID 카드사 심사 범위 / 실 MID는 공식 사전 결박 스펙 전 NO-GO**
+출시 판정: **GO - 전 상품 에디토리얼 5장 갤러리 회귀 통과**
 
 ## 요약
 
 - 제품 코드는 수정하지 않았습니다.
-- Node 22.23.1 + pnpm 11.5.3에서 test 49/49, skip 0, 이미지 gate, lint, typecheck, Prisma validate, production audit, build, diff check를 통과했습니다.
-- 실제 route+DB+provider stub에서 변조·취소·실 MID 외부 호출 0회/DB 무변경, PG 필드 불일치 `PENDING+marker`, 병렬 valid result 외부 호출 1회·`PAID` 1건을 확인했습니다.
-- WEBFEP redirect/timeout/503/connection close/파싱·식별자 오류 9종이 모두 불명확 결과로 보류되고 재호출되지 않는 경계를 확인했습니다.
-- 상품 329개·자산 1,645개·로컬 HTML 329개를 전수 확인했고 구형 cart/recent 이미지 복구와 수량·사이즈·nonce 보존을 확인했습니다.
-- 로컬 Chrome 320/360/390/412px 100%·200%, 실제 Android Chrome 412px, 운영 공개 배포가 모두 통과했습니다.
-- Vercel production은 `READY`, Git SHA `b234b32`, 최근 1시간 runtime 오류와 error/fatal 로그 0입니다.
-- 상세 보고서: [2026-07-15 `b234b32` 결제 승인 경계·상품 이미지 복구 회귀 QA 보고서](../reports/2026-07-15-b234b32-payment-image-security-regression/report.md)
+- Node 22.23.1 + pnpm 11.5.3에서 test 50/50, skip 0, 이미지 파이프라인, lint, typecheck, Prisma validate, production audit, build, diff check를 통과했습니다.
+- 상품 329개·로컬 WebP 1,316개를 전수 검사해 상품별 `01`~`04` 4장, 1200x1500, exact duplicate 0, `05.webp` 잔존·참조 0을 확인했습니다.
+- 로컬 상세 HTML 329개와 정적 이미지 1,316개 응답이 모두 200이었고 대표 Unsplash 스마트 크롭 + 버전된 상세 4장 구성이 일치했습니다.
+- 카테고리 균형 표본 52개와 지정 SKU 3개의 시각 감사에서 왜곡·과도한 여백·다른 SKU 혼입을 발견하지 못했습니다.
+- 로컬 Chrome 27조합, 운영 Chrome 6조합, Android Chrome 133 엔진 4조합에서 5장·4:5·반응형·overflow·콘솔 회귀가 통과했습니다.
+- 구버전 카트·최근상품 URL과 null 이미지 복구에서 상품·수량·사이즈·nonce가 보존됐습니다.
+- Vercel production은 `READY`, Git SHA `fbc2312`, apex/www alias 일치, 최근 1시간 error/fatal 0입니다.
+- 상세 보고서: [2026-07-15 `fbc2312` 에디토리얼 상품 갤러리 회귀 QA 보고서](../reports/2026-07-15-fbc2312-editorial-gallery-regression/report.md)
 
 ## 핵심 결과
 
 | 영역 | 결과 | 실제 증거 |
 | --- | --- | --- |
-| 정적 검증 | PASS | test 49/49, skip 0, image gate/lint/typecheck/prisma/audit/build/diff check PASS |
-| result 보안 경계 | PASS | invalid·타 주문·취소·길이 초과·실 MID provider 0회/DB 변화 0 |
-| PG 결과 결박 | PASS | moid/금액/승인번호/거래번호 불일치 `PENDING+marker`, 재호출 0 |
-| 병렬 멱등성 | PASS | 동일 valid result 2개 병렬 제출, 외부 승인 1회·`PAID` 1건 |
-| WEBFEP fault | PASS | 307/308/503/timeout/close/parse/식별자 9종 모두 indeterminate, redirect error |
-| 미계약 결제 차단 | PASS | checkout 수기·원클릭 0개, 카드 원문 등록 0개, mock 승인 경로 0 |
-| 이미지 전수 검사 | PASS | 329상품, 1,645 고유 자산, 329 HTML 모두 버전된 5장 |
-| 저장 복구 | PASS | null·악성 URL 복구, API 503·quota에서 항목/수량/사이즈/nonce 보존 |
-| 모바일·Android | PASS | Chrome 8조합 + Android Chrome 133, overflow·console 제품 오류 0 |
-| 운영 배포 | PASS | Vercel READY, production SHA·aliases 일치, 공개 WebP 5장 1200x1500, 오류 0 |
+| 정적 검증 | PASS | test 50/50, skip 0, image pipeline/lint/typecheck/prisma/audit/build/diff check PASS |
+| 자산 전수 검사 | PASS | 329상품, 1,316 WebP, 1200x1500, unique 1,316, 05 잔존 0 |
+| 품질 gate | PASS | 인공 패딩 평균 0.019%·최대 1.667%, 12% 초과 0, 빈 이미지 0 |
+| 로컬 HTML·HTTP | PASS | 상품 HTML 329/329, 정적 이미지 1,316/1,316 HTTP 200 |
+| 로컬 반응형 | PASS | 핵심 SKU 3개 x 9프로필 = 27조합, 100%·200%·DPR2, overflow 0 |
+| 저장 데이터 | PASS | 구버전 URL·null 복구, 상품·수량·사이즈·checkout nonce 보존 |
+| 운영 공개 회귀 | PASS | 3 roots, 3 product HTML, 12 WebP, 3 removed 05=404, optimizer, Chrome 6조합 |
+| Android | PASS | Android 15·Chrome 133 엔진·412px, 4조합, 5장·4:5·1열·오류 0 |
+| 운영 배포 | PASS | Vercel READY, production SHA·aliases 일치, error/fatal 0 |
 
 ## 결함과 위험
 
 - 이번 변경의 신규 P0/P1/P2 제품 결함은 발견하지 못했습니다.
-- KSNET `reHash`/`reCommConId` 주문 사전 결박 공식 스펙이 없어 테스트 MID의 악의적 교차 comm ID는 사후 보류·KSTA 대조가 필요합니다.
-- 실 MID는 코드가 fail-closed이며 공식 스펙 구현과 실 KSNET 검증 전까지 NO-GO입니다.
-- 공개 이미지 복구 API 반복 요청 비용은 P2 운영 관찰 항목입니다.
+- 상세 자산이 약 84.0MiB에서 149.38MiB로 증가해 배포 크기와 최초 optimizer 비용·지연을 관찰해야 합니다.
+- 원본 AI 시트와 상품 매핑이 저장소 밖에 있어 저장소만으로 동일 일괄 재생성이 불가능합니다.
+- 대표컷은 외부 Unsplash 가용성에 의존합니다.
+- 전수 기계 검사는 329개 상품 모두 수행했지만 직접 시각 감사는 52개 상품의 카테고리 균형 표본입니다.
 - Safari/WebKit/iOS 실제 기기와 실 KSNET 승인·취소·영수증은 실행하지 않았습니다.
 
 ## cleanup
 
-- `qa.b234.*` 사용자·주문·상품 잔존 0입니다.
-- 최종 DB는 users 10/active 9/products 329/orders 9/items 9/audits 0/cards 4/wishlists 0입니다.
-- 로컬 3013 서버, 임시 QA 러너, Android CDP 포워딩을 종료·삭제했습니다.
+- DB fixture를 생성하지 않았고 로컬·운영 DB 데이터 변경은 없습니다.
+- 로컬 3013 서버, 임시 QA 러너·감사 시트, Android CDP 포워딩을 종료·삭제했습니다.
+- Android 기존 탭 URL·UA를 복원했고 테스트 localStorage를 비웠습니다.
 - 운영·마스터 데이터, Vercel 설정, 실 PG 상태 변경은 없습니다.
 
 ## 개발 회귀 요청
 
-제품 커밋 `b234b32`을 테스트 MID 카드사 심사 출시 후보로 유지합니다. 실 MID 전환 전에는 KSNET 공식 사전 결박 스펙을 확보해 `reHash`/`reCommConId` 교차 주문 방지와 실제 승인·취소·영수증 회귀를 별도 수행해야 합니다.
+제품 커밋 `fbc2312`을 상품 이미지 출시 후보로 유지합니다. 배포 후 자산 용량·optimizer cold latency·Unsplash 실패율을 관찰하고, 실제 판매 전에는 저장소에 재생성 가능한 원본·매핑을 보관하며 SKU별 실사진으로 교체하는 절차를 마련해야 합니다.
