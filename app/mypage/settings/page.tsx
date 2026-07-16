@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { requireShopUser } from "@/lib/auth";
-import { isBillingReviewAccount } from "@/lib/billing-review-mock";
+import { BILLING_REVIEW_CHARGE_AMOUNT, isBillingReviewAccount } from "@/lib/billing-review-mock";
 import { BillingCards } from "./billing-cards";
 import { DeleteAccountForm, PasswordForm, ProfileForm } from "./settings-forms";
 
@@ -55,6 +55,7 @@ export default async function SettingsPage() {
         </div>
         <BillingCards
           reviewMockupEnabled={reviewMockupEnabled}
+          reviewChargeAmount={BILLING_REVIEW_CHARGE_AMOUNT}
           cards={billingCards.map((c) => ({
             id: c.id,
             maskedCardNumb: c.maskedCardNumb,

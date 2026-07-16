@@ -21,7 +21,7 @@
 | `KSPAY_WEBFEP_BASE` | WEBFEP API base URL. **기본값 `https://pay.ksnet.co.kr`** | 선택(기본값 있음) | (미설정) | 로컬·Vercel 없음(기본값 동작) · 원본: KSNET 문서 | **누락(기본값 사용)** / 없음 | 설정 시 재배포 |
 | `NODE_ENV` | 런타임 모드(development/production) | 자동 | Next.js/Vercel 자동 주입 | (설정 불필요) | 자동 | — |
 
-**요약:** 코드가 쓰는 변수 총 10종(+NODE_ENV 자동). 운영에 반드시 있어야 할 6종은 로컬·Vercel(Prod+Preview) 모두 존재. `KSPAY_STORE_KEY`/`KSPAY_API_KEY`/`KSPAY_REST_LIVE`/`KSPAY_WEBFEP_BASE`는 **KSNET 실연동 계약 전이라 의도적으로 미설정**이다. 수기결제는 API 키와 운영 스위치가 모두 없으면 UI·서버에서 차단하며 mock 승인 경로가 없다. 원클릭 빌링도 mock 발급·승인 경로를 제거하고 모든 계정에서 비활성화했다. 공용 테스트 MID의 공식 콘솔 검증은 완료했지만, 전용 개발 `pgapi`가 없으므로 실제 라온샵 계정 연동은 아직 fail-closed다.
+**요약:** 코드가 쓰는 변수 총 10종(+NODE_ENV 자동). 운영에 반드시 있어야 할 6종은 로컬·Vercel(Prod+Preview) 모두 존재. `KSPAY_STORE_KEY`/`KSPAY_API_KEY`/`KSPAY_REST_LIVE`/`KSPAY_WEBFEP_BASE`는 **KSNET 실연동 계약 전이라 의도적으로 미설정**이다. 수기결제는 API 키와 운영 스위치가 모두 없으면 UI·서버에서 차단하며 mock 승인 경로가 없다. 원클릭 빌링도 실제 발급·승인 경로는 모든 계정에서 비활성화했다. 심사 확인 계정의 브라우저 Mock은 별도 환경변수 없이 등록·조회·결제 결과·해지 UI 계약만 재현하며 PG나 DB를 호출하지 않는다. 공용 테스트 MID의 공식 콘솔 검증은 완료했지만, 전용 개발 `pgapi`와 LAONPAY 호스팅 API가 아직 연결되지 않았으므로 실제 라온샵 계정 연동은 계속 fail-closed다.
 
 ## 2. 원본(마스터) 보관 위치 — 시스템별
 

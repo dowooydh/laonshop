@@ -6,7 +6,7 @@ import { deleteBillingCardAction } from "../actions";
 import { BillingCardReviewMock } from "./billing-card-review-mock";
 
 export type BillingCardRow = { id: string; maskedCardNumb: string; dateLabel: string };
-type BillingCardsProps = { cards: BillingCardRow[]; reviewMockupEnabled: boolean };
+type BillingCardsProps = { cards: BillingCardRow[]; reviewMockupEnabled: boolean; reviewChargeAmount: number };
 
 const DELETE_ERROR_MESSAGE = "카드 삭제 상태를 확인하지 못했습니다. 네트워크 연결을 확인한 뒤 다시 시도해 주세요.";
 
@@ -21,7 +21,7 @@ function CardMark() {
   );
 }
 
-export function BillingCards({ cards, reviewMockupEnabled }: BillingCardsProps) {
+export function BillingCards({ cards, reviewMockupEnabled, reviewChargeAmount }: BillingCardsProps) {
   const router = useRouter();
   const [deleting, startDelete] = useTransition();
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -48,10 +48,10 @@ export function BillingCards({ cards, reviewMockupEnabled }: BillingCardsProps) 
 
   return (
     <div className="space-y-4">
-      {reviewMockupEnabled ? <BillingCardReviewMock /> : null}
+      {reviewMockupEnabled ? <BillingCardReviewMock reviewChargeAmount={reviewChargeAmount} /> : null}
       <div className="rounded-[var(--radius-md)] border border-line bg-overlay p-[16px] text-step--1 text-fg-subtle">
         {reviewMockupEnabled
-          ? "위 카드 등록 시연은 화면 확인용이며 실제 원클릭 결제에는 사용할 수 없습니다. 결제 시 일반 카드결제의 KSPAY 인증결제창을 이용해 주세요."
+          ? "위 생명주기 시연은 브라우저 Mock이며 실제 원클릭 결제에는 사용할 수 없습니다. 일반 주문 결제는 KSPAY 인증결제창을 이용해 주세요."
           : "카드 등록과 원클릭 결제는 현재 이용할 수 없습니다. 결제 시 일반 카드결제의 KSPAY 인증결제창을 이용해 주세요."}
       </div>
       {deleteError ? (
