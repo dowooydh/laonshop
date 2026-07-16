@@ -3,8 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { deleteBillingCardAction } from "../actions";
+import { BillingCardReviewMock } from "./billing-card-review-mock";
 
 export type BillingCardRow = { id: string; maskedCardNumb: string; dateLabel: string };
+type BillingCardsProps = { cards: BillingCardRow[]; reviewMockupEnabled: boolean };
 
 const DELETE_ERROR_MESSAGE = "카드 삭제 상태를 확인하지 못했습니다. 네트워크 연결을 확인한 뒤 다시 시도해 주세요.";
 
@@ -19,7 +21,7 @@ function CardMark() {
   );
 }
 
-export function BillingCards({ cards }: { cards: BillingCardRow[] }) {
+export function BillingCards({ cards, reviewMockupEnabled }: BillingCardsProps) {
   const router = useRouter();
   const [deleting, startDelete] = useTransition();
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -46,8 +48,11 @@ export function BillingCards({ cards }: { cards: BillingCardRow[] }) {
 
   return (
     <div className="space-y-4">
+      {reviewMockupEnabled ? <BillingCardReviewMock /> : null}
       <div className="rounded-[var(--radius-md)] border border-line bg-overlay p-[16px] text-step--1 text-fg-subtle">
-        카드 등록과 원클릭 결제는 현재 이용할 수 없습니다. 결제 시 일반 카드결제의 KSPAY 인증결제창을 이용해 주세요.
+        {reviewMockupEnabled
+          ? "위 카드 등록 시연은 화면 확인용이며 실제 원클릭 결제에는 사용할 수 없습니다. 결제 시 일반 카드결제의 KSPAY 인증결제창을 이용해 주세요."
+          : "카드 등록과 원클릭 결제는 현재 이용할 수 없습니다. 결제 시 일반 카드결제의 KSPAY 인증결제창을 이용해 주세요."}
       </div>
       {deleteError ? (
         <p
@@ -59,7 +64,7 @@ export function BillingCards({ cards }: { cards: BillingCardRow[] }) {
         </p>
       ) : null}
       {cards.length === 0 ? (
-        <p className="text-step--1 text-fg-subtle">삭제할 기존 카드 정보가 없습니다.</p>
+        <p className="text-step--1 text-fg-subtle">서버에 저장된 기존 카드 정보가 없습니다.</p>
       ) : (
         <ul className="divide-y divide-line rounded-[var(--radius-lg)] border border-line bg-raised">
           {cards.map((c) => (

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { requireShopUser } from "@/lib/auth";
+import { isBillingReviewAccount } from "@/lib/billing-review-mock";
 import { BillingCards } from "./billing-cards";
 import { DeleteAccountForm, PasswordForm, ProfileForm } from "./settings-forms";
 
@@ -9,6 +10,7 @@ export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
   const user = await requireShopUser();
+  const reviewMockupEnabled = isBillingReviewAccount(user.email);
   const billingCards = await prisma.shopBillingCard.findMany({
     where: { userId: user.id },
     orderBy: { createdAt: "asc" },
@@ -45,9 +47,14 @@ export default async function SettingsPage() {
       <section className="space-y-5 border-t border-line pt-8">
         <div className="space-y-1">
           <h2 className="font-mono text-step--1 uppercase tracking-widest text-accent-cyan">간편결제 카드 관리</h2>
-          <p className="text-step--1 text-fg-subtle">기존 카드 정보를 확인하거나 삭제할 수 있습니다.</p>
+          <p className="text-step--1 text-fg-subtle">
+            {reviewMockupEnabled
+              ? "카드 등록 화면을 시연하고 기존 카드 정보를 확인하거나 삭제할 수 있습니다."
+              : "기존 카드 정보를 확인하거나 삭제할 수 있습니다."}
+          </p>
         </div>
         <BillingCards
+          reviewMockupEnabled={reviewMockupEnabled}
           cards={billingCards.map((c) => ({
             id: c.id,
             maskedCardNumb: c.maskedCardNumb,
