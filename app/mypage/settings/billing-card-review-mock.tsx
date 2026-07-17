@@ -70,9 +70,15 @@ export function BillingCardReviewMock({ reviewChargeAmount }: BillingCardReviewM
   const flowRef = useRef<HTMLDivElement>(null);
   const registrationTriggerRef = useRef<HTMLButtonElement>(null);
   const registrationLockedRef = useRef(false);
+  const focusFlowAfterCloseRef = useRef(false);
   const chargeLockedRef = useRef(false);
 
   const close = useCallback(() => setOpen(false), []);
+  const restoreFocusAfterClose = useCallback((fallback: HTMLElement | null) => {
+    const focusTarget = focusFlowAfterCloseRef.current ? flowRef.current : fallback;
+    focusFlowAfterCloseRef.current = false;
+    focusTarget?.focus();
+  }, []);
 
   useEffect(() => {
     try {
@@ -125,11 +131,11 @@ export function BillingCardReviewMock({ reviewChargeAmount }: BillingCardReviewM
       window.cancelAnimationFrame(focusFrame);
       document.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = previousOverflow;
-      previouslyFocused?.focus();
+      restoreFocusAfterClose(previouslyFocused);
     };
-  }, [close, open]);
+  }, [close, open, restoreFocusAfterClose]);
 
-  const persist = (nextSnapshot: BillingReviewSnapshot, message: string) => {
+  const persist = (nextSnapshot: BillingReviewSnapshot, message: string, focusFlow = true) => {
     try {
       window.sessionStorage.setItem(BILLING_REVIEW_STORAGE_KEY, serializeBillingReviewSnapshot(nextSnapshot));
     } catch {
@@ -138,7 +144,7 @@ export function BillingCardReviewMock({ reviewChargeAmount }: BillingCardReviewM
     setSnapshot(nextSnapshot);
     setActionError(null);
     setAnnouncement(message);
-    window.requestAnimationFrame(() => flowRef.current?.focus());
+    if (focusFlow) window.requestAnimationFrame(() => flowRef.current?.focus());
   };
 
   const registerPreview = (event: FormEvent<HTMLFormElement>) => {
@@ -152,13 +158,15 @@ export function BillingCardReviewMock({ reviewChargeAmount }: BillingCardReviewM
 
     try {
       const paymentMethodId = createBillingReviewPaymentMethodId(() => createCheckoutNonce());
+      focusFlowAfterCloseRef.current = true;
       persist(
         createBillingReviewSnapshot(paymentMethodId),
         "카드 등록 시연을 완료했습니다. 불투명 결제수단 식별자와 카드사·끝 4자리만 유지합니다.",
+        false,
       );
-      close();
     } catch (error) {
       registrationLockedRef.current = false;
+      focusFlowAfterCloseRef.current = false;
       setActionError(error instanceof Error ? error.message : "카드 등록 시연을 완료하지 못했습니다.");
     }
   };
@@ -432,6 +440,12 @@ export function BillingCardReviewMock({ reviewChargeAmount }: BillingCardReviewM
               <p id="billing-review-dialog-safety" className="rounded-[var(--radius-md)] border border-warning/25 bg-warning/5 p-[12px] text-step--1 leading-relaxed text-fg-subtle">
                 실제 카드정보는 입력할 수 없습니다. 등록 결과는 불투명 결제수단 ID와 카드사·끝 4자리로만 이 브라우저 탭에 표시됩니다.
               </p>
+
+              {snapshot ? (
+                <p className="rounded-[var(--radius-md)] border border-success/30 bg-success/5 p-[12px] text-step--1 leading-relaxed text-success">
+                  카드 등록 시연을 완료했습니다. 아래 버튼으로 등록 화면을 닫은 뒤 조회를 이어갈 수 있습니다.
+                </p>
+              ) : null}
 
               {actionError ? (
                 <p role="alert" className="rounded-[var(--radius-md)] border border-danger/30 bg-danger/5 p-[12px] text-step--1 text-danger">
