@@ -368,7 +368,12 @@ export function BillingCardReviewMock({ reviewChargeAmount }: BillingCardReviewM
 
       {open ? (
         <div className="fixed inset-0 z-[120] flex items-end justify-center p-[8px] sm:items-center sm:p-[16px]">
-          <div className="absolute inset-0 bg-void/80 backdrop-blur-sm" aria-hidden onMouseDown={close} />
+          <div
+            className="absolute inset-0 bg-void/80 backdrop-blur-sm"
+            aria-hidden
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={close}
+          />
           <div
             ref={dialogRef}
             role="dialog"

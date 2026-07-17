@@ -142,6 +142,10 @@ test("시연 컴포넌트는 결제 생명주기 UI만 바꾸고 PG·DB·주문 
     component.indexOf("const registerPreview"),
     component.indexOf("const queryPreview"),
   );
+  const backdrop = component.slice(
+    component.indexOf('<div\n            className="absolute inset-0 bg-void/80 backdrop-blur-sm"'),
+    component.indexOf("<div\n            ref={dialogRef}"),
+  );
   const page = readFileSync(join(process.cwd(), "app/mypage/settings/page.tsx"), "utf8");
   const actions = readFileSync(join(process.cwd(), "app/mypage/actions.ts"), "utf8");
 
@@ -163,6 +167,9 @@ test("시연 컴포넌트는 결제 생명주기 UI만 바꾸고 PG·DB·주문 
   assert.match(component, /chargeLockedRef/);
   assert.match(component, /aria-modal="true"/);
   assert.match(component, /event\.key === "Escape"/);
+  assert.match(backdrop, /onMouseDown=\{\(event\) => event\.preventDefault\(\)\}/);
+  assert.match(backdrop, /onClick=\{close\}/);
+  assert.doesNotMatch(backdrop, /onMouseDown=\{close\}/);
   assert.doesNotMatch(component, /\bfetch\s*\(|\bFormData\b|\blocalStorage\b|document\.cookie|console\./);
   assert.doesNotMatch(component, /billingToken|registerBillingCardAction|action\s*=/i);
   assert.doesNotMatch(component, /\btid\s*:|\.tid\b|\[\s*["']tid["']\s*\]/i);
