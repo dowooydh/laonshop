@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { type FormEvent, type SyntheticEvent, useCallback, useEffect, useRef, useState } from "react";
 import { createCheckoutNonce } from "@/lib/checkout-idempotency";
 import { formatKrw } from "@/lib/format";
 import { Button } from "@/lib/ui/button";
@@ -23,11 +23,15 @@ type BillingCardReviewMockProps = {
   reviewChargeAmount: number;
 };
 
+type BillingReviewModalPhase = "closed" | "open" | "dismiss-input-guard";
+
 const OUTCOME_OPTIONS: Array<{ value: BillingReviewChargeOutcome; label: string; description: string }> = [
   { value: "success", label: "승인", description: "정상 승인 응답" },
   { value: "declined", label: "거절", description: "명시적 승인 거절" },
   { value: "indeterminate", label: "결과 미상", description: "timeout·5xx" },
 ];
+
+const DISMISS_INPUT_GUARD_MS = 700;
 
 function CardMark() {
   return (
@@ -60,7 +64,7 @@ function chargeStateLabel(snapshot: BillingReviewSnapshot): string {
 }
 
 export function BillingCardReviewMock({ reviewChargeAmount }: BillingCardReviewMockProps) {
-  const [open, setOpen] = useState(false);
+  const [modalPhase, setModalPhase] = useState<BillingReviewModalPhase>("closed");
   const [snapshot, setSnapshot] = useState<BillingReviewSnapshot | null>(null);
   const [chargeOutcome, setChargeOutcome] = useState<BillingReviewChargeOutcome>("success");
   const [announcement, setAnnouncement] = useState<string | null>(null);
@@ -72,8 +76,39 @@ export function BillingCardReviewMock({ reviewChargeAmount }: BillingCardReviewM
   const registrationLockedRef = useRef(false);
   const focusFlowAfterCloseRef = useRef(false);
   const chargeLockedRef = useRef(false);
+  const dismissInputGuardTimerRef = useRef<number | null>(null);
+  const open = modalPhase === "open";
 
-  const close = useCallback(() => setOpen(false), []);
+  const clearDismissInputGuardTimer = useCallback(() => {
+    if (dismissInputGuardTimerRef.current !== null) {
+      window.clearTimeout(dismissInputGuardTimerRef.current);
+      dismissInputGuardTimerRef.current = null;
+    }
+  }, []);
+  const close = useCallback(() => {
+    clearDismissInputGuardTimer();
+    setModalPhase("closed");
+  }, [clearDismissInputGuardTimer]);
+  const armDismissInputGuard = useCallback(() => {
+    clearDismissInputGuardTimer();
+
+    setModalPhase("dismiss-input-guard");
+    dismissInputGuardTimerRef.current = window.setTimeout(() => {
+      dismissInputGuardTimerRef.current = null;
+      setModalPhase((phase) => (phase === "dismiss-input-guard" ? "closed" : phase));
+    }, DISMISS_INPUT_GUARD_MS);
+  }, [clearDismissInputGuardTimer]);
+  const closeWithInputGuard = useCallback(() => {
+    armDismissInputGuard();
+  }, [armDismissInputGuard]);
+  const absorbDismissInput = useCallback(
+    (event: SyntheticEvent<HTMLDivElement>) => {
+      event.preventDefault();
+      event.stopPropagation();
+      armDismissInputGuard();
+    },
+    [armDismissInputGuard],
+  );
   const restoreFocusAfterClose = useCallback((fallback: HTMLElement | null) => {
     const focusTarget = focusFlowAfterCloseRef.current ? flowRef.current : fallback;
     focusFlowAfterCloseRef.current = false;
@@ -91,6 +126,11 @@ export function BillingCardReviewMock({ reviewChargeAmount }: BillingCardReviewM
       setSnapshot(null);
     }
   }, []);
+
+  useEffect(
+    () => () => clearDismissInputGuardTimer(),
+    [clearDismissInputGuardTimer],
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -150,7 +190,7 @@ export function BillingCardReviewMock({ reviewChargeAmount }: BillingCardReviewM
   const registerPreview = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (snapshot) {
-      close();
+      closeWithInputGuard();
       return;
     }
     if (registrationLockedRef.current) return;
@@ -222,8 +262,9 @@ export function BillingCardReviewMock({ reviewChargeAmount }: BillingCardReviewM
 
   const openRegistration = () => {
     if (snapshot?.cardStatus === "DEREGISTERED") resetPreview();
+    clearDismissInputGuardTimer();
     setActionError(null);
-    setOpen(true);
+    setModalPhase("open");
   };
 
   return (
@@ -366,13 +407,26 @@ export function BillingCardReviewMock({ reviewChargeAmount }: BillingCardReviewM
         {announcement}
       </p>
 
+      {modalPhase === "dismiss-input-guard" ? (
+        <div
+          data-billing-dismiss-input-guard
+          className="fixed inset-0 z-[120] touch-none"
+          aria-hidden="true"
+          onPointerDown={absorbDismissInput}
+          onPointerUp={absorbDismissInput}
+          onMouseDown={absorbDismissInput}
+          onClick={absorbDismissInput}
+          onDoubleClick={absorbDismissInput}
+        />
+      ) : null}
+
       {open ? (
         <div className="fixed inset-0 z-[120] flex items-end justify-center p-[8px] sm:items-center sm:p-[16px]">
           <div
             className="absolute inset-0 bg-void/80 backdrop-blur-sm"
             aria-hidden
             onMouseDown={(event) => event.preventDefault()}
-            onClick={close}
+            onClick={closeWithInputGuard}
           />
           <div
             ref={dialogRef}
@@ -394,7 +448,7 @@ export function BillingCardReviewMock({ reviewChargeAmount }: BillingCardReviewM
               </div>
               <button
                 type="button"
-                onClick={close}
+                onClick={closeWithInputGuard}
                 className="inline-flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-full border border-line bg-overlay text-fg-muted transition-colors hover:border-fg-subtle hover:text-fg"
                 aria-label="카드 등록 창 닫기"
               >

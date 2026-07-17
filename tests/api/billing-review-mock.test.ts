@@ -146,6 +146,14 @@ test("시연 컴포넌트는 결제 생명주기 UI만 바꾸고 PG·DB·주문 
     component.indexOf('<div\n            className="absolute inset-0 bg-void/80 backdrop-blur-sm"'),
     component.indexOf("<div\n            ref={dialogRef}"),
   );
+  const dismissInputGuard = component.slice(
+    component.indexOf("data-billing-dismiss-input-guard"),
+    component.indexOf("{open ?"),
+  );
+  const escapeHandler = component.slice(
+    component.indexOf('if (event.key === "Escape")'),
+    component.indexOf('if (event.key !== "Tab"'),
+  );
   const page = readFileSync(join(process.cwd(), "app/mypage/settings/page.tsx"), "utf8");
   const actions = readFileSync(join(process.cwd(), "app/mypage/actions.ts"), "utf8");
 
@@ -160,16 +168,36 @@ test("시연 컴포넌트는 결제 생명주기 UI만 바꾸고 PG·DB·주문 
   assert.match(component, /focusFlowAfterCloseRef/);
   assert.match(component, /focusFlowAfterCloseRef\.current \? flowRef\.current : fallback/);
   assert.match(component, /restoreFocusAfterClose\(previouslyFocused\)/);
+  assert.match(component, /const DISMISS_INPUT_GUARD_MS = 700/);
+  assert.match(component, /const closeWithInputGuard = useCallback/);
+  assert.match(component, /type BillingReviewModalPhase = "closed" \| "open" \| "dismiss-input-guard"/);
+  assert.match(component, /setModalPhase\("dismiss-input-guard"\)/);
+  assert.match(component, /phase === "dismiss-input-guard" \? "closed" : phase/);
+  assert.match(component, /window\.clearTimeout\(dismissInputGuardTimerRef\.current\)/);
+  assert.match(component, /clearDismissInputGuardTimer\(\);\s*setActionError\(null\);\s*setModalPhase\("open"\)/);
+  assert.match(component, /\(\) => \(\) => clearDismissInputGuardTimer\(\)/);
   assert.match(registrationHandler, /if \(snapshot\)[\s\S]*if \(registrationLockedRef\.current\)/);
+  assert.match(registrationHandler, /if \(snapshot\) \{\s*closeWithInputGuard\(\);/);
   assert.match(registrationHandler, /persist\([\s\S]*false,[\s\S]*\);/);
   assert.doesNotMatch(registrationHandler, /persist\([\s\S]*\);\s*close\(\)/);
   assert.match(component, /카드 등록 시연을 완료했습니다\. 아래 버튼으로 등록 화면을 닫은 뒤 조회를 이어갈 수 있습니다\./);
   assert.match(component, /chargeLockedRef/);
   assert.match(component, /aria-modal="true"/);
   assert.match(component, /event\.key === "Escape"/);
+  assert.match(escapeHandler, /close\(\)/);
+  assert.doesNotMatch(escapeHandler, /closeWithInputGuard/);
   assert.match(backdrop, /onMouseDown=\{\(event\) => event\.preventDefault\(\)\}/);
-  assert.match(backdrop, /onClick=\{close\}/);
+  assert.match(backdrop, /onClick=\{closeWithInputGuard\}/);
   assert.doesNotMatch(backdrop, /onMouseDown=\{close\}/);
+  assert.equal(component.match(/onClick=\{closeWithInputGuard\}/g)?.length, 2);
+  assert.match(dismissInputGuard, /className="fixed inset-0 z-\[120\] touch-none"/);
+  assert.match(dismissInputGuard, /aria-hidden="true"/);
+  assert.match(dismissInputGuard, /onPointerDown=\{absorbDismissInput\}/);
+  assert.match(dismissInputGuard, /onPointerUp=\{absorbDismissInput\}/);
+  assert.match(dismissInputGuard, /onMouseDown=\{absorbDismissInput\}/);
+  assert.match(dismissInputGuard, /onClick=\{absorbDismissInput\}/);
+  assert.match(dismissInputGuard, /onDoubleClick=\{absorbDismissInput\}/);
+  assert.match(component, /event\.preventDefault\(\);\s*event\.stopPropagation\(\);\s*armDismissInputGuard\(\);/);
   assert.doesNotMatch(component, /\bfetch\s*\(|\bFormData\b|\blocalStorage\b|document\.cookie|console\./);
   assert.doesNotMatch(component, /billingToken|registerBillingCardAction|action\s*=/i);
   assert.doesNotMatch(component, /\btid\s*:|\.tid\b|\[\s*["']tid["']\s*\]/i);
