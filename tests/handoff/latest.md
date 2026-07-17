@@ -4,77 +4,91 @@
 
 담당: Codex QA/테스트 세션
 
-제품 SHA: `2c1fa2413b0fae6a62865b37040d897526541b06`
+제품 SHA: `352990211fa631a549b847c792784dab525eda9b`
 
-비교 범위: `60af9451b13992a20a23c20fb1a6290ab58efd2f..2c1fa2413b0fae6a62865b37040d897526541b06`
+비교 범위: `8073b1cc571b95bdf28fe65d088d67ad6db183df..352990211fa631a549b847c792784dab525eda9b`
 
-대상 배포: `dpl_8kfuZ9coJkCdfsohU11E1gfsjT9e` / `https://laonshop.com`
+대상 배포: `dpl_5QTS9kpxgEKkQx5AUuZxukaDEEj3` / `https://laonshop.com`
 
-자동 수정 회차: **2/2**
+결과: **PARTIAL**
 
-결과: **FAIL**
+출시 판정:
 
-출시 판정: **NO-GO - backdrop 더블클릭 배경 링크 관통 수정 필요**
+- 운영 Chrome 웹 심사 시연: **조건부 GO**
+- 플랫폼 전체 PASS: **보류**
+- 실제 원클릭 빌링: **미구현·fail-closed / NO-GO**
 
 ## 요약
 
 - 제품 코드는 수정하지 않았습니다.
-- Node 22에서 focused 7/7, 전체 test 61/61, lint, typecheck, Prisma validate, audit, build를 모두 통과했습니다.
-- 이전 `QA-CBDE-01`의 단일 backdrop 포커스 유실은 수정 확인 PASS입니다.
-- 등록 성공 backdrop 단일 클릭 뒤 lifecycle `div[tabindex=-1]`에 포커스가 놓이고 다음 Tab은 `등록 정보 조회`였습니다.
-- submit·X·Escape와 등록 submit locator/고정 좌표 더블클릭, 연속 Enter도 상태 1건 유지와 포커스 복원을 통과했습니다.
-- 그러나 성공 모달 backdrop을 모바일 헤더 링크 위에서 더블클릭하면 두 번째 입력이 배경 링크로 전달돼 `/shop/men`으로 이동하는 P2 결함을 2/2 재현했습니다.
-- 승인·거절·결과미상·해지와 결과미상 reload 회귀는 통과했습니다.
-- 320/360/390/412px 정상 글자에서 모달 overflow·clipping 0, 주요 타깃 44px 이상입니다.
-- Mock resource fetch/XHR/beacon 0, Chrome console warning/error 0, DB count 불변입니다.
-- 상세 보고서: [2c1fa24 빌링 Mock backdrop 포인터 회귀](../reports/2026-07-17-2c1fa24-backdrop-pointer-regression.md)
+- 이전 P2 `QA-2C1-01`의 성공 모달 backdrop double-click 배경 링크 관통을 원 좌표 `(95, 91)`에서 2/2 재검증해 수정 확인했습니다.
+- 첫 닫기 입력 뒤 투명 guard가 연속 입력을 흡수하고, 입력마다 보호 시간을 재무장하며, 만료 뒤 배경 UI가 정상 복구됐습니다.
+- backdrop·X·`등록 화면 닫기`·등록 submit double-click에서 Mock 상태 1건 유지, 초기화·배경 관통 0을 확인했습니다.
+- 단일 backdrop 뒤 lifecycle `div[tabindex=-1]`에 포커스가 놓이고 다음 Tab은 `등록 정보 조회`였습니다.
+- 등록→조회→승인→해지와 결과미상→reload→재시도·해지 차단 회귀를 통과했습니다.
+- focused 7/7, 전체 test 61/61, lint, typecheck, Prisma validate, audit, build를 모두 통과했습니다.
+- 320/360/390/412px 정상 글자에서 overflow·clipping 0, 주요 타깃 44px 이상입니다.
+- Mock resource fetch/XHR/beacon 0, console warning/error 0, DB count 불변입니다.
+- 정확한 Chrome 200%와 인증된 Android/iOS touch double-tap은 미실행이므로 전체 결과는 PARTIAL입니다.
+- 상세 보고서: [3529902 빌링 Mock 닫힘 입력 guard 회귀](../reports/2026-07-17-3529902-dismiss-input-guard-regression.md)
 
 ## 핵심 결과
 
 | 영역 | 결과 | 증거 |
 | --- | --- | --- |
 | 정적 전체 회귀 | PASS | focused 7/7, test 61/61, skip 0, lint/typecheck/prisma/audit/build |
-| 등록 전 backdrop 포커스 | PASS | 원래 `카드 등록하기` trigger 복원 |
-| 등록 성공 backdrop 단일 클릭 | PASS | lifecycle → 다음 Tab `등록 정보 조회` |
-| submit/X/Escape 포커스 | PASS | lifecycle 컨테이너 복원 |
-| locator·좌표 submit 더블클릭 | PASS | 결제수단 표시 1개, 초기화 안내 0 |
-| 연속 Enter | PASS | 첫 입력 등록, 두 번째 모달 닫기, 상태 유지 |
-| backdrop 헤더 위 더블클릭 | **FAIL** | `(95, 91)`에서 `/shop/men` 이동, 2/2 |
-| 기존 Mock 생명주기 | PASS | 조회·승인·거절·결과미상·해지·reload |
-| 모바일 320~412px | PASS | document/dialog/control overflow·clipping 0, 44px+ |
-| 정확한 Chrome 200% | NOT EXECUTED | 이번 회차 도구 제약으로 분리 |
+| 원 재현 좌표 double-click | PASS | `(95, 91)` 2/2, `/shop/men` 이동 0 |
+| guard 재무장 | PASS | 400ms 간격 연속 입력 흡수, 마지막 입력 후 700ms 보호 재시작 |
+| guard 만료 뒤 복구 | PASS | 만료 후 동일 좌표 단일 클릭이 `/shop/men` 정상 이동 |
+| X·닫기 submit double-click | PASS | 상태 1건 유지, 초기화·배경 관통 0 |
+| 등록 submit double-click | PASS | 등록 1건, lifecycle 포커스 |
+| 단일 backdrop 포커스 | PASS | lifecycle → 다음 Tab `등록 정보 조회` |
+| Escape | PASS | 즉시 close, guard 0, lifecycle 포커스 |
+| 기존 Mock 생명주기 | PASS | 승인·해지, 결과미상·reload·차단 |
+| 모바일 320~412px | PASS | 정상 글자 기준 overflow·clipping 0, 44px+ |
+| 정확한 Chrome 200% | NOT EXECUTED | 도구 제약으로 분리 |
 | Android/iOS 인증 Mock | NOT EXECUTED | 인증 세션·도구 제약, touch double-tap 미실행 |
 | DB·서버 무접촉 | PASS | DB 불변, fetch/XHR/beacon 0, console error 0 |
-| cleanup | PASS | Mock 초기화, 모달·viewport·브라우저 제어 탭 정리 |
+| cleanup | PASS | Mock 초기화, dialog·guard·브라우저 제어 세션 정리 |
 
-## 발견 결함
+## 결함 상태
 
-### QA-2C1-01 - 성공 모달 backdrop 더블클릭이 배경 링크로 관통
+### QA-2C1-01 - 성공 모달 backdrop double-click 배경 링크 관통
 
-- 심각도: **P2**
-- 재현: 지정 심사 계정에서 카드 등록 완료 → 성공 모달 열기 → 모바일 헤더 `남성의류` 위 backdrop `(95, 91)` 더블클릭
-- 기대: 모달만 닫히고 연속 입력이 배경 링크·버튼으로 전달되지 않음
-- 실제: 첫 클릭으로 모달이 닫힌 뒤 두 번째 클릭이 배경 링크에 전달돼 `/shop/men` 이동
-- 재현율: **2/2**
-- 관련 파일: `app/mypage/settings/billing-card-review-mock.tsx`
-- 원인 후보: `mousedown.preventDefault()`는 포커스만 보호하고, 첫 `click`에서 overlay가 제거된 뒤 두 번째 pointer sequence를 흡수하지 못함
-- 영향: Mock·DB·주문·PG 상태는 유지되지만 사용자가 예기치 않은 배경 명령을 실행하거나 흐름에서 이탈할 수 있음
+- 이전 심각도: **P2**
+- 현재 상태: **FIXED**
+- 재현 환경: 운영 Chrome `412x915`, 지정 심사 계정 인증 탭
+- 재현 좌표: 모바일 헤더 `남성의류` 위 `(95, 91)`
+- 결과: 실제 mouse double-click 2/2에서 URL·Mock 상태·`paymentMethodId` 불변
+- 신규 제품 결함: 없음
+
+잔여 위험으로 700ms가 모든 OS의 사용자 설정 double-click 간격을 포괄하는 보편적 상한은 아닙니다.
 
 ## 안전·운영 증거
 
-- 직전 기준과 이번 read-only 확인 DB는 모두 `users 10 / active 9 / cards 2 / orders 11 / items 11 / audits 0`입니다.
-- Mock 조작과 reload 후 resource fetch/XHR/beacon 0, Chrome console warning/error 0입니다.
-- 카드 원문, `billingToken`, PG TID 필드, pgapi·Authorization, Mock용 Action/DB write는 없습니다.
+- DB 기준선 전후는 모두 `users 10 / active 9 / cards 2 / orders 11 / items 11 / audits 0`입니다.
+- Mock 조작 중 resource fetch/XHR/beacon 0, Chrome console warning/error 0입니다.
+- 카드 원문, `billingToken`, PG TID, pgapi·Authorization, Mock용 Action/DB write는 없습니다.
 - 실제 카드, 실 KSNET, 주문·결제 submit, 운영 DB write와 Vercel 설정 변경을 실행하지 않았습니다.
-- 인계된 Vercel 배포는 READY, production, Git SHA `2c1fa24`이며 local/origin HEAD와 일치합니다.
+- Vercel 배포는 READY, production, Git SHA `3529902`이며 local/origin HEAD와 apex/www alias가 일치합니다.
+- 최근 1시간 runtime error cluster 0, 해당 배포 error/fatal log 0입니다.
 
 ## 미실행·외부 blocker
 
-- 정확한 Chrome 200% 확대는 이번 회차에 미실행입니다.
-- Android/iOS는 인증 Mock과 실제 touch double-tap을 실행하지 않았습니다.
-- 실제 빌링은 전용 개발 pgapi, LAONPAY 호스팅 등록/API, opaque `paymentMethodId` 계약, 서버 소유권·멱등성·UNKNOWN 대사와 토큰 보안 저장 전까지 NO-GO입니다.
-- 통신판매업신고번호 확정은 별도 외부 항목입니다.
+- 정확한 Chrome 200% 확대
+- 인증된 Android/iOS Billing Mock 전체 생명주기와 touch double-tap
+- Mock 초기화 버튼 바로 위 backdrop의 정확한 좌표 관통
+- 이번 SHA의 브라우저 거절 분기와 연속 Enter
+- 실제 빌링은 전용 개발 pgapi, LAONPAY 호스팅 등록/API, opaque `paymentMethodId` 소유권·멱등성, UNKNOWN 대사와 토큰 보안 저장 전까지 NO-GO입니다.
+- 미실행 항목은 제품 결함이 아니라 도구·인증 세션 제약으로 분리했습니다.
+
+## Cleanup
+
+- 브라우저 Mock 초기화, dialog 0, guard 0, 저장된 Mock 결제수단 0을 확인했습니다.
+- Chrome viewport와 제어 세션을 정리했습니다.
+- QA fixture와 DB write를 생성하지 않았습니다.
+- 운영 데이터, Vercel env, PG 설정은 변경하지 않았습니다.
 
 ## 개발 회신
 
-`QA-CBDE-01`의 단일 backdrop 포커스는 수정 확인됐습니다. 하지만 자동 수정 2/2의 필수 추가 조건인 연속 입력 관통 차단이 실패했으므로 대상 커밋은 **FAIL / NO-GO**입니다. 제품 코드는 QA에서 수정하지 않으며 `QA-2C1-01`의 재현 좌표와 필요한 회귀를 개발 작업으로 전달합니다.
+`QA-2C1-01`은 운영 Chrome 원 재현 좌표에서 수정 확인됐습니다. Chrome 웹 심사 시연은 조건부 GO입니다. 정확한 200%와 인증된 Android/iOS touch double-tap이 미실행이므로 플랫폼 전체 판정은 PARTIAL로 유지합니다. 제품 코드는 QA에서 수정하지 않았습니다.
