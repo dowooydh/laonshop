@@ -2,88 +2,88 @@
 
 작성일: 2026-07-18
 
-담당: Codex QA/테스트 세션
+검증 제품 SHA: `90b7255d8de35c12d31a81f12fbde47911a4ae2b`
 
-제품 SHA: `70ca87bfe1d6629193fcba10815b7763ffc5725f`
+비교 범위: `eba4c3417418805b96738fe5313e93dec4132ea2..90b7255d8de35c12d31a81f12fbde47911a4ae2b`
 
-비교 범위: `0652dddd8ba4c8449c9089459cd9cd4047fc72dd..70ca87bfe1d6629193fcba10815b7763ffc5725f`
+운영 배포: `dpl_4hKy3FWShAnjZR81U4wX68nsoJFh` / `https://laonshop.com`
 
-대상 배포: `dpl_27TAHvFGXvsVrYndU5eqkCg1Z5WR` / `https://laonshop.com`
+결과: **PARTIAL**
 
-결과: **FAIL**
+## 판정
 
-출시 판정:
-
-- 현재 fail-closed 운영 유지: **GO**
+- `QA-70CA-01` 취소 POST 모순 상태쌍 수용: **PASS / CLOSED**
+- 현재 LAONPAY 비활성 fail-closed 운영: **GO**
 - LAONPAY hosted 등록·원클릭·취소 활성화: **NO-GO**
-- P1 수정 후 재검증 필요
+- `QA-90B-01` 주문 제목 360px·200% reflow: **P2 / OPEN**
 
-## 요약
-
-- 제품 코드는 수정하지 않았습니다.
-- seller-first 원격 reason을 signed GET의 source of truth로 반영하는 변경과 ID·소유권·금액·paymentId 결박 유지 여부를 독립 검토했습니다.
-- focused 50/50, 전체 test 101/101, lint, typecheck, Prisma validate, audit와 production build는 통과했습니다.
-- 별도 실제 client probe에서 취소 POST 모순 상태쌍 4개가 모두 `ok: true`로 파싱됐습니다.
-- `REJECTED+CANCELED`와 `REJECTED+CANCEL_REQUESTED`는 Action이 charge 상태를 확인하지 않고 terminal 로컬 `REJECTED`로 기록할 수 있습니다.
-- 실제 원격 취소 가능성이 있는 주문을 반려로 표시하고 로컬 주문·결제·취소 원장이 어긋날 수 있어 `QA-70CA-01`을 P1로 확정했습니다.
-- 현재 LAONPAY env/schema 미적용 운영에서는 해당 경로가 fail-closed이므로 즉시 실사용 영향은 없습니다.
-- P1 확정 후 제어 지침에 따라 실제 DB 상태행렬과 인증 UI는 수정 SHA로 이월했습니다.
-- 상세 보고서: [70ca87b seller-first 취소 대사 회귀](../reports/2026-07-18-70ca87b-seller-first-cancel-regression.md)
+상세 증거는
+[`2026-07-18-90b7255-cancel-status-pair-regression.md`](../reports/2026-07-18-90b7255-cancel-status-pair-regression.md)에 정리했습니다.
 
 ## 핵심 결과
 
-| 영역 | 결과 | 증거 |
+| 범위 | 결과 | 핵심 증거 |
 | --- | --- | --- |
-| seller-first reason 코드 경계 | PASS | signed GET 원격 reason 반영, ID·owner·amount·paymentId 결박 유지 |
-| focused billing/client | PASS | 50/50, skip 0 |
-| 전체 정적 회귀 | PASS | test 101/101, skip 0, lint/typecheck/prisma/audit/build |
-| POST 상태쌍 parser | **FAIL** | 모순 4종 모두 client `ok: true` |
-| `REJECTED` Action 독립 방어 | **FAIL** | `charge.status === "PAID"` 결박 없음 |
-| signed GET 상태쌍 parser | PASS | strict 상태쌍 검증 유지 |
-| 배포 상태 | PASS | READY, 제품 SHA 일치, runtime error/error·fatal 0 |
-| 실제 DB 상태행렬 | NOT EXECUTED | P1 확정 후 수정 SHA로 이월 |
-| 인증 반응형 UI | NOT EXECUTED | P1 조기 종료 |
-| cleanup | PASS | 임시 probe·격리 PostgreSQL 완전 삭제 |
+| 취소 POST 상태쌍 | PASS | 실제 billing client 24조합 중 허용 4개만 `ok:true`, 모순 20개 모두 `UNKNOWN` |
+| 이전 P1 재현 4종 | PASS | terminal `REJECTED/CANCELED` 미생성, order·charge `PAID`, 취소 원장 `UNKNOWN` |
+| seller-first 상태행렬 | PASS | REQUESTED·PROCESSING·DONE·REJECTED가 signed GET 원격 원장으로 원자 수렴 |
+| Action 독립 방어 | PASS | same charge ID + `charge=PAID` + `cancelRequest=REJECTED` 결박 |
+| 불일치·IDOR·fallback | PASS | 소유권·ID·금액·paymentId 불일치 no-write, `PAID`를 반려로 추론하지 않음 |
+| 중복·비회귀 | PASS | 취소 신청 POST는 시나리오당 1회, 늦은 REQUESTED가 PROCESSING을 되돌리지 않음 |
+| fail-closed 운영 경계 | PASS | env 미설정에서 hosted/oneclick/manual 미노출, 일반 KSPAY 유지, 외부 호출·DB 변화 0 |
+| 정적 검증 | PASS | focused 51/51, 전체 102/102, lint/typecheck/prisma/audit/build 통과 |
+| 운영 배포 | PASS | READY, production, SHA·apex/www alias 일치, error/fatal 0 |
+| 주문 상세 200% reflow | PARTIAL | 320·390·412px 통과, 정확히 360px에서 12px 문서 가로 스크롤 |
+| Cleanup | PASS | 격리 DB·서버·브라우저·키·인증서·stub·로그 삭제, listener·임시 파일 0 |
 
-## 결함
+## 발견 결함
 
-### QA-70CA-01 - 취소 POST 모순 상태쌍을 성공 응답으로 수용
+### QA-90B-01 - 주문 제목이 360px·글자 200%에서 문서 폭을 확장함
 
-- 심각도: **P1**
-- 관련 코드: `lib/laonpay/billing-contract.ts:123`, `app/order/actions.ts:224`, `app/order/actions.ts:230`
-- 재현:
-  - `REJECTED+CANCELED` → client `ok: true`
-  - `REJECTED+CANCEL_REQUESTED` → client `ok: true`
-  - `REQUESTED+PAID` → client `ok: true`
-  - `DONE+PAID` → client `ok: true`
-- 실제: 앞의 두 조합은 Action에서 terminal `REJECTED`로 기록될 수 있습니다.
-- 기대: POST도 `REQUESTED|PROCESSING↔CANCEL_REQUESTED`, `DONE↔CANCELED`, `REJECTED↔PAID`만 허용하고 나머지는 `UNKNOWN`으로 보류해야 합니다.
-- 영향: 후속 signed GET 전까지 실제 원격 취소 상태와 고객 표시·로컬 원장이 불일치합니다.
+- 심각도: **P2**
+- 상태: **OPEN**
+- 대상 취소 수정 귀책: **아님**
+- 대상 범위에서 `app/order/[id]/page.tsx`, `app/globals.css`, `tailwind-preset.js` 변경: 0
 
-## 필수 수정·회귀
+재현:
 
-- POST response schema에 signed GET과 같은 상태쌍 `superRefine` 추가
-- Action rejected 분기에 `charge.status === "PAID"` 독립 결박
-- 네 모순 조합의 client `UNKNOWN`과 terminal DB no-write 회귀 추가
-- seller-first A/B reason의 REQUESTED/PROCESSING/DONE/REJECTED 격리 DB 상태행렬
-- `DONE+CANCELED`의 로컬 UNKNOWN+provider ID 후 signed GET CANCELED 수렴
-- ID·owner·externalOrderId·amount·paymentId 불일치 no-write와 charge fallback
-- REJECTED 안내·조회 버튼 320~412px/확대/키보드 회귀
+1. 로그인 고객의 등록카드 `REJECTED` 주문 상세를 엽니다.
+2. viewport를 `360x915`, 루트 글자 크기를 `200%`로 설정합니다.
+3. 문서와 주문 완료 제목의 scroll/client 폭을 측정합니다.
 
-## 안전·운영 증거
+기대:
 
-- Vercel 배포는 READY/production, region `sin1`, Git SHA `70ca87b`와 local/origin HEAD가 일치합니다.
-- 최근 1시간 runtime error cluster 0, 해당 배포 error/fatal 0입니다.
-- 실제 카드, PG, LAONPAY API, 운영 DB write, schema push와 Vercel env 변경을 실행하지 않았습니다.
-- 현재 env/schema 미적용 fail-closed 운영은 유지할 수 있으나 빌링 활성화는 금지해야 합니다.
+- `document.scrollWidth=clientWidth=360`
+- 제목이 부모 폭 안에서 줄바꿈
+
+실제:
+
+- document `scrollWidth=372`, `clientWidth=360`
+- H1 parent `clientWidth=296`, H1 `scrollWidth=340`
+- 관련 class: `text-balance break-keep ... min-[360px]:text-step-2`
+- 반려 안내와 조회 버튼은 보이고 조작 가능하며 버튼 높이·내부 clipping은 통과
+
+권장 회귀:
+
+- `min-[360px]:text-step-2`가 확대 환경에서 문서 폭을 늘리지 않도록 수정
+- 360px·200%에서 H1 `scrollWidth<=clientWidth`와 document `scrollWidth=clientWidth`를 함께 단정
+- PAID, PENDING, FAILED, CANCEL_REQUESTED, CANCELED 제목 교차 확인
+
+## 실행하지 못한 항목
+
+- 실제 Android/iOS 인증 주문 상세와 정확한 플랫폼별 글자 확대
+- LAONPAY hosted/API 상호운용과 실제 schema/env/key readiness
+- 실카드, KSNET 승인·취소·해지, 운영 인증 계정 쓰기
+
+위 항목은 제품 실패가 아니라 미실행 또는 외부 readiness blocker입니다.
 
 ## Cleanup
 
-- 임시 client probe 파일을 삭제했습니다.
-- 격리 PostgreSQL은 schema 적용 뒤 fixture 생성 전에 중단했습니다.
-- 임시 DB cluster/database/log를 삭제하고 port 55432 listener 0을 확인했습니다.
-- 운영 데이터·env·PG와 제품 코드를 변경하지 않았습니다.
+- 격리 PostgreSQL 17 fixture와 custom HTTPS server를 종료·삭제했습니다.
+- 일회성 Ed25519 key, TLS 인증서, env, stub, browser runner와 요청 로그를 삭제했습니다.
+- port 3003, 3443, 55432 listener와 `/private/tmp/laonshop-90b-*` 잔존 파일이 없습니다.
+- 운영 DB, Vercel env, LAONPAY/PG 상태와 제품 코드는 변경하지 않았습니다.
 
-## 개발 회신
+## 개발 작업 전달
 
-`70ca87b`은 seller-first reason 대사를 보강했지만 POST 응답 상태쌍 검증이 없어 P1 `QA-70CA-01`이 확인됐습니다. 현재 비활성 운영은 유지할 수 있으나 LAONPAY 빌링 활성화는 FAIL/NO-GO입니다. parser와 Action 독립 방어 수정 후 새 SHA에서 격리 DB 상태행렬과 인증 UI를 재검증해야 합니다.
+취소 상태쌍 수정은 실제 client와 격리 DB 상태행렬에서 통과했으므로 `QA-70CA-01`을 닫을 수 있습니다. 다음 제품 회차에서는 `QA-90B-01`의 360px·200% 제목 reflow와 별도 claim 경합 안전성 보강을 검증 대상으로 삼습니다.
