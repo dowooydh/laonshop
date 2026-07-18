@@ -161,7 +161,6 @@ async function refreshKnownRegistration(input: {
 }): Promise<BillingSettingsActionState & { status?: string }> {
   const result = await createLaonpayBillingClient().getRegistrationIntent(
     input.providerRegistrationId,
-    randomUUID(),
   );
   if (!result.ok || result.data.registrationId !== input.providerRegistrationId) {
     await prisma
@@ -467,7 +466,7 @@ export async function refreshBillingPaymentMethodsAction(
     return { error: "간편결제 연동이 준비되지 않았습니다." };
   }
 
-  const result = await createLaonpayBillingClient().listPaymentMethods(user.id, randomUUID());
+  const result = await createLaonpayBillingClient().listPaymentMethods(user.id);
   if (!result.ok) {
     return { error: "등록 카드 상태를 확인하지 못했습니다. 기존 상태를 유지합니다." };
   }

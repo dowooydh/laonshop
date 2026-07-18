@@ -165,7 +165,9 @@ model ShopBillingCancelRequest {
   laonpayCancelRequestId String?                        @unique
   idempotencyKey         String                         @unique
   reason                 String?
+  rejectReason           String?
   requestSentAt          DateTime?
+  providerProcessedAt    DateTime?
   status                 ShopBillingCancelRequestStatus @default(REQUESTING)
   createdAt              DateTime                       @default(now())
   updatedAt              DateTime                       @updatedAt

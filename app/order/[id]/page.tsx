@@ -84,13 +84,15 @@ export default async function OrderResultPage({
           select: {
             status: true,
             cancelRequest: {
-              select: { status: true, requestSentAt: true },
+              select: { status: true, requestSentAt: true, rejectReason: true },
             },
           },
         })
         .catch(() => null)
     : null;
   const billingCancelRequestStatus = billingCancelLedger?.cancelRequest?.status ?? null;
+  const billingCancelRejectReason =
+    billingCancelLedger?.cancelRequest?.rejectReason ?? null;
   const billingCancelRequestSent =
     billingCancelLedger?.cancelRequest?.requestSentAt !== null &&
     billingCancelLedger?.cancelRequest?.requestSentAt !== undefined;
@@ -131,7 +133,11 @@ export default async function OrderResultPage({
             role: "alert" as const,
             tone: "border-danger/40 bg-danger/5 text-danger",
             message:
-              "등록카드 취소 신청이 접수되지 않았습니다. 다시 신청하지 말고 고객센터(070-4044-7008)에 문의해 주세요.",
+              `등록카드 취소 신청이 반려되었습니다.${
+                billingCancelRejectReason
+                  ? ` 사유: ${billingCancelRejectReason}`
+                  : ""
+              } 다시 신청하지 말고 고객센터(070-4044-7008)에 문의해 주세요.`,
           }
         : paid && billingCancelRequestInProgress
           ? {

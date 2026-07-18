@@ -19,6 +19,7 @@
 - 라온샵은 등록 시작·고객/주문 원장·결과 표시만 담당하고, 카드 입력·KSNET `billingToken` 암호화 vault·조회·결제·해지·취소 요청은 LAONPAY가 담당한다. 카드 원문·KSNET `billingToken`·`pgapi`는 라온샵 브라우저·서버·DB·로그를 통과하지 않으며, 라온샵에는 opaque `paymentMethodId`와 카드사·끝 4자리·안전 상태만 저장한다. 공식 문서의 샘플 인증 문자열은 코드·Vercel 환경변수에 사용하지 않는다.
 - 호스팅 카드 등록 완료 고정 복귀 URL은 `https://laonshop.com/mypage/settings/billing/return`이다. 복귀 query는 힌트일 뿐이며, 시작 시 저장한 등록 ID와 대조한 뒤 Ed25519 서명된 LAONPAY 상태 조회 응답만 최종 근거로 사용한다.
 - 파트너 API와 hosted 등록 화면은 LAONPAY seller의 같은 고정 HTTPS origin을 사용한다. `hostedUrl`은 `LAONPAY_BILLING_API_BASE`와 `URL.origin`이 정확히 같을 때만 열고, 별도 hosted origin env나 응답 기반 동적 allowlist는 두지 않는다.
+- 파트너 서명 canonical은 `v1·METHOD·PATH_WITH_QUERY·TIMESTAMP·NONCE·IDEMPOTENCY_KEY_OR_EMPTY·SHA256_BODY` 7줄이다. POST 멱등키는 UUID 소문자로 header와 canonical에 동일하게 넣고, GET은 해당 줄을 비우며 멱등키 header를 보내지 않는다. 취소요청은 저장된 opaque 취소요청 ID의 signed GET을 최종 근거로 삼아 `REQUESTED/PROCESSING/DONE/REJECTED`를 대사하고, 외부 ID를 잃은 응답유실에서만 charge GET을 제한적으로 사용하되 `PAID`를 거절로 추론하지 않는다.
 - 등록 intent와 결제 생성 응답을 잃은 경우에는 같은 `Idempotency-Key`와 바이트상 동일한 요청 본문으로 reconciliation POST를 한 번 수행해 기존 ID·상태만 회수할 수 있다. LAONPAY는 새 resource나 새 KSNET 호출을 만들지 않아야 하며, 키가 같고 본문이 다르면 `IDEMPOTENCY_CONFLICT`로 거절한다. 계속 `UNKNOWN`이면 새 결제나 자동 재호출 없이 확인 대기로 고정한다.
 - 수기결제 WEBFEP 운영 호출은 `KSPAY_API_KEY`와 `KSPAY_REST_LIVE=1`이 모두 있어야 UI와 서버가 활성화된다. `KSPAY_REST_LIVE=1`은 운영 `pay.ksnet.co.kr`용이며 paydev 빌링 시연에는 사용하지 않는다. 계약 전 테스트 계정 mock 승인과 합성 승인번호 경로는 제거했으며, 실 MID·API 키·개인정보처리 고지까지 확인한 뒤에만 운영 활성화한다.
 - KSPAY 최종 결과는 주문 ID·주문번호·금액에 결박한 HMAC 토큰과 PG 응답 `ordno`·금액·승인번호·거래번호를 모두 검증한 뒤 주문에 반영한다. 사용자 취소값이나 주문 ID만으로 상태를 바꾸지 않는다.

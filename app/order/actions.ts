@@ -9,6 +9,10 @@ import { sanitizePgParam } from "@/lib/format";
 import { getDisabledBillingResult } from "@/lib/billing";
 import { createKspayResultToken } from "@/lib/kspay/result-token";
 import { createLaonpayBillingClient } from "@/lib/laonpay/billing-client";
+import type {
+  BillingCancelRequestStatus,
+  BillingCharge,
+} from "@/lib/laonpay/billing-contract";
 import {
   billingRequestFingerprint,
   calculateOrderAmount,
@@ -308,7 +312,7 @@ const refreshBillingCancelSchema = z.object({
 });
 
 export type RefreshBillingCancelResult =
-  | { ok: true; status: "CANCELED" | "PENDING" | "UNKNOWN" }
+  | { ok: true; status: "CANCELED" | "PENDING" | "REJECTED" | "UNKNOWN" }
   | { ok: false; error: string };
 
 export async function refreshBillingCancelStatusAction(input: {
@@ -363,6 +367,13 @@ export async function refreshBillingCancelStatusAction(input: {
       ) {
         return { ok: true as const, done: true as const, status: "CANCELED" as const };
       }
+      if (
+        charge.order.status === "PAID" &&
+        charge.status === "PAID" &&
+        charge.cancelRequest.status === "REJECTED"
+      ) {
+        return { ok: true as const, done: true as const, status: "REJECTED" as const };
+      }
 
       const acceptedRequest =
         charge.order.status === "CANCEL_REQUESTED" &&
@@ -403,27 +414,91 @@ export async function refreshBillingCancelStatusAction(input: {
   if (!prepared.ok) return { ok: false, error: prepared.error };
   if (prepared.done) return { ok: true, status: prepared.status };
 
-  // 취소 요청 POST는 어떤 경우에도 재호출하지 않는다. 저장된 LAONPAY charge ID를
-  // 사용한 읽기 전용 상태 조회만 수행한다.
-  const result = await createLaonpayBillingClient().getCharge(
-    prepared.charge.laonpayChargeId!,
-    randomUUID(),
-  );
-  if (
-    !result.ok ||
-    result.data.charge.id !== prepared.charge.laonpayChargeId ||
-    result.data.charge.externalOrderId !== prepared.charge.order.id ||
-    result.data.charge.amount !== prepared.amount ||
-    result.data.charge.paymentId !== prepared.charge.providerPaymentId
-  ) {
-    return {
-      ok: false,
-      error:
-        "취소 처리 결과를 확인하지 못했습니다. 다시 취소하지 말고 고객센터에 문의해 주세요.",
+  type RemoteCancelState =
+    | {
+        source: "cancel-request";
+        charge: BillingCharge;
+        cancelRequest: {
+          id: string;
+          status: BillingCancelRequestStatus;
+          reason: string | null;
+          rejectReason: string | null;
+          processedAt: string | null;
+        };
+      }
+    | {
+        source: "charge-fallback";
+        charge: BillingCharge;
+        cancelRequest: null;
+      };
+
+  // 취소 요청 POST는 어떤 경우에도 재호출하지 않는다. 응답에서 저장한 취소요청 ID가
+  // 있으면 전용 signed GET을 source of truth로 사용한다. 최초 POST 응답을 통째로 잃어
+  // 외부 ID가 없는 경우에만 charge GET으로 접수/완료 여부를 제한적으로 확인하며,
+  // 이 fallback에서 PAID를 거절로 추론하지 않는다.
+  const client = createLaonpayBillingClient();
+  let remote: RemoteCancelState;
+  const providerCancelRequestId =
+    prepared.charge.cancelRequest!.laonpayCancelRequestId;
+  if (providerCancelRequestId) {
+    const result = await client.getCancelRequest(providerCancelRequestId);
+    if (
+      !result.ok ||
+      result.data.cancelRequest.id !== providerCancelRequestId ||
+      result.data.cancelRequest.reason !== prepared.charge.cancelRequest!.reason ||
+      result.data.charge.id !== prepared.charge.laonpayChargeId ||
+      result.data.charge.externalOrderId !== prepared.charge.order.id ||
+      result.data.charge.amount !== prepared.amount ||
+      result.data.charge.paymentId !== prepared.charge.providerPaymentId
+    ) {
+      return {
+        ok: false,
+        error:
+          "취소 처리 결과를 확인하지 못했습니다. 다시 취소하지 말고 고객센터에 문의해 주세요.",
+      };
+    }
+    const validStatusPair =
+      ((result.data.cancelRequest.status === "REQUESTED" ||
+        result.data.cancelRequest.status === "PROCESSING") &&
+        result.data.charge.status === "CANCEL_REQUESTED") ||
+      (result.data.cancelRequest.status === "DONE" &&
+        result.data.charge.status === "CANCELED") ||
+      (result.data.cancelRequest.status === "REJECTED" &&
+        result.data.charge.status === "PAID");
+    if (!validStatusPair) {
+      return {
+        ok: false,
+        error:
+          "취소 처리 상태가 일치하지 않습니다. 다시 취소하지 말고 고객센터에 문의해 주세요.",
+      };
+    }
+    remote = {
+      source: "cancel-request",
+      charge: result.data.charge,
+      cancelRequest: result.data.cancelRequest,
+    };
+  } else {
+    const result = await client.getCharge(prepared.charge.laonpayChargeId!);
+    if (
+      !result.ok ||
+      result.data.charge.id !== prepared.charge.laonpayChargeId ||
+      result.data.charge.externalOrderId !== prepared.charge.order.id ||
+      result.data.charge.amount !== prepared.amount ||
+      result.data.charge.paymentId !== prepared.charge.providerPaymentId
+    ) {
+      return {
+        ok: false,
+        error:
+          "취소 처리 결과를 확인하지 못했습니다. 다시 취소하지 말고 고객센터에 문의해 주세요.",
+      };
+    }
+    remote = {
+      source: "charge-fallback",
+      charge: result.data.charge,
+      cancelRequest: null,
     };
   }
 
-  const remoteStatus = result.data.charge.status;
   const finalized = await prisma
     .$transaction(async (tx) => {
       await acquireTransactionLock(tx, `order:${prepared.charge.order.id}`);
@@ -449,8 +524,12 @@ export async function refreshBillingCancelStatusAction(input: {
         charge.paymentMethodId !== prepared.charge.paymentMethod.id ||
         charge.cancelRequest.userId !== user.id ||
         charge.cancelRequest.chargeId !== charge.id ||
-        charge.laonpayChargeId !== result.data.charge.id ||
-        charge.providerPaymentId !== result.data.charge.paymentId
+        charge.laonpayChargeId !== remote.charge.id ||
+        charge.providerPaymentId !== remote.charge.paymentId ||
+        (remote.source === "cancel-request"
+          ? charge.cancelRequest.laonpayCancelRequestId !== remote.cancelRequest.id ||
+            charge.cancelRequest.reason !== remote.cancelRequest.reason
+          : charge.cancelRequest.laonpayCancelRequestId !== null)
       ) {
         return { ok: false as const };
       }
@@ -458,7 +537,7 @@ export async function refreshBillingCancelStatusAction(input: {
       if (
         currentAmount !== charge.order.totalAmount ||
         currentAmount !== charge.amount ||
-        currentAmount !== result.data.charge.amount
+        currentAmount !== remote.charge.amount
       ) {
         return { ok: false as const };
       }
@@ -468,6 +547,13 @@ export async function refreshBillingCancelStatusAction(input: {
         charge.cancelRequest.status === "DONE"
       ) {
         return { ok: true as const, status: "CANCELED" as const };
+      }
+      if (
+        charge.order.status === "PAID" &&
+        charge.status === "PAID" &&
+        charge.cancelRequest.status === "REJECTED"
+      ) {
+        return { ok: true as const, status: "REJECTED" as const };
       }
 
       const acceptedRequest =
@@ -485,10 +571,19 @@ export async function refreshBillingCancelStatusAction(input: {
         return { ok: false as const };
       }
 
-      if (remoteStatus === "CANCELED") {
+      if (
+        remote.source === "cancel-request" &&
+        remote.cancelRequest.status === "DONE"
+      ) {
         await tx.shopBillingCancelRequest.update({
           where: { id: charge.cancelRequest.id },
-          data: { status: "DONE" },
+          data: {
+            status: "DONE",
+            rejectReason: null,
+            providerProcessedAt: remote.cancelRequest.processedAt
+              ? new Date(remote.cancelRequest.processedAt)
+              : null,
+          },
         });
         await tx.shopBillingCharge.update({
           where: { id: charge.id },
@@ -509,12 +604,103 @@ export async function refreshBillingCancelStatusAction(input: {
         return { ok: true as const, status: "CANCELED" as const };
       }
 
-      if (remoteStatus === "CANCEL_REQUESTED") {
+      if (
+        remote.source === "cancel-request" &&
+        (remote.cancelRequest.status === "REQUESTED" ||
+          remote.cancelRequest.status === "PROCESSING")
+      ) {
+        await tx.shopBillingCancelRequest.update({
+          where: { id: charge.cancelRequest.id },
+          data: {
+            status:
+              charge.cancelRequest.status === "PROCESSING" &&
+              remote.cancelRequest.status === "REQUESTED"
+                ? "PROCESSING"
+                : remote.cancelRequest.status,
+            rejectReason: null,
+            providerProcessedAt: remote.cancelRequest.processedAt
+              ? new Date(remote.cancelRequest.processedAt)
+              : null,
+          },
+        });
         if (uncertainRequest) {
-          // charge 상태가 취소 접수를 증명하므로 응답을 잃은 로컬 원장을 복구한다.
-          // GET에는 cancelRequest ID가 없으므로 존재하지 않는 외부 ID는 만들지 않는다.
+          await tx.shopBillingCharge.update({
+            where: { id: charge.id },
+            data: { status: "CANCEL_REQUESTED" },
+          });
+          await tx.shopOrder.update({
+            where: { id: charge.order.id },
+            data: {
+              status: "CANCEL_REQUESTED",
+              cancelRequestedAt: charge.cancelRequest.requestSentAt,
+              cancelReason: charge.cancelRequest.reason,
+            },
+          });
+        }
+        return { ok: true as const, status: "PENDING" as const };
+      }
+
+      if (
+        remote.source === "cancel-request" &&
+        remote.cancelRequest.status === "REJECTED"
+      ) {
+        await tx.shopBillingCancelRequest.update({
+          where: { id: charge.cancelRequest.id },
+          data: {
+            status: "REJECTED",
+            rejectReason: remote.cancelRequest.rejectReason,
+            providerProcessedAt: remote.cancelRequest.processedAt
+              ? new Date(remote.cancelRequest.processedAt)
+              : null,
+          },
+        });
+        await tx.shopBillingCharge.update({
+          where: { id: charge.id },
+          data: { status: "PAID" },
+        });
+        await tx.shopOrder.update({
+          where: { id: charge.order.id },
+          data: {
+            status: "PAID",
+            cancelRequestedAt: null,
+            cancelReason: null,
+          },
+        });
+        return { ok: true as const, status: "REJECTED" as const };
+      }
+
+      if (
+        remote.source === "charge-fallback" &&
+        remote.charge.status === "CANCELED"
+      ) {
+        await tx.shopBillingCancelRequest.update({
+          where: { id: charge.cancelRequest.id },
+          data: { status: "DONE" },
+        });
+        await tx.shopBillingCharge.update({
+          where: { id: charge.id },
+          data: { status: "CANCELED" },
+        });
+        await tx.shopOrder.update({
+          where: { id: charge.order.id },
+          data: {
+            status: "CANCELED",
+            cancelRequestedAt: charge.cancelRequest.requestSentAt,
+            cancelReason: charge.cancelRequest.reason,
+          },
+        });
+        return { ok: true as const, status: "CANCELED" as const };
+      }
+
+      if (
+        remote.source === "charge-fallback" &&
+        remote.charge.status === "CANCEL_REQUESTED"
+      ) {
+        if (uncertainRequest) {
           await tx.shopBillingCancelRequest.update({
             where: { id: charge.cancelRequest.id },
+            // charge GET은 취소 접수 상태만 증명한다. 외부 cancelRequest ID를
+            // 만들지는 않되 반복 조회가 가능하도록 기존 제한 상태를 유지한다.
             data: { status: "REQUESTED" },
           });
           await tx.shopBillingCharge.update({
@@ -533,8 +719,8 @@ export async function refreshBillingCancelStatusAction(input: {
         return { ok: true as const, status: "PENDING" as const };
       }
 
-      // GET charge만으로 PAID를 취소 거절로 해석할 수 없다. PENDING/PAID/DECLINED/
-      // UNKNOWN도 기존 취소 원장을 진행·회귀시키지 않고 명시적 확인 대기로 남긴다.
+      // charge fallback의 PAID를 취소 거절로 해석할 수 없다. 나머지 상태도 기존
+      // 취소 원장을 진행·회귀시키지 않고 명시적 확인 대기로 남긴다.
       return { ok: true as const, status: "UNKNOWN" as const };
     }, TX_OPTIONS)
     .catch(() => null);
@@ -691,7 +877,7 @@ export async function refreshBillingChargeStatusAction(input: {
   // provider ID가 있으면 GET만 사용한다. ID를 잃은 최초 POST의 응답 미수신 상태에서만
   // 저장한 같은 key+동일 body로 reconciliation POST를 정확히 한 번 호출한다.
   const result = prepared.charge.laonpayChargeId
-    ? await client.getCharge(prepared.charge.laonpayChargeId, randomUUID())
+    ? await client.getCharge(prepared.charge.laonpayChargeId)
     : await client.chargePaymentMethod(
         prepared.charge.paymentMethod.laonpayPaymentMethodId,
         prepared.requestBody,

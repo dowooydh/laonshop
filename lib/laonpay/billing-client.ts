@@ -9,6 +9,7 @@ import type { z } from "zod";
 import {
   billingApiErrorResponseSchema,
   billingCancelRequestResponseSchema,
+  billingCancelRequestStatusResponseSchema,
   billingChargeResponseSchema,
   billingDeregisterResponseSchema,
   billingPaymentMethodListSchema,
@@ -65,12 +66,19 @@ type PartnerCallFailure = {
 
 export type PartnerCallResult<T> = { ok: true; data: T } | PartnerCallFailure;
 
-type BillingRequest = {
-  method: "GET" | "POST";
-  pathWithQuery: string;
-  body?: unknown;
-  idempotencyKey: string;
-};
+type BillingRequest =
+  | {
+      method: "GET";
+      pathWithQuery: string;
+      body?: never;
+      idempotencyKey?: never;
+    }
+  | {
+      method: "POST";
+      pathWithQuery: string;
+      body: unknown;
+      idempotencyKey: string;
+    };
 
 function envSnapshot(): LaonpayBillingEnv {
   return {
@@ -160,7 +168,7 @@ function requireOpaqueId(value: string, label: string): string {
 
 function requireUuid(value: string): string {
   if (!UUID_PATTERN.test(value)) throw new Error("멱등키 형식이 올바르지 않습니다.");
-  return value;
+  return value.toLowerCase();
 }
 
 export function createPartnerCanonical(input: {
@@ -168,10 +176,27 @@ export function createPartnerCanonical(input: {
   pathWithQuery: string;
   timestamp: string;
   nonce: string;
+  idempotencyKey: string;
   bodyText: string;
 }): string {
   const bodyHash = createHash("sha256").update(input.bodyText, "utf8").digest("hex");
-  return ["v1", input.method, input.pathWithQuery, input.timestamp, input.nonce, bodyHash].join("\n");
+  const canonicalIdempotencyKey =
+    input.method === "POST"
+      ? requireUuid(input.idempotencyKey)
+      : input.idempotencyKey === ""
+        ? ""
+        : (() => {
+            throw new Error("GET canonical에는 멱등키를 포함할 수 없습니다.");
+          })();
+  return [
+    "v1",
+    input.method,
+    input.pathWithQuery,
+    input.timestamp,
+    input.nonce,
+    canonicalIdempotencyKey,
+    bodyHash,
+  ].join("\n");
 }
 
 export function createPartnerSignature(canonical: string, privateKey: KeyObject): string {
@@ -208,10 +233,18 @@ async function readJsonWithLimit(response: Response): Promise<unknown> {
   return JSON.parse(Buffer.concat(chunks, totalBytes).toString("utf8")) as unknown;
 }
 
-function validateHostedUrl(value: string, apiOrigin: string): boolean {
+function validateHostedUrl(
+  value: string,
+  apiOrigin: string,
+  registrationId: string,
+): boolean {
   try {
     const hosted = new URL(value);
-    const pathMatch = hosted.pathname.match(/^\/billing\/register\/([A-Za-z0-9_-]{8,128})$/);
+    // LAONPAY hosted token은 lpbr1.<intent id>.<HMAC-SHA256 base64url>이며
+    // 응답 registrationId와 같은 intent에 결박되어야 한다.
+    const pathMatch = hosted.pathname.match(
+      /^\/billing\/register\/lpbr1\.([A-Za-z0-9_-]{8,128})\.([A-Za-z0-9_-]{43})$/,
+    );
     return (
       hosted.protocol === "https:" &&
       hosted.origin === apiOrigin &&
@@ -219,7 +252,7 @@ function validateHostedUrl(value: string, apiOrigin: string): boolean {
       !hosted.password &&
       !hosted.search &&
       !hosted.hash &&
-      Boolean(pathMatch)
+      pathMatch?.[1] === registrationId
     );
   } catch {
     return false;
@@ -242,7 +275,8 @@ export function createLaonpayBillingClient(
     schema: z.ZodType<T>,
   ): Promise<PartnerCallResult<T>> {
     if (!config) return { ok: false, outcome: "NOT_CONFIGURED" };
-    const idempotencyKey = requireUuid(input.idempotencyKey);
+    const idempotencyKey =
+      input.method === "POST" ? requireUuid(input.idempotencyKey) : "";
     const url = new URL(input.pathWithQuery, config.apiOrigin);
     if (url.origin !== config.apiOrigin || `${url.pathname}${url.search}` !== input.pathWithQuery) {
       return { ok: false, outcome: "REJECTED" };
@@ -257,6 +291,7 @@ export function createLaonpayBillingClient(
       pathWithQuery: input.pathWithQuery,
       timestamp,
       nonce: requestNonce,
+      idempotencyKey,
       bodyText,
     });
     const signature = createPartnerSignature(canonical, config.privateKey);
@@ -273,7 +308,7 @@ export function createLaonpayBillingClient(
           "x-laonpay-timestamp": timestamp,
           "x-laonpay-nonce": requestNonce,
           "x-laonpay-signature": signature,
-          "idempotency-key": idempotencyKey,
+          ...(input.method === "POST" ? { "idempotency-key": idempotencyKey } : {}),
         },
         body: input.body === undefined ? undefined : bodyText,
         cache: "no-store",
@@ -326,25 +361,32 @@ export function createLaonpayBillingClient(
         },
         billingRegistrationIntentCreatedSchema,
       );
-      if (result.ok && config && !validateHostedUrl(result.data.hostedUrl, config.apiOrigin)) {
+      if (
+        result.ok &&
+        config &&
+        !validateHostedUrl(
+          result.data.hostedUrl,
+          config.apiOrigin,
+          result.data.registrationId,
+        )
+      ) {
         return { ok: false, outcome: "UNKNOWN" };
       }
       return result;
     },
 
-    getRegistrationIntent(registrationId: string, idempotencyKey: string) {
+    getRegistrationIntent(registrationId: string) {
       const id = requireOpaqueId(registrationId, "등록 식별자");
       return request(
         {
           method: "GET",
           pathWithQuery: `/api/partner/v1/billing/registration-intents/${encodeURIComponent(id)}`,
-          idempotencyKey,
         },
         billingRegistrationStatusResponseSchema,
       );
     },
 
-    listPaymentMethods(externalCustomerId: string, idempotencyKey: string) {
+    listPaymentMethods(externalCustomerId: string) {
       const query = new URLSearchParams({
         externalCustomerId: requireOpaqueId(externalCustomerId, "고객 식별자"),
       });
@@ -352,7 +394,6 @@ export function createLaonpayBillingClient(
         {
           method: "GET",
           pathWithQuery: `/api/partner/v1/billing/payment-methods?${query.toString()}`,
-          idempotencyKey,
         },
         billingPaymentMethodListSchema,
       );
@@ -391,13 +432,12 @@ export function createLaonpayBillingClient(
       );
     },
 
-    getCharge(chargeId: string, idempotencyKey: string) {
+    getCharge(chargeId: string) {
       const id = requireOpaqueId(chargeId, "결제 식별자");
       return request(
         {
           method: "GET",
           pathWithQuery: `/api/partner/v1/billing/charges/${encodeURIComponent(id)}`,
-          idempotencyKey,
         },
         billingChargeResponseSchema,
       );
@@ -438,6 +478,17 @@ export function createLaonpayBillingClient(
           idempotencyKey,
         },
         billingCancelRequestResponseSchema,
+      );
+    },
+
+    getCancelRequest(cancelRequestId: string) {
+      const id = requireOpaqueId(cancelRequestId, "취소요청 식별자");
+      return request(
+        {
+          method: "GET",
+          pathWithQuery: `/api/partner/v1/billing/cancel-requests/${encodeURIComponent(id)}`,
+        },
+        billingCancelRequestStatusResponseSchema,
       );
     },
   };

@@ -21,8 +21,11 @@ const REGISTRATION_ID = "registration_123";
 const PAYMENT_METHOD_ID = "payment_method_123";
 const ORDER_ID = "order_123";
 const CHARGE_ID = "charge_123";
+const CANCEL_REQUEST_ID = "cancel_request_123";
+const SIGNED_HOSTED_TOKEN = `lpbr1.${REGISTRATION_ID}.${"s".repeat(43)}`;
 const REGISTRATION_IDEMPOTENCY_KEY = "11111111-1111-4111-8111-111111111111";
 const CHARGE_IDEMPOTENCY_KEY = "33333333-3333-4333-8333-333333333333";
+const UPPERCASE_IDEMPOTENCY_KEY = "ABCDEFAB-CDEF-4ABC-8ABC-ABCDEFABCDEF";
 const FIXED_NONCE = "22222222-2222-4222-8222-222222222222";
 const FIXED_NOW_MS = 1_800_000_000_123;
 const FIXED_TIMESTAMP = String(Math.floor(FIXED_NOW_MS / 1_000));
@@ -59,7 +62,9 @@ function jsonResponse(payload: unknown, status = 200): Response {
   });
 }
 
-function registrationCreated(hostedUrl = `${API_ORIGIN}/billing/register/${REGISTRATION_ID}`) {
+function registrationCreated(
+  hostedUrl = `${API_ORIGIN}/billing/register/${SIGNED_HOSTED_TOKEN}`,
+) {
   return {
     registrationId: REGISTRATION_ID,
     hostedUrl,
@@ -109,6 +114,7 @@ test("canonical과 Ed25519 서명은 계약 문자열을 바이트 그대로 사
     pathWithQuery: "/api/partner/v1/billing/registration-intents",
     timestamp: FIXED_TIMESTAMP,
     nonce: FIXED_NONCE,
+    idempotencyKey: UPPERCASE_IDEMPOTENCY_KEY,
     bodyText,
   });
 
@@ -120,6 +126,7 @@ test("canonical과 Ed25519 서명은 계약 문자열을 바이트 그대로 사
       "/api/partner/v1/billing/registration-intents",
       FIXED_TIMESTAMP,
       FIXED_NONCE,
+      UPPERCASE_IDEMPOTENCY_KEY.toLowerCase(),
       bodyHash,
     ].join("\n"),
   );
@@ -134,6 +141,18 @@ test("canonical과 Ed25519 서명은 계약 문자열을 바이트 그대로 사
     ),
     true,
   );
+  assert.throws(
+    () =>
+      createPartnerCanonical({
+        method: "GET",
+        pathWithQuery: "/api/partner/v1/billing/payment-methods",
+        timestamp: FIXED_TIMESTAMP,
+        nonce: FIXED_NONCE,
+        idempotencyKey: REGISTRATION_IDEMPOTENCY_KEY,
+        bodyText: "",
+      }),
+    /GET canonical에는 멱등키/,
+  );
 });
 
 test("GET은 query를 canonical에 포함하고 빈 본문의 SHA-256으로 서명한다", async () => {
@@ -145,10 +164,7 @@ test("GET은 query를 canonical에 포함하고 빈 본문의 SHA-256으로 서�
     nonce: () => FIXED_NONCE,
   });
 
-  const result = await client.listPaymentMethods(
-    CUSTOMER_ID,
-    REGISTRATION_IDEMPOTENCY_KEY,
-  );
+  const result = await client.listPaymentMethods(CUSTOMER_ID);
 
   assert.equal(result.ok, true);
   assert.equal(calls.length, 1);
@@ -162,6 +178,7 @@ test("GET은 query를 canonical에 포함하고 빈 본문의 SHA-256으로 서�
     pathWithQuery,
     FIXED_TIMESTAMP,
     FIXED_NONCE,
+    "",
     emptyBodyHash,
   ].join("\n");
 
@@ -169,6 +186,7 @@ test("GET은 query를 canonical에 포함하고 빈 본문의 SHA-256으로 서�
   assert.equal(call.init.method, "GET");
   assert.equal(call.init.body, undefined);
   assert.equal(headers.get("content-type"), null);
+  assert.equal(headers.get("idempotency-key"), null);
   assert.equal(headers.get("x-laonpay-timestamp"), FIXED_TIMESTAMP);
   assert.equal(headers.get("x-laonpay-nonce"), FIXED_NONCE);
   assert.equal(
@@ -206,6 +224,7 @@ test("요청은 필수 파트너 헤더와 UUID 멱등키를 보내며 잘못된
     pathWithQuery: "/api/partner/v1/billing/registration-intents",
     timestamp: FIXED_TIMESTAMP,
     nonce: FIXED_NONCE,
+    idempotencyKey: REGISTRATION_IDEMPOTENCY_KEY,
     bodyText,
   });
 
@@ -236,6 +255,37 @@ test("요청은 필수 파트너 헤더와 UUID 멱등키를 보내며 잘못된
     /멱등키 형식이 올바르지 않습니다/,
   );
   assert.equal(calls.length, 1);
+
+  const uppercaseResult = await client.createRegistrationIntent(
+    CUSTOMER_ID,
+    UPPERCASE_IDEMPOTENCY_KEY,
+  );
+  assert.equal(uppercaseResult.ok, true);
+  assert.equal(calls.length, 2);
+  const uppercaseCall = calls[1];
+  const uppercaseHeaders = new Headers(uppercaseCall.init.headers);
+  const uppercaseBody = String(uppercaseCall.init.body);
+  const uppercaseCanonical = createPartnerCanonical({
+    method: "POST",
+    pathWithQuery: "/api/partner/v1/billing/registration-intents",
+    timestamp: FIXED_TIMESTAMP,
+    nonce: FIXED_NONCE,
+    idempotencyKey: UPPERCASE_IDEMPOTENCY_KEY,
+    bodyText: uppercaseBody,
+  });
+  assert.equal(
+    uppercaseHeaders.get("idempotency-key"),
+    UPPERCASE_IDEMPOTENCY_KEY.toLowerCase(),
+  );
+  assert.equal(
+    verify(
+      null,
+      Buffer.from(uppercaseCanonical, "utf8"),
+      publicKey,
+      Buffer.from(uppercaseHeaders.get("x-laonpay-signature")!, "base64url"),
+    ),
+    true,
+  );
 });
 
 test("누락되거나 유효하지 않은 설정은 외부 요청 없이 fail-closed 처리한다", async (t) => {
@@ -463,10 +513,7 @@ test("민감 필드가 추가된 성공 응답은 strict parser가 UNKNOWN으로
     nonce: () => FIXED_NONCE,
   });
 
-  const result = await client.getRegistrationIntent(
-    REGISTRATION_ID,
-    REGISTRATION_IDEMPOTENCY_KEY,
-  );
+  const result = await client.getRegistrationIntent(REGISTRATION_ID);
 
   assert.deepEqual(result, { ok: false, outcome: "UNKNOWN" });
 });
@@ -506,12 +553,32 @@ test("chunked 대용량 응답은 64KiB를 넘는 즉시 stream을 취소하고 
 
 test("hosted registration URL은 계약된 same-origin exact 경로만 허용한다", async (t) => {
   const { env } = signingFixture();
+  const validClient = createLaonpayBillingClient(env, {
+    fetchImpl: (async () =>
+      jsonResponse(
+        registrationCreated(`${API_ORIGIN}/billing/register/${SIGNED_HOSTED_TOKEN}`),
+      )) as typeof fetch,
+    now: () => FIXED_NOW_MS,
+    nonce: () => FIXED_NONCE,
+  });
+  assert.equal(
+    (
+      await validClient.createRegistrationIntent(
+        CUSTOMER_ID,
+        REGISTRATION_IDEMPOTENCY_KEY,
+      )
+    ).ok,
+    true,
+  );
+
   const invalidUrls = [
     `https://attacker.invalid/billing/register/${REGISTRATION_ID}`,
     `${API_ORIGIN}/hosted/registrations/${REGISTRATION_ID}`,
     `${API_ORIGIN}/billing/register/${REGISTRATION_ID}?next=https://attacker.invalid`,
     `${API_ORIGIN}/billing/register/${REGISTRATION_ID}#fragment`,
     `${API_ORIGIN}/billing/register/x`,
+    `${API_ORIGIN}/billing/register/lpbr1.other_registration.${"s".repeat(43)}`,
+    `${API_ORIGIN}/billing/register/lpbr1.${REGISTRATION_ID}.short`,
   ];
 
   for (const hostedUrl of invalidUrls) {
@@ -533,6 +600,82 @@ test("hosted registration URL은 계약된 same-origin exact 경로만 허용한
   }
 });
 
+test("취소요청 전용 GET은 full charge를 strict parse하고 멱등키 없이 서명한다", async () => {
+  const { env } = signingFixture();
+  const calls: CapturedRequest[] = [];
+  const payload = {
+    cancelRequest: {
+      id: CANCEL_REQUEST_ID,
+      status: "REJECTED",
+      reason: "구매자 요청",
+      rejectReason: "이미 배송을 시작했습니다.",
+      createdAt: ISO_DATE,
+      processedAt: ISO_DATE,
+    },
+    charge: {
+      id: CHARGE_ID,
+      externalOrderId: ORDER_ID,
+      status: "PAID",
+      amount: 1_004,
+      paymentId: "payment_123",
+      createdAt: ISO_DATE,
+      updatedAt: ISO_DATE,
+      error: null,
+    },
+  };
+  const client = createLaonpayBillingClient(env, {
+    fetchImpl: captureFetch(calls, () => jsonResponse(payload)),
+    now: () => FIXED_NOW_MS,
+    nonce: () => FIXED_NONCE,
+  });
+
+  const result = await client.getCancelRequest(CANCEL_REQUEST_ID);
+  assert.deepEqual(result, { ok: true, data: payload });
+  assert.equal(calls.length, 1);
+  assert.equal(
+    new URL(calls[0].url).pathname,
+    `/api/partner/v1/billing/cancel-requests/${CANCEL_REQUEST_ID}`,
+  );
+  assert.equal(new Headers(calls[0].init.headers).get("idempotency-key"), null);
+
+  const unsafeClient = createLaonpayBillingClient(env, {
+    fetchImpl: (async () =>
+      jsonResponse({
+        ...payload,
+        cancelRequest: {
+          ...payload.cancelRequest,
+          providerToken: "forbidden",
+        },
+      })) as typeof fetch,
+    now: () => FIXED_NOW_MS,
+    nonce: () => FIXED_NONCE,
+  });
+  assert.deepEqual(await unsafeClient.getCancelRequest(CANCEL_REQUEST_ID), {
+    ok: false,
+    outcome: "UNKNOWN",
+  });
+
+  const contradictoryClient = createLaonpayBillingClient(env, {
+    fetchImpl: (async () =>
+      jsonResponse({
+        ...payload,
+        charge: {
+          ...payload.charge,
+          status: "CANCELED",
+        },
+      })) as typeof fetch,
+    now: () => FIXED_NOW_MS,
+    nonce: () => FIXED_NONCE,
+  });
+  assert.deepEqual(
+    await contradictoryClient.getCancelRequest(CANCEL_REQUEST_ID),
+    {
+      ok: false,
+      outcome: "UNKNOWN",
+    },
+  );
+});
+
 test("reconciliation POST는 동일 key와 바이트상 동일한 body로 같은 resource를 회수할 수 있다", async () => {
   const { env } = signingFixture();
   const calls: CapturedRequest[] = [];
@@ -543,6 +686,7 @@ test("reconciliation POST는 동일 key와 바이트상 동일한 body로 같은
     "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa4",
   ];
   let nonceIndex = 0;
+  let nowIndex = 0;
   const client = createLaonpayBillingClient(env, {
     fetchImpl: captureFetch(calls, (url) => {
       if (url.pathname === "/api/partner/v1/billing/registration-intents") {
@@ -550,7 +694,7 @@ test("reconciliation POST는 동일 key와 바이트상 동일한 body로 같은
       }
       return jsonResponse(chargeUnknown());
     }),
-    now: () => FIXED_NOW_MS,
+    now: () => FIXED_NOW_MS + nowIndex++ * 1_000,
     nonce: () => nonces[nonceIndex++]!,
   });
 
@@ -604,6 +748,10 @@ test("reconciliation POST는 동일 key와 바이트상 동일한 body로 같은
     registrationHeaders.get("x-laonpay-nonce"),
     registrationRetryHeaders.get("x-laonpay-nonce"),
   );
+  assert.notEqual(
+    registrationHeaders.get("x-laonpay-timestamp"),
+    registrationRetryHeaders.get("x-laonpay-timestamp"),
+  );
 
   assert.equal(chargeCall.init.body, chargeRetry.init.body);
   assert.equal(chargeHeaders.get("idempotency-key"), CHARGE_IDEMPOTENCY_KEY);
@@ -611,5 +759,9 @@ test("reconciliation POST는 동일 key와 바이트상 동일한 body로 같은
   assert.notEqual(
     chargeHeaders.get("x-laonpay-nonce"),
     chargeRetryHeaders.get("x-laonpay-nonce"),
+  );
+  assert.notEqual(
+    chargeHeaders.get("x-laonpay-timestamp"),
+    chargeRetryHeaders.get("x-laonpay-timestamp"),
   );
 });

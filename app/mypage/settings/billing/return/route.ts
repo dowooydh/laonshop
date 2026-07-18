@@ -1,4 +1,3 @@
-import { randomUUID } from "node:crypto";
 import { type NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/session";
@@ -73,7 +72,6 @@ export async function GET(request: NextRequest) {
 
   const result = await createLaonpayBillingClient().getRegistrationIntent(
     cookieRegistration.providerId,
-    randomUUID(),
   );
   if (!result.ok || result.data.registrationId !== cookieRegistration.providerId) {
     await prisma

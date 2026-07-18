@@ -4,6 +4,12 @@ const opaqueId = z.string().min(8).max(128).regex(/^[A-Za-z0-9_-]+$/);
 const isoDate = z.string().datetime({ offset: true });
 const nullableIsoDate = isoDate.nullable();
 const safeText = (max: number) => z.string().trim().min(1).max(max);
+const exactSafeText = (max: number) =>
+  z
+    .string()
+    .min(1)
+    .max(max)
+    .refine((value) => value === value.trim(), "앞뒤 공백을 포함할 수 없습니다.");
 
 export const billingMethodStatusSchema = z.enum(["ACTIVE", "DEREGISTERING", "DEREGISTERED", "UNKNOWN"]);
 export const billingRegistrationStatusSchema = z.enum([
@@ -132,6 +138,39 @@ export const billingCancelRequestResponseSchema = z
     idempotent: z.boolean(),
   })
   .strict();
+
+export const billingCancelRequestStatusResponseSchema = z
+  .object({
+    cancelRequest: z
+      .object({
+        id: opaqueId,
+        status: billingCancelRequestStatusSchema,
+        reason: exactSafeText(200).nullable(),
+        rejectReason: exactSafeText(500).nullable(),
+        createdAt: isoDate,
+        processedAt: nullableIsoDate,
+      })
+      .strict(),
+    charge: billingChargeSchema,
+  })
+  .strict()
+  .superRefine((value, context) => {
+    const validPair =
+      ((value.cancelRequest.status === "REQUESTED" ||
+        value.cancelRequest.status === "PROCESSING") &&
+        value.charge.status === "CANCEL_REQUESTED") ||
+      (value.cancelRequest.status === "DONE" &&
+        value.charge.status === "CANCELED") ||
+      (value.cancelRequest.status === "REJECTED" &&
+        value.charge.status === "PAID");
+    if (!validPair) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["charge", "status"],
+        message: "취소요청 상태와 결제 상태가 일치하지 않습니다.",
+      });
+    }
+  });
 
 export const billingApiErrorResponseSchema = z
   .object({
