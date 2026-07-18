@@ -25,6 +25,7 @@ const CANCEL_REQUEST_ID = "cancel_request_123";
 const SIGNED_HOSTED_TOKEN = `lpbr1.${REGISTRATION_ID}.${"s".repeat(43)}`;
 const REGISTRATION_IDEMPOTENCY_KEY = "11111111-1111-4111-8111-111111111111";
 const CHARGE_IDEMPOTENCY_KEY = "33333333-3333-4333-8333-333333333333";
+const CANCEL_IDEMPOTENCY_KEY = "44444444-4444-4444-8444-444444444444";
 const UPPERCASE_IDEMPOTENCY_KEY = "ABCDEFAB-CDEF-4ABC-8ABC-ABCDEFABCDEF";
 const FIXED_NONCE = "22222222-2222-4222-8222-222222222222";
 const FIXED_NOW_MS = 1_800_000_000_123;
@@ -729,6 +730,60 @@ test("취소요청 전용 GET은 full charge를 strict parse하고 멱등키 없
       outcome: "UNKNOWN",
     },
   );
+});
+
+test("취소요청 POST는 cancel request와 charge의 허용 상태쌍만 수용한다", async () => {
+  const { env } = signingFixture();
+  const cancelRequestStatuses = ["REQUESTED", "PROCESSING", "DONE", "REJECTED"] as const;
+  const chargeStatuses = [
+    "PENDING",
+    "PAID",
+    "DECLINED",
+    "UNKNOWN",
+    "CANCEL_REQUESTED",
+    "CANCELED",
+  ] as const;
+
+  for (const cancelRequestStatus of cancelRequestStatuses) {
+    for (const chargeStatus of chargeStatuses) {
+      const validPair =
+        ((cancelRequestStatus === "REQUESTED" ||
+          cancelRequestStatus === "PROCESSING") &&
+          chargeStatus === "CANCEL_REQUESTED") ||
+        (cancelRequestStatus === "DONE" && chargeStatus === "CANCELED") ||
+        (cancelRequestStatus === "REJECTED" && chargeStatus === "PAID");
+      const payload = {
+        cancelRequest: {
+          id: CANCEL_REQUEST_ID,
+          status: cancelRequestStatus,
+          createdAt: ISO_DATE,
+        },
+        charge: {
+          id: CHARGE_ID,
+          status: chargeStatus,
+        },
+        idempotent: false,
+      };
+      const client = createLaonpayBillingClient(env, {
+        fetchImpl: (async () => jsonResponse(payload)) as typeof fetch,
+        now: () => FIXED_NOW_MS,
+        nonce: () => FIXED_NONCE,
+      });
+
+      assert.deepEqual(
+        await client.createCancelRequest(
+          CHARGE_ID,
+          CUSTOMER_ID,
+          "구매자 요청",
+          CANCEL_IDEMPOTENCY_KEY,
+        ),
+        validPair
+          ? { ok: true, data: payload }
+          : { ok: false, outcome: "UNKNOWN" },
+        `${cancelRequestStatus}+${chargeStatus}`,
+      );
+    }
+  }
 });
 
 test("reconciliation POST는 동일 key와 바이트상 동일한 body로 같은 resource를 회수할 수 있다", async () => {

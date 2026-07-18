@@ -30,6 +30,30 @@ export const billingChargeStatusSchema = z.enum([
 ]);
 export const billingCancelRequestStatusSchema = z.enum(["REQUESTED", "PROCESSING", "DONE", "REJECTED"]);
 
+const refineBillingCancelStatusPair = (
+  value: {
+    cancelRequest: { status: z.infer<typeof billingCancelRequestStatusSchema> };
+    charge: { status: z.infer<typeof billingChargeStatusSchema> };
+  },
+  context: z.RefinementCtx,
+) => {
+  const validPair =
+    ((value.cancelRequest.status === "REQUESTED" ||
+      value.cancelRequest.status === "PROCESSING") &&
+      value.charge.status === "CANCEL_REQUESTED") ||
+    (value.cancelRequest.status === "DONE" &&
+      value.charge.status === "CANCELED") ||
+    (value.cancelRequest.status === "REJECTED" &&
+      value.charge.status === "PAID");
+  if (!validPair) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["charge", "status"],
+      message: "취소요청 상태와 결제 상태가 일치하지 않습니다.",
+    });
+  }
+};
+
 export const billingErrorSchema = z
   .object({
     code: safeText(64),
@@ -137,7 +161,8 @@ export const billingCancelRequestResponseSchema = z
       .strict(),
     idempotent: z.boolean(),
   })
-  .strict();
+  .strict()
+  .superRefine(refineBillingCancelStatusPair);
 
 export const billingCancelRequestStatusResponseSchema = z
   .object({
@@ -154,23 +179,7 @@ export const billingCancelRequestStatusResponseSchema = z
     charge: billingChargeSchema,
   })
   .strict()
-  .superRefine((value, context) => {
-    const validPair =
-      ((value.cancelRequest.status === "REQUESTED" ||
-        value.cancelRequest.status === "PROCESSING") &&
-        value.charge.status === "CANCEL_REQUESTED") ||
-      (value.cancelRequest.status === "DONE" &&
-        value.charge.status === "CANCELED") ||
-      (value.cancelRequest.status === "REJECTED" &&
-        value.charge.status === "PAID");
-    if (!validPair) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["charge", "status"],
-        message: "취소요청 상태와 결제 상태가 일치하지 않습니다.",
-      });
-    }
-  });
+  .superRefine(refineBillingCancelStatusPair);
 
 export const billingApiErrorResponseSchema = z
   .object({

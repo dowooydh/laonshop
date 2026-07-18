@@ -229,7 +229,9 @@ export async function requestCancelAction(input: { orderId: string; reason?: str
       result.data.cancelRequest.status === "PROCESSING");
   const rejected =
     result.ok
-      ? sameRemoteCharge && result.data.cancelRequest.status === "REJECTED"
+      ? sameRemoteCharge &&
+        result.data.charge.status === "PAID" &&
+        result.data.cancelRequest.status === "REJECTED"
       : result.outcome === "REJECTED";
 
   const finalized = await prisma.$transaction(async (tx) => {

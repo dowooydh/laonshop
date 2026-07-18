@@ -205,6 +205,10 @@ test("등록카드 주문 취소는 부분금액 없이 LAONPAY 관리자 취소
   assert.match(action, /createCancelRequest\(/);
   assert.doesNotMatch(action, /createCancelRequest\([\s\S]{0,300}\bamount\b/);
   assert.match(action, /result\.data\.charge\.status === "CANCEL_REQUESTED"/);
+  assert.match(
+    action,
+    /result\.data\.charge\.status === "PAID"[\s\S]*result\.data\.cancelRequest\.status === "REJECTED"/,
+  );
   assert.match(action, /status:\s*rejected \? "REJECTED" : "UNKNOWN"/);
   assert.match(action, /cancelReason:\s*cancelRequest\.reason/);
   assert.match(action, /billing-method:\$\{prepared\.charge\.paymentMethodId\}/);
