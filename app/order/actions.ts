@@ -15,6 +15,7 @@ import type {
 } from "@/lib/laonpay/billing-contract";
 import {
   billingRequestFingerprint,
+  canRecoverStaleBillingChargeRequest,
   canClaimBillingChargeAttempt,
   calculateOrderAmount,
   isBillingIntegrationAccount,
@@ -953,11 +954,67 @@ export async function refreshBillingChargeStatusAction(input: {
           latestCharge.paymentMethod.status !== "ACTIVE" ||
           latestCharge.paymentMethod.id !== charge.paymentMethodId ||
           latestCharge.paymentMethod.laonpayPaymentMethodId !==
-            charge.paymentMethod.laonpayPaymentMethodId ||
+            charge.paymentMethod.laonpayPaymentMethodId
+        ) {
+          return {
+            ok: false as const,
+            error:
+              "결제 요청 원장을 다시 확인할 수 없습니다. 재요청하지 말고 고객센터에 문의해 주세요.",
+          };
+        }
+        let claimableCharge = latestCharge;
+        if (
+          latestCharge.status === "REQUESTING" &&
+          latestCharge.requestAttempts === 1
+        ) {
+          // 첫 POST의 8초 timeout보다 충분히 긴 5분 동안은 진행 중으로만
+          // 표시한다. 프로세스 중단으로 남은 stale 원장만 UNKNOWN으로 전환해
+          // 명시적 상태조회에서 reconciliation 1회를 허용한다.
+          if (!canRecoverStaleBillingChargeRequest(latestCharge)) {
+            return {
+              ok: true as const,
+              done: true as const,
+              status: "PENDING" as const,
+            };
+          }
+          const recovered = await tx.shopBillingCharge.updateMany({
+            where: {
+              id: latestCharge.id,
+              userId: user.id,
+              orderId: charge.orderId,
+              paymentMethodId: charge.paymentMethodId,
+              amount: latestExpected.amount,
+              requestFingerprint: latestExpected.requestFingerprint,
+              idempotencyKey: latestCharge.idempotencyKey,
+              status: "REQUESTING",
+              requestAttempts: 1,
+              laonpayChargeId: null,
+              providerPaymentId: null,
+              updatedAt: latestCharge.updatedAt,
+            },
+            data: {
+              status: "UNKNOWN",
+              failureCode: "RESULT_UNCONFIRMED",
+            },
+          });
+          if (recovered.count !== 1) {
+            return {
+              ok: false as const,
+              error:
+                "결제 요청 원장을 다시 확인할 수 없습니다. 재요청하지 말고 고객센터에 문의해 주세요.",
+            };
+          }
+          claimableCharge = {
+            ...latestCharge,
+            status: "UNKNOWN",
+            failureCode: "RESULT_UNCONFIRMED",
+          };
+        }
+        if (
           !canClaimBillingChargeAttempt(
-            latestCharge,
+            claimableCharge,
             latestExpected,
-            latestCharge.requestAttempts,
+            claimableCharge.requestAttempts,
           )
         ) {
           return {
@@ -968,14 +1025,14 @@ export async function refreshBillingChargeStatusAction(input: {
         }
         const claimed = await tx.shopBillingCharge.updateMany({
           where: {
-            id: latestCharge.id,
+            id: claimableCharge.id,
             userId: user.id,
             orderId: charge.orderId,
             paymentMethodId: charge.paymentMethodId,
             amount: latestAmount,
             requestFingerprint: latestExpected.requestFingerprint,
-            status: latestCharge.status,
-            requestAttempts: latestCharge.requestAttempts,
+            status: claimableCharge.status,
+            requestAttempts: claimableCharge.requestAttempts,
             laonpayChargeId: null,
             providerPaymentId: null,
           },
@@ -989,7 +1046,7 @@ export async function refreshBillingChargeStatusAction(input: {
           };
         }
         const claimedLatestCharge = await tx.shopBillingCharge.findUnique({
-          where: { id: latestCharge.id },
+          where: { id: claimableCharge.id },
           include: {
             order: { include: { items: true } },
             paymentMethod: true,

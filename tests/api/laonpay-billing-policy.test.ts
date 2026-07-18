@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  BILLING_CHARGE_REQUEST_STALE_MS,
+  canRecoverStaleBillingChargeRequest,
   canClaimBillingChargeAttempt,
   decideBillingChargeLedger,
   type BillingChargeLedgerSnapshot,
@@ -28,11 +30,9 @@ function charge(
   };
 }
 
-test("빌링 청구 claim은 최초 요청과 동일 본문 reconciliation 한 번만 허용한다", () => {
+test("빌링 청구 claim은 최초 요청과 명시적 UNKNOWN reconciliation만 허용한다", () => {
   const allowed: BillingChargeLedgerSnapshot[] = [
     charge({ status: "REQUESTING", requestAttempts: 0 }),
-    charge({ status: "REQUESTING", requestAttempts: 1 }),
-    charge({ status: "PENDING", requestAttempts: 1 }),
     charge({ status: "UNKNOWN", requestAttempts: 1 }),
   ];
   for (const snapshot of allowed) {
@@ -50,7 +50,9 @@ test("빌링 청구 claim은 최초 요청과 동일 본문 reconciliation 한 �
   for (const snapshot of [
     charge({ requestAttempts: -1 }),
     charge({ requestAttempts: 2 }),
+    charge({ status: "REQUESTING", requestAttempts: 1 }),
     charge({ status: "PENDING", requestAttempts: 0 }),
+    charge({ status: "PENDING", requestAttempts: 1 }),
     charge({ status: "UNKNOWN", requestAttempts: 0 }),
     charge({ status: "PAID", requestAttempts: 1 }),
     charge({ status: "DECLINED", requestAttempts: 0 }),
@@ -60,6 +62,41 @@ test("빌링 청구 claim은 최초 요청과 동일 본문 reconciliation 한 �
     assert.deepEqual(decideBillingChargeLedger(snapshot, expected), { kind: "BLOCK" });
     assert.equal(canClaimBillingChargeAttempt(snapshot, expected, 0), false);
     assert.equal(canClaimBillingChargeAttempt(snapshot, expected, 1), false);
+  }
+});
+
+test("진행 중 첫 청구는 5분이 지난 provider ID 없는 원장만 복구할 수 있다", () => {
+  const nowMs = Date.UTC(2026, 6, 19, 12, 0, 0);
+  const staleCharge = {
+    status: "REQUESTING" as const,
+    requestAttempts: 1,
+    laonpayChargeId: null,
+    providerPaymentId: null,
+    updatedAt: new Date(nowMs - BILLING_CHARGE_REQUEST_STALE_MS),
+  };
+
+  assert.equal(canRecoverStaleBillingChargeRequest(staleCharge, nowMs), true);
+  assert.equal(
+    canRecoverStaleBillingChargeRequest(
+      {
+        ...staleCharge,
+        updatedAt: new Date(
+          nowMs - BILLING_CHARGE_REQUEST_STALE_MS + 1,
+        ),
+      },
+      nowMs,
+    ),
+    false,
+  );
+
+  for (const snapshot of [
+    { ...staleCharge, status: "UNKNOWN" as const },
+    { ...staleCharge, requestAttempts: 0 },
+    { ...staleCharge, requestAttempts: 2 },
+    { ...staleCharge, laonpayChargeId: "charge-remote" },
+    { ...staleCharge, providerPaymentId: "payment-remote" },
+  ]) {
+    assert.equal(canRecoverStaleBillingChargeRequest(snapshot, nowMs), false);
   }
 });
 

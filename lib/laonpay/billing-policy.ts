@@ -9,6 +9,7 @@ import { isLaonpayBillingReady, type LaonpayBillingEnv } from "./billing-client"
 
 export const BILLING_REVIEW_ACCOUNT_EMAIL = "laontest@laontest.com";
 export const BILLING_REGISTRATION_COOKIE = "laonshop_billing_registration";
+export const BILLING_CHARGE_REQUEST_STALE_MS = 5 * 60 * 1_000;
 
 export function isBillingIntegrationAccount(email: string): boolean {
   return email === BILLING_REVIEW_ACCOUNT_EMAIL;
@@ -189,11 +190,15 @@ export function decideBillingChargeLedger(
     return { kind: "BLOCK" };
   }
   if (charge.status === "REQUESTING") {
-    return charge.requestAttempts <= 1 ? { kind: "READY" } : { kind: "BLOCK" };
+    // attempts=1은 최초 외부 POST가 아직 진행 중일 수 있다. 그 응답이 실제로
+    // 불명확하다고 UNKNOWN으로 기록되기 전에는 reconciliation claim을 허용하지 않는다.
+    return charge.requestAttempts === 0 ? { kind: "READY" } : { kind: "BLOCK" };
   }
-  // 외부 ID를 받지 못한 대기/불명확 상태는 최초 POST가 이미 claim된 경우에만
-  // 같은 멱등키·동일 본문 reconciliation 1회를 허용한다.
-  return charge.requestAttempts === 1 ? { kind: "READY" } : { kind: "BLOCK" };
+  // 외부 ID를 받지 못한 명시적 UNKNOWN 상태에서만 같은 멱등키·동일 본문
+  // reconciliation 1회를 허용한다. ID 없는 PENDING은 정상 계약 상태가 아니다.
+  return charge.status === "UNKNOWN" && charge.requestAttempts === 1
+    ? { kind: "READY" }
+    : { kind: "BLOCK" };
 }
 
 export function canClaimBillingChargeAttempt(
@@ -205,5 +210,22 @@ export function canClaimBillingChargeAttempt(
     (expectedAttempt === 0 || expectedAttempt === 1) &&
     charge.requestAttempts === expectedAttempt &&
     decideBillingChargeLedger(charge, expected).kind === "READY"
+  );
+}
+
+export function canRecoverStaleBillingChargeRequest(
+  charge: Pick<
+    BillingChargeLedgerSnapshot,
+    "status" | "requestAttempts" | "laonpayChargeId" | "providerPaymentId"
+  > & { updatedAt: Date },
+  nowMs = Date.now(),
+): boolean {
+  return (
+    charge.status === "REQUESTING" &&
+    charge.requestAttempts === 1 &&
+    charge.laonpayChargeId === null &&
+    charge.providerPaymentId === null &&
+    Number.isFinite(nowMs) &&
+    charge.updatedAt.getTime() <= nowMs - BILLING_CHARGE_REQUEST_STALE_MS
   );
 }

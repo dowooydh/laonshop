@@ -279,6 +279,90 @@ async function claimBillingChargeAttempt(
     .catch(() => ({ kind: "BLOCKED" as const }));
 }
 
+async function markFirstBillingAttemptUnknown(
+  expected: Omit<BillingChargeClaimExpected, "expectedAttempt"> & {
+    idempotencyKey: string;
+  },
+): Promise<boolean> {
+  return prisma
+    .$transaction(async (tx) => {
+      // 첫 POST가 실제 UNKNOWN으로 끝난 뒤에만 같은 잠금 순서와 결박값으로
+      // REQUESTING/1을 UNKNOWN/1로 바꾼다. 이 전이 전에는 2차 claim이 불가능하다.
+      await acquireTransactionLock(tx, `billing-checkout-user:${expected.userId}`);
+      await acquireTransactionLock(tx, `order:${expected.orderId}`);
+      await acquireTransactionLock(tx, `billing-method:${expected.paymentMethodId}`);
+      await acquireTransactionLock(tx, `billing-charge:${expected.chargeId}`);
+      const [order, paymentMethod, charge] = await Promise.all([
+        tx.shopOrder.findUnique({
+          where: { id: expected.orderId },
+          include: { items: true },
+        }),
+        tx.shopBillingPaymentMethod.findUnique({
+          where: { id: expected.paymentMethodId },
+        }),
+        tx.shopBillingCharge.findUnique({
+          where: { id: expected.chargeId },
+        }),
+      ]);
+      if (
+        !order ||
+        !paymentMethod ||
+        !charge ||
+        order.userId !== expected.userId ||
+        order.status !== "PENDING" ||
+        order.approvalNo !== LAONPAY_BILLING_PROCESSING_MARKER ||
+        order.items.length === 0 ||
+        paymentMethod.userId !== expected.userId ||
+        paymentMethod.status !== "ACTIVE" ||
+        paymentMethod.laonpayPaymentMethodId !== expected.laonpayPaymentMethodId ||
+        charge.userId !== expected.userId ||
+        charge.orderId !== expected.orderId ||
+        charge.paymentMethodId !== expected.paymentMethodId ||
+        charge.amount !== expected.amount ||
+        charge.requestFingerprint !== expected.requestFingerprint ||
+        charge.idempotencyKey !== expected.idempotencyKey ||
+        charge.status !== "REQUESTING" ||
+        charge.requestAttempts !== 1 ||
+        charge.laonpayChargeId !== null ||
+        charge.providerPaymentId !== null
+      ) {
+        return false;
+      }
+
+      const currentRequest = buildBillingChargeRequest(expected.user, order);
+      if (
+        currentRequest.amount !== order.totalAmount ||
+        currentRequest.amount !== expected.amount ||
+        billingRequestFingerprint(currentRequest.requestBody) !==
+          expected.requestFingerprint
+      ) {
+        return false;
+      }
+
+      const marked = await tx.shopBillingCharge.updateMany({
+        where: {
+          id: expected.chargeId,
+          userId: expected.userId,
+          orderId: expected.orderId,
+          paymentMethodId: expected.paymentMethodId,
+          amount: expected.amount,
+          requestFingerprint: expected.requestFingerprint,
+          idempotencyKey: expected.idempotencyKey,
+          status: "REQUESTING",
+          requestAttempts: 1,
+          laonpayChargeId: null,
+          providerPaymentId: null,
+        },
+        data: {
+          status: "UNKNOWN",
+          failureCode: "RESULT_UNCONFIRMED",
+        },
+      });
+      return marked.count === 1;
+    }, TX_OPTIONS)
+    .catch(() => false);
+}
+
 export async function createOrderAction(input: CheckoutInput): Promise<CheckoutResult> {
   const user = await requireShopUser();
   const parsed = schema.safeParse(input);
@@ -711,17 +795,24 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
     );
     if (!chargeResult.ok && chargeResult.outcome === "UNKNOWN" && claim.attempt === 1) {
       // 계약 4: 같은 key와 바이트상 동일한 body의 두 번째 POST는 새 승인이 아니라
-      // 기존 resource의 ID/상태 대사다. 이 1회를 넘는 자동 재호출은 하지 않는다.
-      claim = await claimBillingChargeAttempt({
+      // 기존 resource의 ID/상태 대사다. 최초 POST가 끝났음을 UNKNOWN으로 먼저
+      // 원자 기록해야만 이 1회를 claim할 수 있다.
+      const markedUnknown = await markFirstBillingAttemptUnknown({
         ...claimExpected,
-        expectedAttempt: 1,
+        idempotencyKey: claim.idempotencyKey,
       });
-      if (claim.kind === "CLAIMED") {
-        chargeResult = await client.chargePaymentMethod(
-          claim.laonpayPaymentMethodId,
-          claim.requestBody,
-          claim.idempotencyKey,
-        );
+      if (markedUnknown) {
+        claim = await claimBillingChargeAttempt({
+          ...claimExpected,
+          expectedAttempt: 1,
+        });
+        if (claim.kind === "CLAIMED") {
+          chargeResult = await client.chargePaymentMethod(
+            claim.laonpayPaymentMethodId,
+            claim.requestBody,
+            claim.idempotencyKey,
+          );
+        }
       }
     }
 
