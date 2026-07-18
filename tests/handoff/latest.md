@@ -4,84 +4,86 @@
 
 담당: Codex QA/테스트 세션
 
-제품 SHA: `91094a76ac97e3c98d73d071515918b58864daf4`
+제품 SHA: `70ca87bfe1d6629193fcba10815b7763ffc5725f`
 
-비교 범위: `78bb51b8f2e779e4bc62fd69a3f9a0c0b956e6d0..91094a76ac97e3c98d73d071515918b58864daf4`
+비교 범위: `0652dddd8ba4c8449c9089459cd9cd4047fc72dd..70ca87bfe1d6629193fcba10815b7763ffc5725f`
 
-대상 배포: `dpl_FkbAehHUJJytLRHRcp9LfZqzQcLN` / `https://laonshop.com`
+대상 배포: `dpl_27TAHvFGXvsVrYndU5eqkCg1Z5WR` / `https://laonshop.com`
 
-결과: **PARTIAL**
+결과: **FAIL**
 
 출시 판정:
 
-- 현재 fail-closed 운영 배포 유지: **GO**
-- LAONPAY 계약 코드: **조건부 GO**
-- 실제 hosted 등록·원클릭·취소 활성화: **NO-GO**
+- 현재 fail-closed 운영 유지: **GO**
+- LAONPAY hosted 등록·원클릭·취소 활성화: **NO-GO**
+- P1 수정 후 재검증 필요
 
 ## 요약
 
 - 제품 코드는 수정하지 않았습니다.
-- Ed25519 7줄 canonical, POST 소문자 UUID 멱등키 결박, GET 빈 canonical line·멱등 header 부재를 독립 검토하고 HTTP stub으로 검증했습니다.
-- same-key/same-body reconciliation은 fresh timestamp·nonce·서명을 사용하며 UNKNOWN에서 외부 결제를 자동 재호출하지 않습니다.
-- hosted 등록 URL은 exact HTTPS origin/path/signature/intent로 제한되고 등록 복귀 query는 source of truth로 사용하지 않습니다.
-- cancel-request signed GET, strict 상태쌍, DONE/REJECTED 원자 대사와 charge fallback 경계를 검토했습니다.
-- focused 46/46, 전체 test 97/97, lint, typecheck, Prisma validate, audit와 production build가 통과했습니다.
-- 운영 Chrome 인증 세션에서 설정은 카드 등록·원문 입력 없이 명확히 fail-closed였고 checkout은 일반 KSPAY 4수단만 유지했습니다.
-- 320/360/390/412px에서 설정·checkout overflow와 viewport 이탈 0, console warning/error와 LAONPAY API resource 0입니다.
-- Android font scale 2.0과 iOS MobileSafari 접근성 최대 글자에서 guest 설정→로그인과 화면 폭을 확인했습니다.
-- 인증 모바일 상태 화면과 schema/env 적용 후 실제 LAONPAY 상호운용은 미실행이므로 전체 결과는 PARTIAL입니다.
-- 상세 보고서: [91094a7 LAONPAY 빌링 계약 보강 회귀](../reports/2026-07-18-91094a7-laonpay-billing-contract-regression.md)
+- seller-first 원격 reason을 signed GET의 source of truth로 반영하는 변경과 ID·소유권·금액·paymentId 결박 유지 여부를 독립 검토했습니다.
+- focused 50/50, 전체 test 101/101, lint, typecheck, Prisma validate, audit와 production build는 통과했습니다.
+- 별도 실제 client probe에서 취소 POST 모순 상태쌍 4개가 모두 `ok: true`로 파싱됐습니다.
+- `REJECTED+CANCELED`와 `REJECTED+CANCEL_REQUESTED`는 Action이 charge 상태를 확인하지 않고 terminal 로컬 `REJECTED`로 기록할 수 있습니다.
+- 실제 원격 취소 가능성이 있는 주문을 반려로 표시하고 로컬 주문·결제·취소 원장이 어긋날 수 있어 `QA-70CA-01`을 P1로 확정했습니다.
+- 현재 LAONPAY env/schema 미적용 운영에서는 해당 경로가 fail-closed이므로 즉시 실사용 영향은 없습니다.
+- P1 확정 후 제어 지침에 따라 실제 DB 상태행렬과 인증 UI는 수정 SHA로 이월했습니다.
+- 상세 보고서: [70ca87b seller-first 취소 대사 회귀](../reports/2026-07-18-70ca87b-seller-first-cancel-regression.md)
 
 ## 핵심 결과
 
 | 영역 | 결과 | 증거 |
 | --- | --- | --- |
-| 요청 서명·멱등 계약 | PASS | focused 46/46, exact canonical/header/stub |
-| 전체 정적 회귀 | PASS | test 97/97, skip 0, lint/typecheck/prisma/audit/build |
-| hosted URL·등록 복귀 | PASS | exact origin/path/intent, query/hash/credential 거부 |
-| cancel-request 계약 | PASS | signed GET strict parser, 상태쌍·source-of-truth 검증 |
-| 금액·소유권·UNKNOWN | PASS | 서버 재계산, 소유권 재검증, 자동 재결제 차단 코드·테스트 |
-| 운영 설정 fail-closed | PASS | 등록 버튼 0, 카드 원문 input 0, 외부 API resource 0 |
-| 일반 KSPAY checkout | PASS | 카드·카카오·네이버·계좌이체 유지, oneclick/manual 0 |
-| Chrome 320~412px | PASS | document overflow·visible descendant 이탈 0 |
-| Android guest/font 2.0 | PASS | 설정→로그인, 주요 UI 가로 잘림 없음 |
-| iOS MobileSafari guest/AX XXXL | PASS | 설정→로그인, 주요 UI 가로 잘림 없음 |
-| 인증 모바일 빌링 상태 UI | NOT EXECUTED | 모바일 인증 세션 부재 |
-| schema/env 적용 통합 E2E | NOT EXECUTED | 의도적 미적용·LAONPAY readiness 대기 |
-| cleanup | PASS | 브라우저 세션·임시 파일·기기 글자 설정 복구 |
+| seller-first reason 코드 경계 | PASS | signed GET 원격 reason 반영, ID·owner·amount·paymentId 결박 유지 |
+| focused billing/client | PASS | 50/50, skip 0 |
+| 전체 정적 회귀 | PASS | test 101/101, skip 0, lint/typecheck/prisma/audit/build |
+| POST 상태쌍 parser | **FAIL** | 모순 4종 모두 client `ok: true` |
+| `REJECTED` Action 독립 방어 | **FAIL** | `charge.status === "PAID"` 결박 없음 |
+| signed GET 상태쌍 parser | PASS | strict 상태쌍 검증 유지 |
+| 배포 상태 | PASS | READY, 제품 SHA 일치, runtime error/error·fatal 0 |
+| 실제 DB 상태행렬 | NOT EXECUTED | P1 확정 후 수정 SHA로 이월 |
+| 인증 반응형 UI | NOT EXECUTED | P1 조기 종료 |
+| cleanup | PASS | 임시 probe·격리 PostgreSQL 완전 삭제 |
 
 ## 결함
 
-신규 확정 제품 결함은 없습니다.
+### QA-70CA-01 - 취소 POST 모순 상태쌍을 성공 응답으로 수용
 
-운영의 hosted 등록·oneclick 미노출은 env와 schema가 미적용된 현재의 정상 fail-closed 상태입니다.
+- 심각도: **P1**
+- 관련 코드: `lib/laonpay/billing-contract.ts:123`, `app/order/actions.ts:224`, `app/order/actions.ts:230`
+- 재현:
+  - `REJECTED+CANCELED` → client `ok: true`
+  - `REJECTED+CANCEL_REQUESTED` → client `ok: true`
+  - `REQUESTED+PAID` → client `ok: true`
+  - `DONE+PAID` → client `ok: true`
+- 실제: 앞의 두 조합은 Action에서 terminal `REJECTED`로 기록될 수 있습니다.
+- 기대: POST도 `REQUESTED|PROCESSING↔CANCEL_REQUESTED`, `DONE↔CANCELED`, `REJECTED↔PAID`만 허용하고 나머지는 `UNKNOWN`으로 보류해야 합니다.
+- 영향: 후속 signed GET 전까지 실제 원격 취소 상태와 고객 표시·로컬 원장이 불일치합니다.
+
+## 필수 수정·회귀
+
+- POST response schema에 signed GET과 같은 상태쌍 `superRefine` 추가
+- Action rejected 분기에 `charge.status === "PAID"` 독립 결박
+- 네 모순 조합의 client `UNKNOWN`과 terminal DB no-write 회귀 추가
+- seller-first A/B reason의 REQUESTED/PROCESSING/DONE/REJECTED 격리 DB 상태행렬
+- `DONE+CANCELED`의 로컬 UNKNOWN+provider ID 후 signed GET CANCELED 수렴
+- ID·owner·externalOrderId·amount·paymentId 불일치 no-write와 charge fallback
+- REJECTED 안내·조회 버튼 320~412px/확대/키보드 회귀
 
 ## 안전·운영 증거
 
-- 실제 카드, PG, 주문·결제 submit, 운영 DB write, schema push와 Vercel env 변경을 실행하지 않았습니다.
-- 카드 원문, provider token, MID, Authorization, 세션 쿠키와 비밀키를 출력하거나 문서화하지 않았습니다.
-- Vercel 배포는 READY, production, Git SHA `91094a7`이며 local/origin HEAD와 apex/www alias가 일치합니다.
-- 최근 1시간 runtime error cluster 0, 해당 배포 error/fatal log 0입니다.
-- `www.laonshop.com`은 apex로 308 전환됩니다. 고정 배포 URL의 Vercel SSO 302는 배포 보호 설정이며 제품 결함이 아닙니다.
-
-## 미실행·외부 blocker
-
-- LAONPAY 최종 제품 SHA/readiness 기반 hosted/API 실제 상호운용
-- 신규 Prisma schema 적용 후 주문+marker+charge 및 취소 대사 transaction E2E
-- Vercel LAONPAY env 3종 적용 후 registration return·signed API 왕복
-- 인증된 Android/iOS 등록 복귀·UNKNOWN·취소 상태 화면
-- Chrome/iOS exact 200% browser zoom
-- 실카드, 실 PG 승인·취소·해지
-
-미실행 항목은 제품 결함이 아니라 인증 세션, 미적용 schema/env와 외부 readiness 제약입니다.
+- Vercel 배포는 READY/production, region `sin1`, Git SHA `70ca87b`와 local/origin HEAD가 일치합니다.
+- 최근 1시간 runtime error cluster 0, 해당 배포 error/fatal 0입니다.
+- 실제 카드, PG, LAONPAY API, 운영 DB write, schema push와 Vercel env 변경을 실행하지 않았습니다.
+- 현재 env/schema 미적용 fail-closed 운영은 유지할 수 있으나 빌링 활성화는 금지해야 합니다.
 
 ## Cleanup
 
-- Chrome viewport와 Chrome/in-app Browser 제어 세션을 정리했습니다.
-- Android font scale을 `1.0`, iOS content size를 `large`로 복구했습니다.
-- Android/iOS·로컬 임시 캡처를 삭제했습니다.
-- QA fixture와 DB write를 생성하지 않았고 운영 데이터·Vercel env·PG 상태를 변경하지 않았습니다.
+- 임시 client probe 파일을 삭제했습니다.
+- 격리 PostgreSQL은 schema 적용 뒤 fixture 생성 전에 중단했습니다.
+- 임시 DB cluster/database/log를 삭제하고 port 55432 listener 0을 확인했습니다.
+- 운영 데이터·env·PG와 제품 코드를 변경하지 않았습니다.
 
 ## 개발 회신
 
-`91094a7`은 서명·멱등·hosted URL·취소 조회 계약과 운영 fail-closed 회귀를 통과했습니다. 현재 비활성 운영 배포 유지와 다음 격리 통합 단계 진입은 가능합니다. 실제 hosted 등록·원클릭·취소 활성화는 LAONPAY readiness, schema/env 적용과 양측 E2E 전까지 NO-GO이며, 인증 모바일 상태 화면 미실행 때문에 전체 결과는 PARTIAL입니다.
+`70ca87b`은 seller-first reason 대사를 보강했지만 POST 응답 상태쌍 검증이 없어 P1 `QA-70CA-01`이 확인됐습니다. 현재 비활성 운영은 유지할 수 있으나 LAONPAY 빌링 활성화는 FAIL/NO-GO입니다. parser와 Action 독립 방어 수정 후 새 SHA에서 격리 DB 상태행렬과 인증 UI를 재검증해야 합니다.
