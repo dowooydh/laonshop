@@ -64,7 +64,24 @@ export function FieldHint({ className, ...props }: React.HTMLAttributes<HTMLPara
   return <p className={cn("mt-1 text-step--1 text-fg-subtle", className)} {...props} />;
 }
 
-export function FieldError({ children }: { children?: React.ReactNode }) {
+export function FieldError({
+  children,
+  className,
+  role = "alert",
+  "aria-live": ariaLive = "assertive",
+  "aria-atomic": ariaAtomic = true,
+  ...props
+}: React.HTMLAttributes<HTMLParagraphElement>) {
   if (!children) return null;
-  return <p className="mt-1 text-step--1 text-danger">{children}</p>;
+  return (
+    <p
+      role={role}
+      aria-live={ariaLive}
+      aria-atomic={ariaAtomic}
+      className={cn("mt-1 text-step--1 text-danger", className)}
+      {...props}
+    >
+      {children}
+    </p>
+  );
 }

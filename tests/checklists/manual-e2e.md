@@ -72,7 +72,14 @@
 - [ ] 배송정보 누락 시 오류
 - [ ] 구매조건 동의 미체크 시 오류
 - [ ] 카드/카카오/네이버/실시간계좌이체 KSPAY 수단 선택
-- [ ] 원클릭 카드 등록 UI가 없고, stale oneclick 요청도 주문 생성 전 사용자 친화적 오류로 차단
+- [ ] 비대상 계정·env 누락·빌링 스키마 미적용 시 hosted 카드 등록과 원클릭 결제를 UI·서버 모두 fail-closed
+- [ ] 지정 계정 카드 등록은 LAONPAY hosted 화면으로 이동하고 복귀 ID·HttpOnly cookie를 대조한 뒤 signed GET 결과만 반영
+- [ ] 라온샵 브라우저·서버·DB·로그에 카드 원문·KSNET billingToken·pgapi·서명키가 노출되지 않음
+- [ ] 등록카드 결제는 본인 ACTIVE 결제수단과 서버 재계산 금액만 사용하고 주문당 charge 1건으로 수렴
+- [ ] charge 응답 유실은 같은 key·동일 body 대사 POST 1회까지만 허용하고 계속 UNKNOWN이면 상태조회 외 재결제 차단
+- [ ] 등록카드 결제 상태조회는 provider charge ID가 있으면 GET만 사용하며, ID/주문/금액 불일치 시 성공 처리하지 않음
+- [ ] 등록카드 주문 취소는 부분금액 없이 LAONPAY 관리자 취소 요청만 1회 생성하고 불명확 응답은 재신청 차단
+- [ ] 재결제 화면의 stale oneclick 요청은 주문 상태 변경 전에 사용자 친화적 오류로 차단
 - [ ] 수기결제는 API key + live switch 이중 가드 없이는 UI·서버 모두 비활성이고 mock PAID를 만들지 않음
 - [ ] `reCommConId`/`reHash` 주문 결박 규격 전에는 테스트 MID `2999199999`만 서버승인하고 실 MID는 외부 승인 전에 차단
 - [ ] 결제 버튼 중복 클릭 시 중복 제출 방지 확인

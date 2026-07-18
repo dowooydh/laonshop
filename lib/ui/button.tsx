@@ -36,15 +36,31 @@ export interface ButtonProps
 }
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, loading, children, disabled, ...props }, ref) => (
+  (
+    {
+      className,
+      variant,
+      size,
+      loading,
+      children,
+      disabled,
+      "aria-busy": ariaBusy,
+      ...props
+    },
+    ref,
+  ) => (
     <button
       ref={ref}
       className={cn(buttonVariants({ variant, size }), className)}
       disabled={disabled || loading}
+      aria-busy={loading ? true : ariaBusy}
       {...props}
     >
       {loading && (
-        <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+        <span
+          aria-hidden="true"
+          className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"
+        />
       )}
       {children}
     </button>

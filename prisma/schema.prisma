@@ -14,21 +14,25 @@ datasource db {
 }
 
 model ShopUser {
-  id            String              @id @default(cuid())
-  email         String              @unique
-  passwordHash  String
-  name          String
-  role          ShopUserRole        @default(CUSTOMER)
-  phone         String?
-  zipcode       String? // 우편번호 (다음 우편번호 검색)
-  address       String? // 기본 배송지 — 도로명/지번 주소 (체크아웃 프리필 1순위)
-  addressDetail String? // 상세 주소 (동·호수 등 직접 입력)
-  deletedAt     DateTime? // 탈퇴 (주문이력 보존 위해 소프트 삭제 — 전자상거래법 기록 보존)
-  orders        ShopOrder[]
-  wishlist      Wishlist[]
-  billingCards  ShopBillingCard[]
-  auditLogs     ShopOrderAuditLog[] @relation("ShopOrderAuditActor")
-  createdAt     DateTime            @default(now())
+  id                    String                     @id @default(cuid())
+  email                 String                     @unique
+  passwordHash          String
+  name                  String
+  role                  ShopUserRole               @default(CUSTOMER)
+  phone                 String?
+  zipcode               String? // 우편번호 (다음 우편번호 검색)
+  address               String? // 기본 배송지 — 도로명/지번 주소 (체크아웃 프리필 1순위)
+  addressDetail         String? // 상세 주소 (동·호수 등 직접 입력)
+  deletedAt             DateTime? // 탈퇴 (주문이력 보존 위해 소프트 삭제 — 전자상거래법 기록 보존)
+  orders                ShopOrder[]
+  wishlist              Wishlist[]
+  billingCards          ShopBillingCard[]
+  paymentMethods        ShopBillingPaymentMethod[]
+  billingRegistrations  ShopBillingRegistration[]
+  billingCharges        ShopBillingCharge[]
+  billingCancelRequests ShopBillingCancelRequest[]
+  auditLogs             ShopOrderAuditLog[]        @relation("ShopOrderAuditActor")
+  createdAt             DateTime                   @default(now())
 }
 
 enum ShopUserRole {
@@ -45,6 +49,128 @@ model ShopBillingCard {
   billingToken   String   @unique
   maskedCardNumb String
   createdAt      DateTime @default(now())
+}
+
+enum ShopBillingPaymentMethodStatus {
+  ACTIVE
+  DEREGISTERING
+  DEREGISTERED
+  UNKNOWN
+}
+
+enum ShopBillingRegistrationStatus {
+  REQUESTING
+  PENDING
+  PROCESSING
+  SUCCEEDED
+  DECLINED
+  UNKNOWN
+  EXPIRED
+}
+
+enum ShopBillingChargeStatus {
+  REQUESTING
+  PENDING
+  PAID
+  DECLINED
+  UNKNOWN
+  CANCEL_REQUESTED
+  CANCELED
+}
+
+enum ShopBillingCancelRequestStatus {
+  REQUESTING
+  REQUESTED
+  PROCESSING
+  DONE
+  REJECTED
+  UNKNOWN
+}
+
+// LAONPAY가 보관한 KSNET billingToken을 가리키는 불투명 결제수단 원장.
+// 카드 원문·provider token·PG 인증정보는 이 저장소와 DB에 절대 저장하지 않는다.
+model ShopBillingPaymentMethod {
+  id                        String                         @id @default(cuid())
+  user                      ShopUser                       @relation(fields: [userId], references: [id], onDelete: Restrict)
+  userId                    String
+  laonpayPaymentMethodId    String                         @unique
+  cardName                  String
+  cardLast4                 String
+  cardType                  String
+  status                    ShopBillingPaymentMethodStatus
+  deregisterIdempotencyKey  String?                        @unique
+  deregisterRequestAttempts Int                            @default(0)
+  providerRegisteredAt      DateTime
+  providerVerifiedAt        DateTime?
+  providerDeregisteredAt    DateTime?
+  registrations             ShopBillingRegistration[]
+  charges                   ShopBillingCharge[]
+  createdAt                 DateTime                       @default(now())
+  updatedAt                 DateTime                       @updatedAt
+
+  @@index([userId, status, createdAt])
+}
+
+// hosted 등록 시작 전에 로컬에서 멱등키를 선점한다. hostedUrl은 저장하지 않는다.
+model ShopBillingRegistration {
+  id                    String                        @id @default(cuid())
+  user                  ShopUser                      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  userId                String
+  laonpayRegistrationId String?                       @unique
+  idempotencyKey        String                        @unique
+  requestFingerprint    String
+  requestAttempts       Int                           @default(0)
+  status                ShopBillingRegistrationStatus @default(REQUESTING)
+  expiresAt             DateTime?
+  paymentMethod         ShopBillingPaymentMethod?     @relation(fields: [paymentMethodId], references: [id], onDelete: Restrict)
+  paymentMethodId       String?
+  createdAt             DateTime                      @default(now())
+  updatedAt             DateTime                      @updatedAt
+
+  @@index([userId, status, createdAt])
+}
+
+// 주문당 외부 빌링 청구는 하나만 허용한다. UNKNOWN은 상태조회 전까지 새 결제를 차단한다.
+model ShopBillingCharge {
+  id                 String                    @id @default(cuid())
+  user               ShopUser                  @relation(fields: [userId], references: [id], onDelete: Restrict)
+  userId             String
+  order              ShopOrder                 @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  orderId            String                    @unique
+  paymentMethod      ShopBillingPaymentMethod  @relation(fields: [paymentMethodId], references: [id], onDelete: Restrict)
+  paymentMethodId    String
+  laonpayChargeId    String?                   @unique
+  idempotencyKey     String                    @unique
+  requestFingerprint String
+  requestAttempts    Int                       @default(0)
+  amount             Int
+  status             ShopBillingChargeStatus   @default(REQUESTING)
+  providerPaymentId  String?
+  failureCode        String?
+  cancelRequest      ShopBillingCancelRequest?
+  createdAt          DateTime                  @default(now())
+  updatedAt          DateTime                  @updatedAt
+
+  @@index([userId, status, createdAt])
+  @@index([paymentMethodId, status])
+}
+
+// 부분취소 없이 주문당 한 번의 전체취소 요청만 기록한다. 실제 PG 취소는 LAONPAY 관리자에서 수행한다.
+model ShopBillingCancelRequest {
+  id                     String                         @id @default(cuid())
+  user                   ShopUser                       @relation(fields: [userId], references: [id], onDelete: Restrict)
+  userId                 String
+  charge                 ShopBillingCharge              @relation(fields: [chargeId], references: [id], onDelete: Restrict)
+  chargeId               String                         @unique
+  laonpayCancelRequestId String?                        @unique
+  idempotencyKey         String                         @unique
+  reason                 String?
+  requestSentAt          DateTime?
+  status                 ShopBillingCancelRequestStatus @default(REQUESTING)
+  createdAt              DateTime                       @default(now())
+  updatedAt              DateTime                       @updatedAt
+
+  @@index([userId, status, createdAt])
 }
 
 // 위시리스트(찜) — 파생 데이터라 상품/회원 삭제 시 함께 정리 (재시드 FK 충돌 방지)
@@ -108,6 +234,7 @@ model ShopOrder {
   cancelReason      String?
   items             ShopOrderItem[]
   auditLogs         ShopOrderAuditLog[]
+  billingCharge     ShopBillingCharge?
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
 

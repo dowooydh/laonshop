@@ -1,6 +1,6 @@
 # 라온샵 에이전트 현재 상태
 
-> 마지막 정리: 2026-07-16. 제품·결제 규칙은 `AGENTS.md`, 구현 사실은 현재 코드와 git 기록을 우선한다.
+> 마지막 정리: 2026-07-18. 제품·결제 규칙은 `AGENTS.md`, 구현 사실은 현재 코드와 git 기록을 우선한다.
 
 ## 읽기 순서
 
@@ -14,10 +14,12 @@
 
 - 라온샵은 라온페이와 데이터·배포가 분리된 독립 Next.js 15 쇼핑몰이다. 라온페이 모노레포로 다시 합치지 않는다.
 - 운영 주소는 `laonshop.com`과 `www.laonshop.com`, Vercel 프로젝트는 `customorder/laonshop`이다. main 푸시는 자동 배포된다.
-- KSPAY 테스트 MID 인증결제창이 동작한다. 원클릭 빌링은 PG 빌링키가 아닌 mock이었던 경로를 제거했으며, 전용 개발 `pgapi`와 카드 입력 보안 방식이 준비되기 전까지 신규 카드 등록과 원클릭 결제를 서버에서도 차단한다. 과거 mock 카드 레코드는 설정에서 삭제만 가능하다.
+- KSPAY 테스트 MID 인증결제창이 동작한다. 원클릭 빌링의 브라우저 전용 Mock은 제거하고, LAONPAY 호스팅 카드 등록과 서버 간 파트너 API를 사용하는 integration-ready 경로로 교체했다. `LAONPAY_BILLING_API_BASE`·`LAONPAY_PARTNER_KEY_ID`·`LAONPAY_PARTNER_PRIVATE_KEY`와 전용 빌링 DB 스키마가 모두 준비되지 않으면 신규 등록·조회·승인·해지는 서버에서도 fail-closed다. 고정 apex 복귀 URL과 등록 쿠키 범위를 지키기 위해 LAONPAY env 3종은 Vercel Production scope에만 설정하며, 코드도 Preview·Development 런타임 외부 호출을 차단한다. 과거 mock 카드 레코드는 설정에서 삭제만 가능하다.
 - 빌링 개발 시연 MID는 KSNET 공용 테스트 MID `2999199999`를 사용한다. 공식 개발계 문서 콘솔에서 등록→조회→결제→취소→해지 전 과정은 검증했지만, 이는 라온샵 계정·서버 연동 완료를 뜻하지 않는다. 공용 MID의 외부 사용 정책 확인은 개발 구현 blocker가 아니라 정식 출시 전 확인사항으로 관리한다.
-- 심사 화면 확인 계정 `laontest@laontest.com`에는 등록→조회→`billing/pay`→해지 생명주기를 브라우저 탭에서만 재현하는 Mock UI가 노출된다. 라온샵 경계에는 불투명 `paymentMethodId`와 카드사·끝 4자리, 비민감 Mock 상태만 남기며 카드 원문·KSNET `billingToken`·PG `TID`·인증키·네트워크 요청·DB 저장·실제 원클릭 결제 연결은 전혀 없다. 명시적 거절과 timeout/5xx 결과미상을 구분하고, 결과미상은 자동 재시도·해지 없이 확인대기로 유지한다. 다른 계정에는 노출되지 않으며 아래 실연동 blocker를 우회하지 않는다.
-- 라온샵 계정의 빌링 시연은 전용 개발 `pgapi`가 안전하게 전달된 뒤 라온페이 호스팅 등록 화면/API와 연결한다. 카드 원문과 KSNET `billingToken`은 라온샵에 노출하지 않고, 라온샵은 opaque `paymentMethodId`와 마스킹 정보만 보관·표시한다. 공식 문서의 샘플 인증 문자열은 코드·Vercel 환경변수에 사용하지 않는다.
+- 라온샵은 등록 시작·고객/주문 원장·결과 표시만 담당하고, 카드 입력·KSNET `billingToken` 암호화 vault·조회·결제·해지·취소 요청은 LAONPAY가 담당한다. 카드 원문·KSNET `billingToken`·`pgapi`는 라온샵 브라우저·서버·DB·로그를 통과하지 않으며, 라온샵에는 opaque `paymentMethodId`와 카드사·끝 4자리·안전 상태만 저장한다. 공식 문서의 샘플 인증 문자열은 코드·Vercel 환경변수에 사용하지 않는다.
+- 호스팅 카드 등록 완료 고정 복귀 URL은 `https://laonshop.com/mypage/settings/billing/return`이다. 복귀 query는 힌트일 뿐이며, 시작 시 저장한 등록 ID와 대조한 뒤 Ed25519 서명된 LAONPAY 상태 조회 응답만 최종 근거로 사용한다.
+- 파트너 API와 hosted 등록 화면은 LAONPAY seller의 같은 고정 HTTPS origin을 사용한다. `hostedUrl`은 `LAONPAY_BILLING_API_BASE`와 `URL.origin`이 정확히 같을 때만 열고, 별도 hosted origin env나 응답 기반 동적 allowlist는 두지 않는다.
+- 등록 intent와 결제 생성 응답을 잃은 경우에는 같은 `Idempotency-Key`와 바이트상 동일한 요청 본문으로 reconciliation POST를 한 번 수행해 기존 ID·상태만 회수할 수 있다. LAONPAY는 새 resource나 새 KSNET 호출을 만들지 않아야 하며, 키가 같고 본문이 다르면 `IDEMPOTENCY_CONFLICT`로 거절한다. 계속 `UNKNOWN`이면 새 결제나 자동 재호출 없이 확인 대기로 고정한다.
 - 수기결제 WEBFEP 운영 호출은 `KSPAY_API_KEY`와 `KSPAY_REST_LIVE=1`이 모두 있어야 UI와 서버가 활성화된다. `KSPAY_REST_LIVE=1`은 운영 `pay.ksnet.co.kr`용이며 paydev 빌링 시연에는 사용하지 않는다. 계약 전 테스트 계정 mock 승인과 합성 승인번호 경로는 제거했으며, 실 MID·API 키·개인정보처리 고지까지 확인한 뒤에만 운영 활성화한다.
 - KSPAY 최종 결과는 주문 ID·주문번호·금액에 결박한 HMAC 토큰과 PG 응답 `ordno`·금액·승인번호·거래번호를 모두 검증한 뒤 주문에 반영한다. 사용자 취소값이나 주문 ID만으로 상태를 바꾸지 않는다.
 - KSNET `reCommConId`/`reHash`를 주문에 서버에서 사전 결박하는 공식 규격을 받기 전에는 테스트 MID `2999199999`만 서버승인한다. 실 MID로 바꾸면 안전하게 승인 차단되며, 스펙 구현·회귀 후에만 이 가드를 변경한다.
@@ -29,10 +31,10 @@
 
 ## 다음 결제 작업
 
-1. 현재 blocker는 외부 서버용 전용 개발 `pgapi`의 안전한 발급·전달이다. 키가 오기 전에는 공식 문서 콘솔 검증과 기존 fail-closed 상태만 유지하며 주문·PG·DB에 연결되는 mock 승인 경로를 복구하지 않는다.
-2. 키가 준비되면 `[LAONPAY] DEV`에서 `billing/query`, 호스팅 카드 등록, 파트너 인증, opaque 결제수단, 등록·결제·취소·해지의 멱등성과 불명확 결과 복구를 먼저 구현한다.
-3. 그 다음 `[LAONSHOP] DEV`에서 회원별 `paymentMethodId`·마스킹 정보와 카드 관리·원클릭 결제 UI를 연결한다. 카드 원문과 KSNET `billingToken`은 라온샵 경계를 통과하지 않는다.
-4. 두 제품 변경을 각각 QA 작업에 인계해 등록→조회→결제→취소→해지, 중복 요청, timeout, 세션·소유권, Safari·Android 회귀까지 통과한 뒤 개발 시연을 연다.
+1. `[LAONPAY] DEV`에서 호스팅 카드 등록, 파트너 인증, opaque 결제수단, 등록·조회·결제·취소 요청·해지, 멱등성과 불명확 결과 복구를 완성하고 개발계 자격정보를 LAONPAY에만 설정한다.
+2. LAONSHOP에는 전용 빌링 DB 스키마를 적용하고 위 LAONPAY 파트너 env 3종만 안전하게 설정한다. LAONSHOP에 MID·`pgapi`·KSNET token을 추가하지 않는다.
+3. env나 DB 스키마 중 하나라도 준비되지 않으면 integration-ready UI와 서버가 fail-closed하는지 유지한다. 준비 후에도 실제 PG 연결 완료로 표현하기 전에 LAONPAY readiness와 서명 계약을 교차 확인한다.
+4. 두 제품 변경을 각각 QA 작업에 인계해 등록→조회→결제→취소 요청→해지, 중복 요청, timeout/5xx/`UNKNOWN`, 세션·소유권, Safari·Android 회귀까지 통과한 뒤 개발 시연을 연다.
 
 ## 결제·브라우저 검증 가드
 

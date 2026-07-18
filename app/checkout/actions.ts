@@ -1,5 +1,6 @@
 "use server";
 // 주문 생성 + KSPAY 인증결제창 호출. 가격은 서버에서 상품 재조회로 신뢰(위변조 차단).
+import { randomUUID } from "node:crypto";
 import { prisma } from "@/lib/db";
 import { getPgProvider } from "@/lib/kspay";
 import { isKspayRestLiveEnabled, payOldCert } from "@/lib/kspay/webfep";
@@ -7,17 +8,27 @@ import { createKspayResultToken } from "@/lib/kspay/result-token";
 import { sanitizePgParam } from "@/lib/format";
 import { z } from "zod";
 import { requireShopUser } from "@/lib/auth";
-import { getDisabledBillingResult, MANUAL_PAYMENT_DISABLED_MESSAGE } from "@/lib/billing";
+import { getDisabledBillingResult, MANUAL_PAYMENT_DISABLED_MESSAGE, ONECLICK_PAYMENT_DISABLED_MESSAGE } from "@/lib/billing";
+import { createLaonpayBillingClient } from "@/lib/laonpay/billing-client";
+import {
+  billingRequestFingerprint,
+  calculateOrderAmount,
+  isBillingIntegrationAccount,
+  isBillingIntegrationEnabled,
+  orderGoodsName,
+} from "@/lib/laonpay/billing-policy";
 import {
   acquireTransactionLock,
   createIdempotentMoid,
+  isPaymentProcessingMarker,
+  LAONPAY_BILLING_PROCESSING_MARKER,
   lockAndValidateInventory,
   PAYMENT_PROCESSING_MARKER,
 } from "@/lib/order-guard";
 
 const schema = z.object({
   // KSPAY 결제창 수단 — 가상계좌는 KSNET 미지원으로 제외.
-  // oneclick = 폐기된 화면의 재전송 호환값(항상 거부) / manual = 수기결제(구인증) 카드정보 직접 입력.
+  // oneclick = LAONPAY hosted 등록카드 / manual = 수기결제(구인증) 카드정보 직접 입력.
   method: z.enum(["card", "kakaopay", "naverpay", "bank", "oneclick", "manual"]).default("card"),
   items: z
     .array(
@@ -35,8 +46,8 @@ const schema = z.object({
   zipcode: z.union([z.string().trim().max(10), z.literal("")]).optional(),
   address: z.string().trim().min(1, "배송지를 입력해 주세요.").max(200),
   addressDetail: z.union([z.string().trim().max(100), z.literal("")]).optional(),
-  // 폐기된 oneclick 화면의 재전송 호환용. 서버에서 주문 생성 전에 항상 거부한다.
-  billingCardId: z.string().optional(),
+  // 브라우저에는 라온샵 로컬의 불투명 결제수단 ID만 전달한다.
+  billingCardId: z.string().min(8).max(128).optional(),
   // manual(구인증) 전용 — 카드정보는 승인 요청 후 즉시 폐기, 저장·로그 금지 (절대 규칙 2)
   manualCard: z
     .object({
@@ -57,13 +68,75 @@ export type CheckoutResult =
 
 const TX_OPTIONS = { maxWait: 5_000, timeout: 15_000 } as const;
 
+function buildBillingChargeRequest(
+  user: { id: string; name: string; email: string },
+  order: {
+    id: string;
+    receiverName: string | null;
+    receiverPhone: string | null;
+    items: Array<{ name: string; price: number; qty: number }>;
+  },
+) {
+  const amount = calculateOrderAmount(order.items);
+  const requestBody = {
+    externalCustomerId: user.id,
+    externalOrderId: order.id,
+    amount,
+    goodsName: orderGoodsName(order.items),
+    buyerName: (order.receiverName ?? user.name).slice(0, 100),
+    ...(order.receiverPhone
+      ? { buyerPhone: order.receiverPhone.replace(/\D/g, "").slice(0, 20) }
+      : {}),
+    buyerEmail: user.email,
+  };
+  return { amount, requestBody };
+}
+
+async function claimBillingChargeAttempt(chargeId: string, orderId: string): Promise<boolean> {
+  return (
+    (await prisma
+      .$transaction(async (tx) => {
+        // 주문 상세의 reconciliation action과 같은 잠금 범위를 사용해야
+        // 다중 탭에서도 최초 1회 + 대사 1회를 합산해 초과하지 않는다.
+        await acquireTransactionLock(tx, `order:${orderId}`);
+        const chargeProbe = await tx.shopBillingCharge.findUnique({
+          where: { id: chargeId },
+          select: { paymentMethodId: true },
+        });
+        if (!chargeProbe) return false;
+        await acquireTransactionLock(tx, `billing-method:${chargeProbe.paymentMethodId}`);
+        await acquireTransactionLock(tx, `billing-charge:${chargeId}`);
+        const charge = await tx.shopBillingCharge.findUnique({ where: { id: chargeId } });
+        if (
+          !charge ||
+          !["REQUESTING", "PENDING", "UNKNOWN"].includes(charge.status) ||
+          charge.requestAttempts >= 2
+        ) {
+          return false;
+        }
+        await tx.shopBillingCharge.update({
+          where: { id: charge.id },
+          data: { requestAttempts: { increment: 1 } },
+        });
+        return true;
+      }, TX_OPTIONS)
+      .catch(() => false)) === true
+  );
+}
+
 export async function createOrderAction(input: CheckoutInput): Promise<CheckoutResult> {
   const user = await requireShopUser();
   const parsed = schema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.errors[0]?.message ?? "입력값을 확인해 주세요." };
   const d = parsed.data;
-  const disabledBilling = getDisabledBillingResult(d.method);
-  if (disabledBilling) return disabledBilling;
+  if (d.method === "oneclick") {
+    if (!d.billingCardId || !isBillingIntegrationEnabled(user.email)) {
+      return { ok: false, error: ONECLICK_PAYMENT_DISABLED_MESSAGE };
+    }
+  } else {
+    const disabledBilling = getDisabledBillingResult(d.method);
+    if (disabledBilling) return disabledBilling;
+  }
 
   // 우편번호·상세주소는 주문 스냅샷 문자열로 합성 보관 (ShopOrder.address 단일 컬럼 유지)
   const fullAddress = [d.zipcode ? `[${d.zipcode}]` : "", d.address, d.addressDetail || ""]
@@ -79,8 +152,49 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
   // 동일 사용자·동일 체크아웃 요청은 같은 moid를 사용한다. DB advisory lock으로 다중 탭과
   // 네트워크 재전송을 직렬화하고, 상품 행 잠금 안에서 재고 확인과 주문 생성을 원자화한다.
   const prepared = await prisma.$transaction(async (tx) => {
+    const billingIntegrationAccount = isBillingIntegrationAccount(user.email);
+    if (billingIntegrationAccount) {
+      // 등록카드 결과가 불명확한 동안 결제수단/카트 nonce를 바꿔 새 주문을 만드는
+      // 교차 요청도 직렬화한다. 이 잠금·조회는 기존 ShopOrder만 사용하므로 LAONPAY
+      // env나 신규 빌링 스키마가 미준비여도 일반 KSPAY 흐름을 깨뜨리지 않는다.
+      await acquireTransactionLock(tx, `billing-checkout-user:${user.id}`);
+    }
     await acquireTransactionLock(tx, `checkout:${user.id}:${d.idempotencyKey}`);
     const moid = createIdempotentMoid(user.id, d.idempotencyKey);
+    if (billingIntegrationAccount) {
+      const unresolvedOtherOrder = await tx.shopOrder.findFirst({
+        where: {
+          userId: user.id,
+          status: "PENDING",
+          approvalNo: LAONPAY_BILLING_PROCESSING_MARKER,
+          moid: { not: moid },
+        },
+        select: { id: true },
+      });
+      if (unresolvedOtherOrder) {
+        return {
+          ok: false as const,
+          error:
+            "다른 주문의 등록카드 결제 결과를 확인 중입니다. 새로 결제하지 말고 주문내역에서 상태를 확인해 주세요.",
+        };
+      }
+    }
+    let selectedBillingMethodId: string | null = null;
+    if (d.method === "oneclick") {
+      await acquireTransactionLock(tx, `billing-method:${d.billingCardId!}`);
+      const selectedMethod = await tx.shopBillingPaymentMethod.findFirst({
+        where: {
+          id: d.billingCardId!,
+          userId: user.id,
+          status: "ACTIVE",
+        },
+        select: { id: true },
+      });
+      if (!selectedMethod) {
+        return { ok: false as const, error: "사용 가능한 등록 카드를 찾을 수 없습니다." };
+      }
+      selectedBillingMethodId = selectedMethod.id;
+    }
     const existing = await tx.shopOrder.findUnique({ where: { moid }, include: { items: true } });
 
     if (existing) {
@@ -89,16 +203,94 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
       if (existing.status === "CANCELED" || existing.status === "CANCEL_REQUESTED") {
         return { ok: false as const, error: "이미 처리된 주문입니다. 주문내역을 확인해 주세요." };
       }
-      if (existing.approvalNo === PAYMENT_PROCESSING_MARKER) {
+      if (d.method === "oneclick") {
+        const existingCharge = await tx.shopBillingCharge.findUnique({
+          where: { orderId: existing.id },
+          select: {
+            id: true,
+            status: true,
+            paymentMethodId: true,
+            requestAttempts: true,
+            laonpayChargeId: true,
+          },
+        });
+        if (
+          existingCharge &&
+          (!["REQUESTING", "PENDING", "UNKNOWN"].includes(existingCharge.status) ||
+            existingCharge.paymentMethodId !== selectedBillingMethodId ||
+            existingCharge.laonpayChargeId !== null ||
+            existingCharge.requestAttempts >= 2)
+        ) {
+          return {
+            ok: false as const,
+            error: "이미 처리 중이거나 완료된 등록카드 결제 요청입니다. 주문내역을 확인해 주세요.",
+          };
+        }
+      }
+      const recoveringUnclaimedBillingOrder =
+        d.method === "oneclick" &&
+        existing.approvalNo === LAONPAY_BILLING_PROCESSING_MARKER;
+      if (isPaymentProcessingMarker(existing.approvalNo) && !recoveringUnclaimedBillingOrder) {
         return { ok: false as const, error: "결제 결과를 확인 중입니다. 잠시 후 주문내역을 확인해 주세요." };
       }
       const inventory = await lockAndValidateInventory(tx, existing.items, existing.id);
-      if (!inventory.ok) return inventory;
+      if (!inventory.ok) {
+        const localOnlyCharge = recoveringUnclaimedBillingOrder
+          ? await tx.shopBillingCharge.findUnique({
+              where: { orderId: existing.id },
+              select: { id: true, requestAttempts: true, laonpayChargeId: true },
+            })
+          : null;
+        if (
+          recoveringUnclaimedBillingOrder &&
+          (!localOnlyCharge ||
+            (localOnlyCharge.requestAttempts === 0 &&
+              localOnlyCharge.laonpayChargeId === null))
+        ) {
+          if (localOnlyCharge) {
+            await tx.shopBillingCharge.update({
+              where: { id: localOnlyCharge.id },
+              data: { status: "DECLINED", failureCode: "LOCAL_INVENTORY_REJECTED" },
+            });
+          }
+          await tx.shopOrder.update({
+            where: { id: existing.id },
+            data: { status: "FAILED", approvalNo: null },
+          });
+        }
+        return inventory;
+      }
       const order = await tx.shopOrder.update({
         where: { id: existing.id },
         data: { status: "PENDING" },
         include: { items: true },
       });
+      if (d.method === "oneclick") {
+        const existingCharge = await tx.shopBillingCharge.findUnique({
+          where: { orderId: order.id },
+        });
+        if (!existingCharge) {
+          const { amount, requestBody } = buildBillingChargeRequest(user, order);
+          if (amount !== order.totalAmount || amount !== inventory.total) {
+            await tx.shopOrder.update({
+              where: { id: order.id },
+              data: { status: "FAILED", approvalNo: null },
+            });
+            return { ok: false as const, error: "주문 금액을 확인할 수 없습니다." };
+          }
+          await tx.shopBillingCharge.create({
+            data: {
+              userId: user.id,
+              orderId: order.id,
+              paymentMethodId: selectedBillingMethodId!,
+              idempotencyKey: randomUUID(),
+              requestFingerprint: billingRequestFingerprint(requestBody),
+              amount,
+              status: "REQUESTING",
+            },
+          });
+        }
+      }
       return { ok: true as const, order };
     }
 
@@ -113,10 +305,30 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
         receiverName: d.receiverName,
         receiverPhone: d.receiverPhone,
         address: fullAddress,
+        ...(d.method === "oneclick"
+          ? { approvalNo: LAONPAY_BILLING_PROCESSING_MARKER }
+          : {}),
         items: { create: inventory.items },
       },
       include: { items: true },
     });
+    if (d.method === "oneclick") {
+      const { amount, requestBody } = buildBillingChargeRequest(user, order);
+      if (amount !== order.totalAmount || amount !== inventory.total) {
+        throw new Error("원클릭 주문 금액 불일치");
+      }
+      await tx.shopBillingCharge.create({
+        data: {
+          userId: user.id,
+          orderId: order.id,
+          paymentMethodId: selectedBillingMethodId!,
+          idempotencyKey: randomUUID(),
+          requestFingerprint: billingRequestFingerprint(requestBody),
+          amount,
+          status: "REQUESTING",
+        },
+      });
+    }
     return { ok: true as const, order };
   }, TX_OPTIONS).catch(() => null);
 
@@ -124,8 +336,311 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
   if (!prepared.ok) return { ok: false, error: prepared.error };
   const order = prepared.order;
   if (order.status === "PAID") return { ok: true, redirect: `/order/${order.id}?receipt=1` };
-  const goodsName =
-    order.items.length > 1 ? `${order.items[0].name} 외 ${order.items.length - 1}건` : order.items[0].name;
+  const goodsName = orderGoodsName(order.items);
+
+  // ── LAONPAY 등록카드 결제 ───────────────────────────────────────────────
+  // 외부 호출 전에 주문·결제수단 소유권과 금액을 다시 검증하고, 주문당 하나인
+  // 청구 원장과 처리 마커를 먼저 커밋한다. 이후 timeout/5xx가 발생해도 새 청구를
+  // 만들거나 다른 결제수단으로 우회하지 않고 주문 상세의 상태조회만 허용한다.
+  if (d.method === "oneclick") {
+    const chargePrepared = await prisma.$transaction(async (tx) => {
+      await acquireTransactionLock(tx, `billing-checkout-user:${user.id}`);
+      await acquireTransactionLock(tx, `order:${order.id}`);
+      await acquireTransactionLock(tx, `billing-method:${d.billingCardId!}`);
+      const current = await tx.shopOrder.findUnique({
+        where: { id: order.id },
+        include: { items: true, billingCharge: true },
+      });
+      if (!current || current.userId !== user.id) {
+        return { ok: false as const, error: "주문을 찾을 수 없습니다." };
+      }
+      if (current.status === "PAID") {
+        return { ok: true as const, paid: true as const, order: current };
+      }
+      if (current.status !== "PENDING" || current.items.length === 0) {
+        return { ok: false as const, error: "결제를 진행할 수 없는 주문입니다." };
+      }
+      if (current.approvalNo !== LAONPAY_BILLING_PROCESSING_MARKER) {
+        return {
+          ok: false as const,
+          error: "등록카드 결제 결과를 확인 중입니다. 새로 결제하지 말고 주문내역에서 상태를 확인해 주세요.",
+        };
+      }
+
+      const inventory = await lockAndValidateInventory(tx, current.items, current.id);
+      if (!inventory.ok) {
+        if (
+          !current.billingCharge ||
+          (current.billingCharge.requestAttempts === 0 &&
+            current.billingCharge.laonpayChargeId === null)
+        ) {
+          if (current.billingCharge) {
+            await tx.shopBillingCharge.update({
+              where: { id: current.billingCharge.id },
+              data: { status: "DECLINED", failureCode: "LOCAL_INVENTORY_REJECTED" },
+            });
+          }
+          await tx.shopOrder.update({
+            where: { id: current.id },
+            data: { status: "FAILED", approvalNo: null },
+          });
+        }
+        return inventory;
+      }
+      const { amount, requestBody } = buildBillingChargeRequest(user, current);
+      if (amount !== current.totalAmount || amount !== inventory.total) {
+        if (
+          !current.billingCharge ||
+          (current.billingCharge.requestAttempts === 0 &&
+            current.billingCharge.laonpayChargeId === null)
+        ) {
+          if (current.billingCharge) {
+            await tx.shopBillingCharge.update({
+              where: { id: current.billingCharge.id },
+              data: { status: "DECLINED", failureCode: "LOCAL_AMOUNT_CHANGED" },
+            });
+          }
+          await tx.shopOrder.update({
+            where: { id: current.id },
+            data: { status: "FAILED", approvalNo: null },
+          });
+        }
+        return { ok: false as const, error: "주문 금액을 확인할 수 없습니다." };
+      }
+      const paymentMethod = await tx.shopBillingPaymentMethod.findFirst({
+        where: {
+          id: d.billingCardId!,
+          userId: user.id,
+          status: "ACTIVE",
+        },
+      });
+      if (!paymentMethod) {
+        if (
+          !current.billingCharge ||
+          (current.billingCharge.requestAttempts === 0 &&
+            current.billingCharge.laonpayChargeId === null)
+        ) {
+          if (current.billingCharge) {
+            await tx.shopBillingCharge.update({
+              where: { id: current.billingCharge.id },
+              data: { status: "DECLINED", failureCode: "PAYMENT_METHOD_UNAVAILABLE" },
+            });
+          }
+          await tx.shopOrder.update({
+            where: { id: current.id },
+            data: { status: "FAILED", approvalNo: null },
+          });
+        }
+        return { ok: false as const, error: "사용 가능한 등록 카드를 찾을 수 없습니다." };
+      }
+
+      const requestFingerprint = billingRequestFingerprint(requestBody);
+      const charge = current.billingCharge
+        ? current.billingCharge
+        : await tx.shopBillingCharge.create({
+            data: {
+              userId: user.id,
+              orderId: current.id,
+              paymentMethodId: paymentMethod.id,
+              idempotencyKey: randomUUID(),
+              requestFingerprint,
+              amount,
+              status: "REQUESTING",
+            },
+          });
+      if (
+        charge.userId !== user.id ||
+        charge.orderId !== current.id ||
+        charge.paymentMethodId !== paymentMethod.id ||
+        charge.amount !== amount ||
+        charge.requestFingerprint !== requestFingerprint ||
+        !["REQUESTING", "PENDING", "UNKNOWN"].includes(charge.status) ||
+        charge.laonpayChargeId !== null ||
+        charge.requestAttempts >= 2
+      ) {
+        return {
+          ok: false as const,
+          error: "등록카드 결제 원장을 확인할 수 없습니다. 주문내역에서 상태를 확인해 주세요.",
+        };
+      }
+      return {
+        ok: true as const,
+        paid: false as const,
+        charge,
+        paymentMethod,
+        requestBody,
+      };
+    }, TX_OPTIONS).catch(() => null);
+
+    if (!chargePrepared) {
+      return {
+        ok: false,
+        error: "등록카드 결제를 시작하지 못했습니다. 새로 결제하지 말고 주문내역을 확인해 주세요.",
+      };
+    }
+    if (!chargePrepared.ok) return { ok: false, error: chargePrepared.error };
+    if (chargePrepared.paid) return { ok: true, redirect: `/order/${order.id}?receipt=1` };
+
+    const client = createLaonpayBillingClient();
+    if (!(await claimBillingChargeAttempt(chargePrepared.charge.id, order.id))) {
+      return {
+        ok: false,
+        error: "등록카드 결제 요청 상태를 확인하지 못했습니다. 새로 결제하지 말고 주문내역을 확인해 주세요.",
+      };
+    }
+    let chargeResult = await client.chargePaymentMethod(
+      chargePrepared.paymentMethod.laonpayPaymentMethodId,
+      chargePrepared.requestBody,
+      chargePrepared.charge.idempotencyKey,
+    );
+    if (
+      !chargeResult.ok &&
+      chargeResult.outcome === "UNKNOWN" &&
+      (await claimBillingChargeAttempt(chargePrepared.charge.id, order.id))
+    ) {
+      // 계약 4: 같은 key와 바이트상 동일한 body의 두 번째 POST는 새 승인이 아니라
+      // 기존 resource의 ID/상태 대사다. 이 1회를 넘는 자동 재호출은 하지 않는다.
+      chargeResult = await client.chargePaymentMethod(
+        chargePrepared.paymentMethod.laonpayPaymentMethodId,
+        chargePrepared.requestBody,
+        chargePrepared.charge.idempotencyKey,
+      );
+    }
+
+    if (
+      !chargeResult.ok ||
+      chargeResult.data.charge.externalOrderId !== order.id ||
+      chargeResult.data.charge.amount !== chargePrepared.charge.amount
+    ) {
+      await prisma.shopBillingCharge
+        .updateMany({
+          where: {
+            id: chargePrepared.charge.id,
+            status: { in: ["REQUESTING", "PENDING", "UNKNOWN"] },
+          },
+          data: {
+            status: "UNKNOWN",
+            failureCode:
+              !chargeResult.ok && chargeResult.outcome === "REJECTED"
+                ? chargeResult.errorCode?.slice(0, 64) ?? "PARTNER_REJECTED"
+                : "RESULT_UNCONFIRMED",
+            // 명시적 4xx/409는 응답 유실이 아니므로 같은 POST 대사 대상이 아니다.
+            // 남은 시도 횟수를 소진해 주문 상세에서 후속 POST를 만들지 못하게 한다.
+            ...(!chargeResult.ok && chargeResult.outcome === "REJECTED"
+              ? { requestAttempts: 2 }
+              : {}),
+          },
+        })
+        .catch(() => undefined);
+      return {
+        ok: false,
+        error: "결제 결과를 확인하지 못했습니다. 중복 결제를 피하려면 주문내역에서 상태를 확인해 주세요.",
+      };
+    }
+
+    const remoteCharge = chargeResult.data.charge;
+    const remoteStatus =
+      remoteCharge.status === "PAID" || remoteCharge.status === "DECLINED"
+        ? remoteCharge.status
+        : remoteCharge.status === "PENDING" || remoteCharge.status === "UNKNOWN"
+          ? remoteCharge.status
+          : "UNKNOWN";
+    const finalized = await prisma.$transaction(async (tx) => {
+      await acquireTransactionLock(tx, `order:${order.id}`);
+      await acquireTransactionLock(tx, `billing-method:${chargePrepared.paymentMethod.id}`);
+      const [currentOrder, currentCharge] = await Promise.all([
+        tx.shopOrder.findUnique({ where: { id: order.id } }),
+        tx.shopBillingCharge.findUnique({ where: { id: chargePrepared.charge.id } }),
+      ]);
+      if (
+        !currentOrder ||
+        !currentCharge ||
+        currentOrder.userId !== user.id ||
+        currentCharge.userId !== user.id ||
+        currentCharge.orderId !== currentOrder.id
+      ) {
+        return { ok: false as const };
+      }
+      if (currentOrder.status === "PAID" && currentCharge.status === "PAID") {
+        return { ok: true as const, paid: true as const };
+      }
+      if (
+        currentOrder.status !== "PENDING" ||
+        currentOrder.approvalNo !== LAONPAY_BILLING_PROCESSING_MARKER ||
+        !["REQUESTING", "PENDING", "UNKNOWN"].includes(currentCharge.status)
+      ) {
+        return { ok: false as const };
+      }
+      const identifierMismatch =
+        (currentCharge.laonpayChargeId !== null &&
+          currentCharge.laonpayChargeId !== remoteCharge.id) ||
+        (currentCharge.providerPaymentId !== null &&
+          currentCharge.providerPaymentId !== remoteCharge.paymentId);
+      if (identifierMismatch) {
+        await tx.shopBillingCharge.update({
+          where: { id: currentCharge.id },
+          data: { status: "UNKNOWN", failureCode: "RESULT_ID_MISMATCH" },
+        });
+        return { ok: false as const };
+      }
+
+      const sharedChargeData = {
+        laonpayChargeId: remoteCharge.id,
+        providerPaymentId: remoteCharge.paymentId,
+        failureCode: remoteCharge.error?.code?.slice(0, 64) ?? null,
+      };
+      if (remoteStatus === "PAID") {
+        await tx.shopBillingCharge.update({
+          where: { id: currentCharge.id },
+          data: { ...sharedChargeData, status: "PAID" },
+        });
+        await tx.shopOrder.update({
+          where: { id: currentOrder.id },
+          data: {
+            status: "PAID",
+            paidAt: new Date(),
+            approvalNo: null,
+            pgTrno: null,
+            cardName: `${chargePrepared.paymentMethod.cardName} (LAONPAY 원클릭)`,
+          },
+        });
+        return { ok: true as const, paid: true as const };
+      }
+      if (remoteStatus === "DECLINED") {
+        await tx.shopBillingCharge.update({
+          where: { id: currentCharge.id },
+          data: { ...sharedChargeData, status: "DECLINED" },
+        });
+        await tx.shopOrder.update({
+          where: { id: currentOrder.id },
+          data: { status: "FAILED", approvalNo: null },
+        });
+        return { ok: true as const, paid: false as const };
+      }
+      await tx.shopBillingCharge.update({
+        where: { id: currentCharge.id },
+        data: { ...sharedChargeData, status: remoteStatus },
+      });
+      return { ok: true as const, paid: false as const };
+    }, TX_OPTIONS).catch(() => null);
+
+    if (!finalized) {
+      return {
+        ok: false,
+        error: "결제 상태 저장을 확인하지 못했습니다. 새로 결제하지 말고 주문내역을 확인해 주세요.",
+      };
+    }
+    if (!finalized.ok || !finalized.paid) {
+      return {
+        ok: false,
+        error:
+          remoteStatus === "DECLINED"
+            ? "등록카드 결제가 거절되었습니다. 주문내역에서 다른 결제수단을 이용해 주세요."
+            : "결제 결과를 확인 중입니다. 새로 결제하지 말고 주문내역에서 상태를 확인해 주세요.",
+      };
+    }
+    return { ok: true, redirect: `/order/${order.id}?receipt=1` };
+  }
 
   // ── 수기결제(구인증) — KSNET WEBFEP /card/pay/oldcert. 카드정보는 즉시 폐기 ──
   if (d.method === "manual") {
@@ -138,7 +653,7 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
       if (!current || current.userId !== user.id) return { ok: false as const, error: "주문을 찾을 수 없습니다." };
       if (current.status === "PAID") return { ok: true as const, paid: true as const, order: current };
       if (current.status !== "PENDING") return { ok: false as const, error: "이미 처리된 주문입니다." };
-      if (current.approvalNo === PAYMENT_PROCESSING_MARKER) {
+      if (isPaymentProcessingMarker(current.approvalNo)) {
         return { ok: false as const, error: "결제 결과를 확인 중입니다. 잠시 후 주문내역을 확인해 주세요." };
       }
       const inventory = await lockAndValidateInventory(tx, current.items, current.id);
@@ -231,7 +746,7 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
 
   const res = await getPgProvider().createAuthOrder({
     paymentId: order.id, // 패스스루 a = orderId
-    payMethod: d.method as "card" | "kakaopay" | "naverpay" | "bank", // oneclick은 주문 생성 전에 거부
+    payMethod: d.method as "card" | "kakaopay" | "naverpay" | "bank",
 
     moid: order.moid,
     amount: order.totalAmount,

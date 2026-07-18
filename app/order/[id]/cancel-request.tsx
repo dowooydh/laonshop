@@ -1,8 +1,8 @@
 "use client";
 // 취소·반품 신청 — 결제완료(PAID) 주문 하단의 절제된 접이식 폼.
-import { Button, FieldError, Textarea } from "@/lib/ui";
+import { Button, FieldError, Label, Textarea } from "@/lib/ui";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useId, useRef, useState } from "react";
 import { requestCancelAction } from "../actions";
 
 export function CancelRequest({ orderId }: { orderId: string }) {
@@ -11,8 +11,13 @@ export function CancelRequest({ orderId }: { orderId: string }) {
   const [reason, setReason] = useState("");
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  const submittingRef = useRef(false);
+  const reasonId = useId();
+  const errorId = useId();
 
   const submit = async () => {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setError("");
     setPending(true);
     try {
@@ -22,6 +27,7 @@ export function CancelRequest({ orderId }: { orderId: string }) {
     } catch {
       setError("신청 처리 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.");
     } finally {
+      submittingRef.current = false;
       setPending(false);
     }
   };
@@ -45,18 +51,39 @@ export function CancelRequest({ orderId }: { orderId: string }) {
   return (
     <div className="space-y-3">
       <p className="font-mono text-step--1 uppercase tracking-widest text-fg-subtle">취소·반품 신청</p>
+      <Label htmlFor={reasonId}>취소·반품 사유 (선택)</Label>
       <Textarea
+        id={reasonId}
         value={reason}
         onChange={(e) => setReason(e.target.value)}
         maxLength={200}
         placeholder="사유를 입력해 주세요 (선택)"
+        aria-invalid={Boolean(error)}
+        aria-describedby={error ? errorId : undefined}
       />
-      <FieldError>{error}</FieldError>
-      <div className="flex justify-end gap-2">
-        <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>
+      <FieldError id={errorId}>{error}</FieldError>
+      <div className="flex min-w-0 flex-wrap justify-end gap-2">
+        <Button
+          type="button"
+          variant="ghost"
+          size="md"
+          disabled={pending}
+          className="min-h-11 min-w-[min(100%,6rem)] flex-1 sm:flex-none"
+          onClick={() => {
+            setError("");
+            setOpen(false);
+          }}
+        >
           닫기
         </Button>
-        <Button type="button" variant="outline" size="sm" loading={pending} onClick={submit}>
+        <Button
+          type="button"
+          variant="outline"
+          size="md"
+          loading={pending}
+          className="min-h-11 min-w-[min(100%,6rem)] flex-1 sm:flex-none"
+          onClick={submit}
+        >
           신청하기
         </Button>
       </div>

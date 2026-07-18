@@ -6,7 +6,12 @@ import { CATALOG, DESC, SIZES, u, type Category, type Gender } from "./catalog";
 const prisma = new PrismaClient();
 
 async function main() {
-  // 초기화 (주문·찜 → 상품 순 — FK 제약)
+  // 초기화 (빌링 자식 원장 → 주문·찜 → 상품 순 — FK 제약)
+  // 등록/결제/취소 시연 데이터가 남아 있어도 시드를 다시 실행할 수 있어야 한다.
+  await prisma.shopBillingCancelRequest.deleteMany();
+  await prisma.shopBillingCharge.deleteMany();
+  await prisma.shopBillingRegistration.deleteMany();
+  await prisma.shopBillingPaymentMethod.deleteMany();
   await prisma.shopOrderAuditLog.deleteMany();
   await prisma.shopOrderItem.deleteMany();
   await prisma.shopOrder.deleteMany();

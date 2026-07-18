@@ -2,7 +2,7 @@
 import { formatKrw } from "@/lib/format";
 import { Button, Checkbox, EmptyState, FieldError, Input, Label, Spinner, buttonVariants, cn } from "@/lib/ui";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AddressInput } from "@/components/address-input";
 import { KspayCheckout } from "@/components/kspay-checkout";
 import { cartTotal, getCart, type CartItem } from "@/lib/cart";
@@ -16,12 +16,21 @@ export type CheckoutInitial = {
   address: string;
   addressDetail: string;
 };
+export type CheckoutBillingPaymentMethod = {
+  id: string;
+  cardName: string;
+  cardLast4: string;
+  cardType: string;
+};
+
 export function CheckoutForm({
   initial,
   manualPaymentEnabled,
+  billingPaymentMethods,
 }: {
   initial: CheckoutInitial;
   manualPaymentEnabled: boolean;
+  billingPaymentMethods: CheckoutBillingPaymentMethod[];
 }) {
   // 결제수단 구성 — KSNET 김민규 팀장 가이드(2026-07): 카드/카카오/네이버/실시간계좌이체/수기(구인증).
   // 가상계좌는 KSNET 미지원+심사 거절 사유로 제외.
@@ -30,6 +39,9 @@ export function CheckoutForm({
     { id: "kakaopay", label: "카카오페이", desc: "카카오페이 간편결제", enabled: true },
     { id: "naverpay", label: "네이버페이", desc: "네이버페이 간편결제", enabled: true },
     { id: "bank", label: "실시간 계좌이체", desc: "은행 계좌 즉시 이체", enabled: true },
+    ...(billingPaymentMethods.length > 0
+      ? [{ id: "oneclick", label: "등록카드 결제", desc: "LAONPAY 간편결제", enabled: true }]
+      : []),
     ...(manualPaymentEnabled
       ? [{ id: "manual", label: "수기결제", desc: "카드번호 직접 입력 (구인증)", enabled: true }]
       : []),
@@ -38,11 +50,13 @@ export function CheckoutForm({
   const [ready, setReady] = useState(false);
   const [form, setForm] = useState(initial);
   const [method, setMethod] = useState("card");
+  const [billingCardId, setBillingCardId] = useState(billingPaymentMethods[0]?.id ?? "");
   const [manualCard, setManualCard] = useState({ cardNo: "", expMm: "", expYy: "", pw2: "", birth6: "" });
   const [pay, setPay] = useState<{ formAction: string; formFields: Record<string, string> } | null>(null);
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
   const [agree, setAgree] = useState(false);
+  const submitLockedRef = useRef(false);
 
   useEffect(() => {
     setItems(getCart());
@@ -52,17 +66,27 @@ export function CheckoutForm({
   const total = cartTotal(items);
 
   const submit = async () => {
+    if (submitLockedRef.current) return;
+    submitLockedRef.current = true;
     setError("");
     if (!form.receiverName || !form.receiverPhone || !form.address) {
       setError("배송 정보를 모두 입력해 주세요.");
+      submitLockedRef.current = false;
       return;
     }
     if (!agree) {
       setError("주문 내용 확인 및 구매조건에 동의해 주세요.");
+      submitLockedRef.current = false;
       return;
     }
     if (method === "manual" && (!manualCard.cardNo || !manualCard.expMm || !manualCard.expYy || !manualCard.pw2 || !manualCard.birth6)) {
       setError("수기결제 카드 정보를 모두 입력해 주세요.");
+      submitLockedRef.current = false;
+      return;
+    }
+    if (method === "oneclick" && !billingCardId) {
+      setError("등록 카드를 선택해 주세요.");
+      submitLockedRef.current = false;
       return;
     }
     setPending(true);
@@ -72,12 +96,14 @@ export function CheckoutForm({
       if (currentItems.length === 0) {
         setItems([]);
         setError("장바구니가 비어 있습니다.");
+        submitLockedRef.current = false;
         return;
       }
       const orderInput = {
-        method: method as "card" | "kakaopay" | "naverpay" | "bank" | "manual",
+        method: method as "card" | "kakaopay" | "naverpay" | "bank" | "oneclick" | "manual",
         items: currentItems.map((i) => ({ productId: i.productId, qty: i.qty, size: i.size })),
         ...form,
+        ...(method === "oneclick" ? { billingCardId } : {}),
         ...(method === "manual"
           ? { manualCard: { ...manualCard, cardNo: manualCard.cardNo.replace(/[\s-]/g, "") } }
           : {}),
@@ -97,6 +123,7 @@ export function CheckoutForm({
       setError("주문 처리 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.");
     } finally {
       setPending(false);
+      submitLockedRef.current = false;
     }
   };
 
@@ -259,6 +286,38 @@ export function CheckoutForm({
             </p>
           </div>
         )}
+        {method === "oneclick" && (
+          <div className="min-w-0 space-y-2 rounded-[var(--radius-md)] border border-line bg-overlay p-[16px]">
+            <p className="text-step--1 font-medium text-fg">등록 카드 선택</p>
+            <div className="grid min-w-0 grid-cols-1 gap-2">
+              {billingPaymentMethods.map((card) => (
+                <button
+                  key={card.id}
+                  type="button"
+                  aria-pressed={billingCardId === card.id}
+                  onClick={() => {
+                    setBillingCardId(card.id);
+                    setError("");
+                  }}
+                  className={cn(
+                    "flex min-h-[48px] min-w-0 flex-wrap items-center justify-between gap-2 rounded-[var(--radius-md)] border px-3 py-2 text-left",
+                    billingCardId === card.id
+                      ? "border-accent-cyan bg-accent-cyan/10 text-fg"
+                      : "border-line bg-raised text-fg-muted hover:bg-overlay",
+                  )}
+                >
+                  <span className="min-w-[min(100%,8rem)] flex-1 text-step--1 font-semibold [overflow-wrap:anywhere]">
+                    {card.cardName} · •••• {card.cardLast4}
+                  </span>
+                  <span className="text-[0.72rem] text-fg-subtle [overflow-wrap:anywhere]">{card.cardType}</span>
+                </button>
+              ))}
+            </div>
+            <p className="text-step--1 leading-relaxed text-fg-subtle">
+              라온샵은 카드번호나 PG 빌링키를 보관하지 않고 불투명 결제수단 ID만 사용합니다.
+            </p>
+          </div>
+        )}
       </section>
 
       {/* 전자상거래법 제13조 — 재화 대금 외 배송비 고지 (전 상품 무료배송) */}
@@ -310,7 +369,9 @@ export function CheckoutForm({
       </Button>
 
       <p className="text-center text-step--1 text-fg-subtle">
-        결제는 KSPAY(KSNET) 인증결제창에서 안전하게 진행됩니다.
+        {method === "oneclick"
+          ? "등록카드 결제는 LAONPAY 서버에서 안전하게 처리됩니다."
+          : "결제는 KSPAY(KSNET) 인증결제창에서 안전하게 진행됩니다."}
       </p>
     </div>
   );

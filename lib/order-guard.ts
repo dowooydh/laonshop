@@ -32,6 +32,11 @@ type ReservedQuantity = { productId: string; qty: number };
 
 export const PENDING_RESERVATION_MINUTES = 30;
 export const PAYMENT_PROCESSING_MARKER = "__KSPAY_PROCESSING__";
+export const LAONPAY_BILLING_PROCESSING_MARKER = "__LAONPAY_BILLING_PROCESSING__";
+
+export function isPaymentProcessingMarker(approvalNo: string | null): boolean {
+  return approvalNo === PAYMENT_PROCESSING_MARKER || approvalNo === LAONPAY_BILLING_PROCESSING_MARKER;
+}
 
 export function shouldStartKspayApproval(
   status: string,
@@ -41,7 +46,7 @@ export function shouldStartKspayApproval(
 ): boolean {
   return (
     status === "PENDING" &&
-    approvalNo !== PAYMENT_PROCESSING_MARKER &&
+    !isPaymentProcessingMarker(approvalNo) &&
     hasCommConId &&
     !isCanceled
   );
@@ -169,7 +174,7 @@ export async function lockAndValidateInventory(
         OR (
           o."status" = 'PENDING'
           AND (
-            o."approvalNo" = ${PAYMENT_PROCESSING_MARKER}
+            o."approvalNo" IN (${PAYMENT_PROCESSING_MARKER}, ${LAONPAY_BILLING_PROCESSING_MARKER})
             OR o."updatedAt" >= NOW() - INTERVAL '30 minutes'
           )
         )
