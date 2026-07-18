@@ -15,9 +15,11 @@ import type {
 } from "@/lib/laonpay/billing-contract";
 import {
   billingRequestFingerprint,
+  canClaimBillingChargeAttempt,
   calculateOrderAmount,
   isBillingIntegrationAccount,
   isBillingIntegrationEnabled,
+  isProvablyLocalBillingCharge,
   orderGoodsName,
 } from "@/lib/laonpay/billing-policy";
 import {
@@ -848,14 +850,52 @@ export async function refreshBillingChargeStatusAction(input: {
         : {}),
       buyerEmail: user.email,
     };
-    if (
+    const requestFingerprint = billingRequestFingerprint(requestBody);
+    const localRequestChanged =
       amount !== charge.order.totalAmount ||
       amount !== charge.amount ||
-      billingRequestFingerprint(requestBody) !== charge.requestFingerprint
-    ) {
+      requestFingerprint !== charge.requestFingerprint;
+    if (localRequestChanged && isProvablyLocalBillingCharge(charge)) {
+      const closedCharge = await tx.shopBillingCharge.updateMany({
+        where: {
+          id: charge.id,
+          userId: user.id,
+          orderId: charge.order.id,
+          paymentMethodId: charge.paymentMethod.id,
+          amount: charge.amount,
+          requestFingerprint: charge.requestFingerprint,
+          status: "REQUESTING",
+          requestAttempts: 0,
+          laonpayChargeId: null,
+          providerPaymentId: null,
+        },
+        data: {
+          status: "DECLINED",
+          failureCode:
+            amount !== charge.order.totalAmount ||
+            charge.amount !== amount
+              ? "LOCAL_AMOUNT_CHANGED"
+              : "LOCAL_REQUEST_CHANGED",
+        },
+      });
+      if (closedCharge.count !== 1) throw new Error("로컬 빌링 청구 종료 경합");
+      const closedOrder = await tx.shopOrder.updateMany({
+        where: {
+          id: charge.order.id,
+          userId: user.id,
+          status: "PENDING",
+          approvalNo: LAONPAY_BILLING_PROCESSING_MARKER,
+        },
+        data: { status: "FAILED", approvalNo: null },
+      });
+      if (closedOrder.count !== 1) throw new Error("로컬 빌링 주문 종료 경합");
+      return { ok: true as const, done: true as const, status: "DECLINED" as const };
+    }
+    if (localRequestChanged) {
       return { ok: false as const, error: "주문 결제 정보가 일치하지 않아 상태 조회를 중단했습니다." };
     }
     let claimedCharge = charge;
+    let claimedRequestBody = requestBody;
     if (!charge.laonpayChargeId) {
       // checkout 최초 호출과 같은 잠금 범위를 사용해 전체 생명주기에서 POST를
       // 최초 1회 + reconciliation 1회로 제한한다.
@@ -880,23 +920,97 @@ export async function refreshBillingChargeStatusAction(input: {
       if (latestCharge.laonpayChargeId) {
         claimedCharge = latestCharge;
       } else {
-        if (latestCharge.requestAttempts >= 2) {
+        const latestAmount = calculateOrderAmount(latestCharge.order.items);
+        const latestRequestBody = {
+          externalCustomerId: user.id,
+          externalOrderId: latestCharge.order.id,
+          amount: latestAmount,
+          goodsName: orderGoodsName(latestCharge.order.items),
+          buyerName: (latestCharge.order.receiverName ?? user.name).slice(0, 100),
+          ...(latestCharge.order.receiverPhone
+            ? {
+                buyerPhone: latestCharge.order.receiverPhone
+                  .replace(/\D/g, "")
+                  .slice(0, 20),
+              }
+            : {}),
+          buyerEmail: user.email,
+        };
+        const latestExpected = {
+          userId: user.id,
+          orderId: charge.orderId,
+          paymentMethodId: charge.paymentMethodId,
+          amount: latestAmount,
+          requestFingerprint: billingRequestFingerprint(latestRequestBody),
+        };
+        if (
+          latestCharge.order.userId !== user.id ||
+          latestCharge.order.status !== "PENDING" ||
+          latestCharge.order.approvalNo !== LAONPAY_BILLING_PROCESSING_MARKER ||
+          latestCharge.order.items.length === 0 ||
+          latestCharge.order.totalAmount !== latestAmount ||
+          latestCharge.paymentMethod.userId !== user.id ||
+          latestCharge.paymentMethod.status !== "ACTIVE" ||
+          latestCharge.paymentMethod.id !== charge.paymentMethodId ||
+          latestCharge.paymentMethod.laonpayPaymentMethodId !==
+            charge.paymentMethod.laonpayPaymentMethodId ||
+          !canClaimBillingChargeAttempt(
+            latestCharge,
+            latestExpected,
+            latestCharge.requestAttempts,
+          )
+        ) {
           return {
             ok: false as const,
-            error: "결제 요청 결과를 확인할 식별자를 받지 못했습니다. 재요청하지 말고 고객센터에 문의해 주세요.",
+            error:
+              "결제 요청 원장을 다시 확인할 수 없습니다. 재요청하지 말고 고객센터에 문의해 주세요.",
           };
         }
-        claimedCharge = await tx.shopBillingCharge.update({
-          where: { id: charge.id },
+        const claimed = await tx.shopBillingCharge.updateMany({
+          where: {
+            id: latestCharge.id,
+            userId: user.id,
+            orderId: charge.orderId,
+            paymentMethodId: charge.paymentMethodId,
+            amount: latestAmount,
+            requestFingerprint: latestExpected.requestFingerprint,
+            status: latestCharge.status,
+            requestAttempts: latestCharge.requestAttempts,
+            laonpayChargeId: null,
+            providerPaymentId: null,
+          },
           data: { requestAttempts: { increment: 1 } },
+        });
+        if (claimed.count !== 1) {
+          return {
+            ok: false as const,
+            error:
+              "결제 요청 원장을 다시 확인할 수 없습니다. 재요청하지 말고 고객센터에 문의해 주세요.",
+          };
+        }
+        const claimedLatestCharge = await tx.shopBillingCharge.findUnique({
+          where: { id: latestCharge.id },
           include: {
             order: { include: { items: true } },
             paymentMethod: true,
           },
         });
+        if (!claimedLatestCharge) {
+          return {
+            ok: false as const,
+            error: "등록카드 결제 내역을 확인할 수 없습니다.",
+          };
+        }
+        claimedCharge = claimedLatestCharge;
+        claimedRequestBody = latestRequestBody;
       }
     }
-    return { ok: true as const, done: false as const, charge: claimedCharge, requestBody };
+    return {
+      ok: true as const,
+      done: false as const,
+      charge: claimedCharge,
+      requestBody: claimedRequestBody,
+    };
   }, TX_OPTIONS).catch(() => null);
 
   if (!prepared) {
@@ -915,6 +1029,10 @@ export async function refreshBillingChargeStatusAction(input: {
         prepared.requestBody,
         prepared.charge.idempotencyKey,
       );
+  const reconciliationRejected =
+    !prepared.charge.laonpayChargeId &&
+    !result.ok &&
+    result.outcome === "REJECTED";
 
   if (
     !result.ok ||
@@ -930,7 +1048,15 @@ export async function refreshBillingChargeStatusAction(input: {
           userId: user.id,
           status: { in: ["REQUESTING", "PENDING", "UNKNOWN"] },
         },
-        data: { status: "UNKNOWN", failureCode: "RESULT_UNCONFIRMED" },
+        data: {
+          status: "UNKNOWN",
+          failureCode: reconciliationRejected
+            ? result.errorCode?.slice(0, 64) ?? "PARTNER_REJECTED"
+            : "RESULT_UNCONFIRMED",
+          // ID 없는 POST가 명시적으로 거절되면 응답 유실 대사가 아니므로,
+          // 다음 상태조회에서 같은 POST를 다시 만들지 않게 남은 시도를 소진한다.
+          ...(reconciliationRejected ? { requestAttempts: 2 } : {}),
+        },
       })
       .catch(() => undefined);
     return {
@@ -953,6 +1079,7 @@ export async function refreshBillingChargeStatusAction(input: {
       tx,
       `billing-method:${prepared.charge.paymentMethod.id}`,
     );
+    await acquireTransactionLock(tx, `billing-charge:${prepared.charge.id}`);
     const [order, charge, paymentMethod] = await Promise.all([
       tx.shopOrder.findUnique({ where: { id: prepared.charge.order.id } }),
       tx.shopBillingCharge.findUnique({ where: { id: prepared.charge.id } }),

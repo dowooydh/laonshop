@@ -108,3 +108,102 @@ export function canSelectPaymentMethod(status: BillingMethodStatus): boolean {
 export function isBillingChargeInFlight(status: BillingCharge["status"] | "REQUESTING"): boolean {
   return status === "REQUESTING" || status === "PENDING" || status === "UNKNOWN";
 }
+
+export type LocalBillingChargeStatus =
+  | "REQUESTING"
+  | "PENDING"
+  | "PAID"
+  | "DECLINED"
+  | "UNKNOWN"
+  | "CANCEL_REQUESTED"
+  | "CANCELED";
+
+export type BillingChargeLedgerSnapshot = {
+  userId: string;
+  orderId: string;
+  paymentMethodId: string;
+  amount: number;
+  requestFingerprint: string;
+  status: LocalBillingChargeStatus;
+  requestAttempts: number;
+  laonpayChargeId: string | null;
+  providerPaymentId: string | null;
+};
+
+export type BillingChargeLedgerExpectation = {
+  userId: string;
+  orderId: string;
+  paymentMethodId: string;
+  amount: number;
+  requestFingerprint: string;
+};
+
+export type BillingChargeLedgerDecision =
+  | { kind: "READY" }
+  | {
+      kind: "CLOSE_LOCAL";
+      failureCode: "LOCAL_AMOUNT_CHANGED" | "LOCAL_REQUEST_CHANGED";
+    }
+  | { kind: "BLOCK" };
+
+export function isProvablyLocalBillingCharge(
+  charge: BillingChargeLedgerSnapshot,
+): boolean {
+  return (
+    charge.status === "REQUESTING" &&
+    charge.requestAttempts === 0 &&
+    charge.laonpayChargeId === null &&
+    charge.providerPaymentId === null
+  );
+}
+
+export function decideBillingChargeLedger(
+  charge: BillingChargeLedgerSnapshot,
+  expected: BillingChargeLedgerExpectation,
+): BillingChargeLedgerDecision {
+  if (
+    charge.userId !== expected.userId ||
+    charge.orderId !== expected.orderId ||
+    charge.paymentMethodId !== expected.paymentMethodId
+  ) {
+    return { kind: "BLOCK" };
+  }
+  if (!isBillingChargeInFlight(charge.status)) {
+    return { kind: "BLOCK" };
+  }
+
+  const amountChanged = charge.amount !== expected.amount;
+  const requestChanged = charge.requestFingerprint !== expected.requestFingerprint;
+  if (amountChanged || requestChanged) {
+    if (!isProvablyLocalBillingCharge(charge)) return { kind: "BLOCK" };
+    return {
+      kind: "CLOSE_LOCAL",
+      failureCode: amountChanged ? "LOCAL_AMOUNT_CHANGED" : "LOCAL_REQUEST_CHANGED",
+    };
+  }
+
+  if (charge.laonpayChargeId !== null || charge.providerPaymentId !== null) {
+    return { kind: "BLOCK" };
+  }
+  if (!Number.isInteger(charge.requestAttempts) || charge.requestAttempts < 0) {
+    return { kind: "BLOCK" };
+  }
+  if (charge.status === "REQUESTING") {
+    return charge.requestAttempts <= 1 ? { kind: "READY" } : { kind: "BLOCK" };
+  }
+  // 외부 ID를 받지 못한 대기/불명확 상태는 최초 POST가 이미 claim된 경우에만
+  // 같은 멱등키·동일 본문 reconciliation 1회를 허용한다.
+  return charge.requestAttempts === 1 ? { kind: "READY" } : { kind: "BLOCK" };
+}
+
+export function canClaimBillingChargeAttempt(
+  charge: BillingChargeLedgerSnapshot,
+  expected: BillingChargeLedgerExpectation,
+  expectedAttempt: number,
+): boolean {
+  return (
+    (expectedAttempt === 0 || expectedAttempt === 1) &&
+    charge.requestAttempts === expectedAttempt &&
+    decideBillingChargeLedger(charge, expected).kind === "READY"
+  );
+}

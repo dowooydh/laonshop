@@ -218,7 +218,7 @@ export default async function OrderResultPage({
       <div className="text-center">
         <StatusMark tone={s.tone} />
         <p className="mt-5 font-mono text-step--1 uppercase tracking-[0.3em] text-fg-subtle">{s.eyebrow}</p>
-        <h1 className="mt-2 text-balance break-keep font-display text-step-1 font-bold tracking-tight text-fg min-[360px]:text-step-2">
+        <h1 className="mt-2 min-w-0 max-w-full text-balance break-keep font-display text-step-1 font-bold tracking-tight text-fg [overflow-wrap:anywhere] min-[360px]:text-step-2">
           {s.heading}
         </h1>
         <div className="mt-4">
