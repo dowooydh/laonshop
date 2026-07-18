@@ -227,7 +227,7 @@ test("등록카드 취소 상태는 전용 GET을 우선하고 CANCELED를 세 �
   assert.match(section, /charge\.order\.userId !== user\.id/);
   assert.match(section, /charge\.paymentMethod\.userId !== user\.id/);
   assert.match(section, /result\.data\.cancelRequest\.id !== providerCancelRequestId/);
-  assert.match(
+  assert.doesNotMatch(
     section,
     /result\.data\.cancelRequest\.reason !== prepared\.charge\.cancelRequest!\.reason/,
   );
@@ -253,7 +253,11 @@ test("등록카드 취소 상태는 전용 GET을 우선하고 CANCELED를 세 �
   );
   assert.match(
     section,
-    /uncertainRequest[\s\S]*cancelRequestedAt:\s*charge\.cancelRequest\.requestSentAt[\s\S]*cancelReason:\s*charge\.cancelRequest\.reason/,
+    /remote\.source === "charge-fallback"[\s\S]*cancelRequestedAt:\s*charge\.cancelRequest\.requestSentAt[\s\S]*cancelReason:\s*charge\.cancelRequest\.reason/,
+  );
+  assert.match(
+    section,
+    /reason:\s*remote\.cancelRequest\.reason[\s\S]*cancelReason:\s*remote\.cancelRequest\.reason/,
   );
 });
 
@@ -284,8 +288,37 @@ test("취소 전용 GET은 반려를 확정하고 ID 유실 fallback은 PAID를 
   );
   assert.match(page, /billingCancelCanRefresh/);
   assert.match(page, /billingCancelRejectReason/);
+  assert.match(page, /billingCancelHasProviderRequest/);
+  assert.match(
+    page,
+    /billingCancelRequestStatus === "REJECTED"[\s\S]*billingCancelHasProviderRequest/,
+  );
   assert.match(page, /refreshBillingCancelStatusFormAction/);
   assert.match(page, /취소 상태 조회/);
+});
+
+test("seller-first 취소요청의 원격 사유를 채택하되 소유권과 결제 결박은 유지한다", () => {
+  const action = source("app/order/actions.ts");
+  const section = action.slice(
+    action.indexOf("export async function refreshBillingCancelStatusAction"),
+    action.indexOf("// ── LAONPAY 등록카드 결제 상태 대사"),
+  );
+
+  assert.match(section, /rejectedRequestToRefresh/);
+  assert.match(section, /charge\.cancelRequest\.laonpayCancelRequestId !== null/);
+  assert.doesNotMatch(
+    section,
+    /charge\.cancelRequest\.reason !== remote\.cancelRequest\.reason/,
+  );
+  assert.match(section, /charge\.cancelRequest\.userId !== user\.id/);
+  assert.match(section, /charge\.cancelRequest\.chargeId !== charge\.id/);
+  assert.match(section, /charge\.laonpayChargeId !== remote\.charge\.id/);
+  assert.match(section, /charge\.providerPaymentId !== remote\.charge\.paymentId/);
+  assert.match(section, /currentAmount !== remote\.charge\.amount/);
+  assert.match(
+    section,
+    /remote\.cancelRequest\.status !== "REJECTED"[\s\S]*reason:\s*remote\.cancelRequest\.reason[\s\S]*rejectReason:\s*remote\.cancelRequest\.rejectReason/,
+  );
 });
 
 test("카드 해지는 불명확 응답을 자동 재호출하지 않고 상태 조회로만 확정한다", () => {

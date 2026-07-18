@@ -518,6 +518,61 @@ test("민감 필드가 추가된 성공 응답은 strict parser가 UNKNOWN으로
   assert.deepEqual(result, { ok: false, outcome: "UNKNOWN" });
 });
 
+test("결제수단 10개 상한과 미확정 등록의 paymentMethod 부재를 strict 계약으로 유지한다", async (t) => {
+  const { env } = signingFixture();
+  const paymentMethod = (index: number) => ({
+    id: `payment_method_${index}`,
+    cardName: "테스트카드",
+    cardLast4: String(index).padStart(4, "0").slice(-4),
+    cardType: "UNKNOWN",
+    status: "ACTIVE",
+    registeredAt: ISO_DATE,
+    verifiedAt: ISO_DATE,
+    deregisteredAt: null,
+  });
+
+  await t.test("11개 결제수단 전체 이력은 UNKNOWN으로 보류한다", async () => {
+    const client = createLaonpayBillingClient(env, {
+      fetchImpl: (async () =>
+        jsonResponse({
+          paymentMethods: Array.from({ length: 11 }, (_, index) =>
+            paymentMethod(index),
+          ),
+        })) as typeof fetch,
+      now: () => FIXED_NOW_MS,
+      nonce: () => FIXED_NONCE,
+    });
+
+    assert.deepEqual(await client.listPaymentMethods(CUSTOMER_ID), {
+      ok: false,
+      outcome: "UNKNOWN",
+    });
+  });
+
+  await t.test("UNKNOWN 등록에 결제수단이 포함되면 UNKNOWN으로 보류한다", async () => {
+    const client = createLaonpayBillingClient(env, {
+      fetchImpl: (async () =>
+        jsonResponse({
+          registrationId: REGISTRATION_ID,
+          status: "UNKNOWN",
+          expiresAt: ISO_DATE,
+          paymentMethod: paymentMethod(1),
+          error: {
+            code: "RESULT_UNKNOWN",
+            message: "결과 확인이 필요합니다.",
+          },
+        })) as typeof fetch,
+      now: () => FIXED_NOW_MS,
+      nonce: () => FIXED_NONCE,
+    });
+
+    assert.deepEqual(await client.getRegistrationIntent(REGISTRATION_ID), {
+      ok: false,
+      outcome: "UNKNOWN",
+    });
+  });
+});
+
 test("chunked 대용량 응답은 64KiB를 넘는 즉시 stream을 취소하고 UNKNOWN으로 보류한다", async () => {
   const { env } = signingFixture();
   let cancelled = false;

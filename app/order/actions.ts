@@ -370,7 +370,8 @@ export async function refreshBillingCancelStatusAction(input: {
       if (
         charge.order.status === "PAID" &&
         charge.status === "PAID" &&
-        charge.cancelRequest.status === "REJECTED"
+        charge.cancelRequest.status === "REJECTED" &&
+        !charge.cancelRequest.laonpayCancelRequestId
       ) {
         return { ok: true as const, done: true as const, status: "REJECTED" as const };
       }
@@ -388,7 +389,15 @@ export async function refreshBillingCancelStatusAction(input: {
         (charge.cancelRequest.status === "REQUESTING" ||
           charge.cancelRequest.status === "UNKNOWN") &&
         charge.cancelRequest.requestSentAt !== null;
-      if (!acceptedRequest && !uncertainRequest) {
+      // POST가 LAONPAY에 먼저 존재하던 취소요청을 재사용해 REJECTED를 반환한
+      // 경우에는 최소 POST 응답만으로 원격 사유를 알 수 없다. 저장된 외부 ID로
+      // signed GET을 수행해 원격 원장을 최종 근거로 보강한다.
+      const rejectedRequestToRefresh =
+        charge.order.status === "PAID" &&
+        charge.status === "PAID" &&
+        charge.cancelRequest.status === "REJECTED" &&
+        charge.cancelRequest.laonpayCancelRequestId !== null;
+      if (!acceptedRequest && !uncertainRequest && !rejectedRequestToRefresh) {
         return { ok: false as const, error: "상태를 조회할 수 없는 취소 요청입니다." };
       }
 
@@ -445,7 +454,6 @@ export async function refreshBillingCancelStatusAction(input: {
     if (
       !result.ok ||
       result.data.cancelRequest.id !== providerCancelRequestId ||
-      result.data.cancelRequest.reason !== prepared.charge.cancelRequest!.reason ||
       result.data.charge.id !== prepared.charge.laonpayChargeId ||
       result.data.charge.externalOrderId !== prepared.charge.order.id ||
       result.data.charge.amount !== prepared.amount ||
@@ -527,8 +535,7 @@ export async function refreshBillingCancelStatusAction(input: {
         charge.laonpayChargeId !== remote.charge.id ||
         charge.providerPaymentId !== remote.charge.paymentId ||
         (remote.source === "cancel-request"
-          ? charge.cancelRequest.laonpayCancelRequestId !== remote.cancelRequest.id ||
-            charge.cancelRequest.reason !== remote.cancelRequest.reason
+          ? charge.cancelRequest.laonpayCancelRequestId !== remote.cancelRequest.id
           : charge.cancelRequest.laonpayCancelRequestId !== null)
       ) {
         return { ok: false as const };
@@ -553,6 +560,24 @@ export async function refreshBillingCancelStatusAction(input: {
         charge.status === "PAID" &&
         charge.cancelRequest.status === "REJECTED"
       ) {
+        if (
+          remote.source !== "cancel-request" ||
+          remote.cancelRequest.status !== "REJECTED"
+        ) {
+          return { ok: false as const };
+        }
+        await tx.shopBillingCancelRequest.update({
+          where: { id: charge.cancelRequest.id },
+          data: {
+            // seller-first 요청을 재사용한 경우 로컬 입력과 다를 수 있으므로,
+            // signed GET의 안전한 원격 사유를 취소 원장의 최종값으로 채택한다.
+            reason: remote.cancelRequest.reason,
+            rejectReason: remote.cancelRequest.rejectReason,
+            providerProcessedAt: remote.cancelRequest.processedAt
+              ? new Date(remote.cancelRequest.processedAt)
+              : null,
+          },
+        });
         return { ok: true as const, status: "REJECTED" as const };
       }
 
@@ -579,6 +604,7 @@ export async function refreshBillingCancelStatusAction(input: {
           where: { id: charge.cancelRequest.id },
           data: {
             status: "DONE",
+            reason: remote.cancelRequest.reason,
             rejectReason: null,
             providerProcessedAt: remote.cancelRequest.processedAt
               ? new Date(remote.cancelRequest.processedAt)
@@ -594,11 +620,9 @@ export async function refreshBillingCancelStatusAction(input: {
           data: {
             status: "CANCELED",
             ...(uncertainRequest
-              ? {
-                  cancelRequestedAt: charge.cancelRequest.requestSentAt,
-                  cancelReason: charge.cancelRequest.reason,
-                }
+              ? { cancelRequestedAt: charge.cancelRequest.requestSentAt }
               : {}),
+            cancelReason: remote.cancelRequest.reason,
           },
         });
         return { ok: true as const, status: "CANCELED" as const };
@@ -617,6 +641,7 @@ export async function refreshBillingCancelStatusAction(input: {
               remote.cancelRequest.status === "REQUESTED"
                 ? "PROCESSING"
                 : remote.cancelRequest.status,
+            reason: remote.cancelRequest.reason,
             rejectReason: null,
             providerProcessedAt: remote.cancelRequest.processedAt
               ? new Date(remote.cancelRequest.processedAt)
@@ -628,15 +653,19 @@ export async function refreshBillingCancelStatusAction(input: {
             where: { id: charge.id },
             data: { status: "CANCEL_REQUESTED" },
           });
-          await tx.shopOrder.update({
-            where: { id: charge.order.id },
-            data: {
-              status: "CANCEL_REQUESTED",
-              cancelRequestedAt: charge.cancelRequest.requestSentAt,
-              cancelReason: charge.cancelRequest.reason,
-            },
-          });
         }
+        await tx.shopOrder.update({
+          where: { id: charge.order.id },
+          data: {
+            ...(uncertainRequest
+              ? {
+                  status: "CANCEL_REQUESTED",
+                  cancelRequestedAt: charge.cancelRequest.requestSentAt,
+                }
+              : {}),
+            cancelReason: remote.cancelRequest.reason,
+          },
+        });
         return { ok: true as const, status: "PENDING" as const };
       }
 
@@ -648,6 +677,7 @@ export async function refreshBillingCancelStatusAction(input: {
           where: { id: charge.cancelRequest.id },
           data: {
             status: "REJECTED",
+            reason: remote.cancelRequest.reason,
             rejectReason: remote.cancelRequest.rejectReason,
             providerProcessedAt: remote.cancelRequest.processedAt
               ? new Date(remote.cancelRequest.processedAt)

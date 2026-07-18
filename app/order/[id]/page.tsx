@@ -84,7 +84,12 @@ export default async function OrderResultPage({
           select: {
             status: true,
             cancelRequest: {
-              select: { status: true, requestSentAt: true, rejectReason: true },
+              select: {
+                status: true,
+                requestSentAt: true,
+                rejectReason: true,
+                laonpayCancelRequestId: true,
+              },
             },
           },
         })
@@ -96,6 +101,9 @@ export default async function OrderResultPage({
   const billingCancelRequestSent =
     billingCancelLedger?.cancelRequest?.requestSentAt !== null &&
     billingCancelLedger?.cancelRequest?.requestSentAt !== undefined;
+  const billingCancelHasProviderRequest =
+    billingCancelLedger?.cancelRequest?.laonpayCancelRequestId !== null &&
+    billingCancelLedger?.cancelRequest?.laonpayCancelRequestId !== undefined;
 
   const paid = order.status === "PAID";
   const processing = order.status === "PENDING" && isPaymentProcessingMarker(order.approvalNo);
@@ -119,7 +127,11 @@ export default async function OrderResultPage({
       billingCancelLedger?.status === "PAID" &&
       billingCancelRequestSent &&
       (billingCancelRequestStatus === "REQUESTING" ||
-        billingCancelRequestStatus === "UNKNOWN"));
+        billingCancelRequestStatus === "UNKNOWN")) ||
+    (paid &&
+      billingCancelLedger?.status === "PAID" &&
+      billingCancelRequestStatus === "REJECTED" &&
+      billingCancelHasProviderRequest);
   const billingCancelNotice =
     paid && billingCancelRequestStatus === "UNKNOWN"
       ? {
