@@ -1,94 +1,87 @@
 # QA 핸드오프 최신본
 
-작성일: 2026-07-17
+작성일: 2026-07-18
 
 담당: Codex QA/테스트 세션
 
-제품 SHA: `352990211fa631a549b847c792784dab525eda9b`
+제품 SHA: `91094a76ac97e3c98d73d071515918b58864daf4`
 
-비교 범위: `8073b1cc571b95bdf28fe65d088d67ad6db183df..352990211fa631a549b847c792784dab525eda9b`
+비교 범위: `78bb51b8f2e779e4bc62fd69a3f9a0c0b956e6d0..91094a76ac97e3c98d73d071515918b58864daf4`
 
-대상 배포: `dpl_5QTS9kpxgEKkQx5AUuZxukaDEEj3` / `https://laonshop.com`
+대상 배포: `dpl_FkbAehHUJJytLRHRcp9LfZqzQcLN` / `https://laonshop.com`
 
 결과: **PARTIAL**
 
 출시 판정:
 
-- 운영 Chrome 웹 심사 시연: **조건부 GO**
-- 플랫폼 전체 PASS: **보류**
-- 실제 원클릭 빌링: **미구현·fail-closed / NO-GO**
+- 현재 fail-closed 운영 배포 유지: **GO**
+- LAONPAY 계약 코드: **조건부 GO**
+- 실제 hosted 등록·원클릭·취소 활성화: **NO-GO**
 
 ## 요약
 
 - 제품 코드는 수정하지 않았습니다.
-- 이전 P2 `QA-2C1-01`의 성공 모달 backdrop double-click 배경 링크 관통을 원 좌표 `(95, 91)`에서 2/2 재검증해 수정 확인했습니다.
-- 첫 닫기 입력 뒤 투명 guard가 연속 입력을 흡수하고, 입력마다 보호 시간을 재무장하며, 만료 뒤 배경 UI가 정상 복구됐습니다.
-- backdrop·X·`등록 화면 닫기`·등록 submit double-click에서 Mock 상태 1건 유지, 초기화·배경 관통 0을 확인했습니다.
-- 단일 backdrop 뒤 lifecycle `div[tabindex=-1]`에 포커스가 놓이고 다음 Tab은 `등록 정보 조회`였습니다.
-- 등록→조회→승인→해지와 결과미상→reload→재시도·해지 차단 회귀를 통과했습니다.
-- focused 7/7, 전체 test 61/61, lint, typecheck, Prisma validate, audit, build를 모두 통과했습니다.
-- 320/360/390/412px 정상 글자에서 overflow·clipping 0, 주요 타깃 44px 이상입니다.
-- Mock resource fetch/XHR/beacon 0, console warning/error 0, DB count 불변입니다.
-- 정확한 Chrome 200%와 인증된 Android/iOS touch double-tap은 미실행이므로 전체 결과는 PARTIAL입니다.
-- 상세 보고서: [3529902 빌링 Mock 닫힘 입력 guard 회귀](../reports/2026-07-17-3529902-dismiss-input-guard-regression.md)
+- Ed25519 7줄 canonical, POST 소문자 UUID 멱등키 결박, GET 빈 canonical line·멱등 header 부재를 독립 검토하고 HTTP stub으로 검증했습니다.
+- same-key/same-body reconciliation은 fresh timestamp·nonce·서명을 사용하며 UNKNOWN에서 외부 결제를 자동 재호출하지 않습니다.
+- hosted 등록 URL은 exact HTTPS origin/path/signature/intent로 제한되고 등록 복귀 query는 source of truth로 사용하지 않습니다.
+- cancel-request signed GET, strict 상태쌍, DONE/REJECTED 원자 대사와 charge fallback 경계를 검토했습니다.
+- focused 46/46, 전체 test 97/97, lint, typecheck, Prisma validate, audit와 production build가 통과했습니다.
+- 운영 Chrome 인증 세션에서 설정은 카드 등록·원문 입력 없이 명확히 fail-closed였고 checkout은 일반 KSPAY 4수단만 유지했습니다.
+- 320/360/390/412px에서 설정·checkout overflow와 viewport 이탈 0, console warning/error와 LAONPAY API resource 0입니다.
+- Android font scale 2.0과 iOS MobileSafari 접근성 최대 글자에서 guest 설정→로그인과 화면 폭을 확인했습니다.
+- 인증 모바일 상태 화면과 schema/env 적용 후 실제 LAONPAY 상호운용은 미실행이므로 전체 결과는 PARTIAL입니다.
+- 상세 보고서: [91094a7 LAONPAY 빌링 계약 보강 회귀](../reports/2026-07-18-91094a7-laonpay-billing-contract-regression.md)
 
 ## 핵심 결과
 
 | 영역 | 결과 | 증거 |
 | --- | --- | --- |
-| 정적 전체 회귀 | PASS | focused 7/7, test 61/61, skip 0, lint/typecheck/prisma/audit/build |
-| 원 재현 좌표 double-click | PASS | `(95, 91)` 2/2, `/shop/men` 이동 0 |
-| guard 재무장 | PASS | 400ms 간격 연속 입력 흡수, 마지막 입력 후 700ms 보호 재시작 |
-| guard 만료 뒤 복구 | PASS | 만료 후 동일 좌표 단일 클릭이 `/shop/men` 정상 이동 |
-| X·닫기 submit double-click | PASS | 상태 1건 유지, 초기화·배경 관통 0 |
-| 등록 submit double-click | PASS | 등록 1건, lifecycle 포커스 |
-| 단일 backdrop 포커스 | PASS | lifecycle → 다음 Tab `등록 정보 조회` |
-| Escape | PASS | 즉시 close, guard 0, lifecycle 포커스 |
-| 기존 Mock 생명주기 | PASS | 승인·해지, 결과미상·reload·차단 |
-| 모바일 320~412px | PASS | 정상 글자 기준 overflow·clipping 0, 44px+ |
-| 정확한 Chrome 200% | NOT EXECUTED | 도구 제약으로 분리 |
-| Android/iOS 인증 Mock | NOT EXECUTED | 인증 세션·도구 제약, touch double-tap 미실행 |
-| DB·서버 무접촉 | PASS | DB 불변, fetch/XHR/beacon 0, console error 0 |
-| cleanup | PASS | Mock 초기화, dialog·guard·브라우저 제어 세션 정리 |
+| 요청 서명·멱등 계약 | PASS | focused 46/46, exact canonical/header/stub |
+| 전체 정적 회귀 | PASS | test 97/97, skip 0, lint/typecheck/prisma/audit/build |
+| hosted URL·등록 복귀 | PASS | exact origin/path/intent, query/hash/credential 거부 |
+| cancel-request 계약 | PASS | signed GET strict parser, 상태쌍·source-of-truth 검증 |
+| 금액·소유권·UNKNOWN | PASS | 서버 재계산, 소유권 재검증, 자동 재결제 차단 코드·테스트 |
+| 운영 설정 fail-closed | PASS | 등록 버튼 0, 카드 원문 input 0, 외부 API resource 0 |
+| 일반 KSPAY checkout | PASS | 카드·카카오·네이버·계좌이체 유지, oneclick/manual 0 |
+| Chrome 320~412px | PASS | document overflow·visible descendant 이탈 0 |
+| Android guest/font 2.0 | PASS | 설정→로그인, 주요 UI 가로 잘림 없음 |
+| iOS MobileSafari guest/AX XXXL | PASS | 설정→로그인, 주요 UI 가로 잘림 없음 |
+| 인증 모바일 빌링 상태 UI | NOT EXECUTED | 모바일 인증 세션 부재 |
+| schema/env 적용 통합 E2E | NOT EXECUTED | 의도적 미적용·LAONPAY readiness 대기 |
+| cleanup | PASS | 브라우저 세션·임시 파일·기기 글자 설정 복구 |
 
-## 결함 상태
+## 결함
 
-### QA-2C1-01 - 성공 모달 backdrop double-click 배경 링크 관통
+신규 확정 제품 결함은 없습니다.
 
-- 이전 심각도: **P2**
-- 현재 상태: **FIXED**
-- 재현 환경: 운영 Chrome `412x915`, 지정 심사 계정 인증 탭
-- 재현 좌표: 모바일 헤더 `남성의류` 위 `(95, 91)`
-- 결과: 실제 mouse double-click 2/2에서 URL·Mock 상태·`paymentMethodId` 불변
-- 신규 제품 결함: 없음
-
-잔여 위험으로 700ms가 모든 OS의 사용자 설정 double-click 간격을 포괄하는 보편적 상한은 아닙니다.
+운영의 hosted 등록·oneclick 미노출은 env와 schema가 미적용된 현재의 정상 fail-closed 상태입니다.
 
 ## 안전·운영 증거
 
-- DB 기준선 전후는 모두 `users 10 / active 9 / cards 2 / orders 11 / items 11 / audits 0`입니다.
-- Mock 조작 중 resource fetch/XHR/beacon 0, Chrome console warning/error 0입니다.
-- 카드 원문, `billingToken`, PG TID, pgapi·Authorization, Mock용 Action/DB write는 없습니다.
-- 실제 카드, 실 KSNET, 주문·결제 submit, 운영 DB write와 Vercel 설정 변경을 실행하지 않았습니다.
-- Vercel 배포는 READY, production, Git SHA `3529902`이며 local/origin HEAD와 apex/www alias가 일치합니다.
+- 실제 카드, PG, 주문·결제 submit, 운영 DB write, schema push와 Vercel env 변경을 실행하지 않았습니다.
+- 카드 원문, provider token, MID, Authorization, 세션 쿠키와 비밀키를 출력하거나 문서화하지 않았습니다.
+- Vercel 배포는 READY, production, Git SHA `91094a7`이며 local/origin HEAD와 apex/www alias가 일치합니다.
 - 최근 1시간 runtime error cluster 0, 해당 배포 error/fatal log 0입니다.
+- `www.laonshop.com`은 apex로 308 전환됩니다. 고정 배포 URL의 Vercel SSO 302는 배포 보호 설정이며 제품 결함이 아닙니다.
 
 ## 미실행·외부 blocker
 
-- 정확한 Chrome 200% 확대
-- 인증된 Android/iOS Billing Mock 전체 생명주기와 touch double-tap
-- Mock 초기화 버튼 바로 위 backdrop의 정확한 좌표 관통
-- 이번 SHA의 브라우저 거절 분기와 연속 Enter
-- 실제 빌링은 전용 개발 pgapi, LAONPAY 호스팅 등록/API, opaque `paymentMethodId` 소유권·멱등성, UNKNOWN 대사와 토큰 보안 저장 전까지 NO-GO입니다.
-- 미실행 항목은 제품 결함이 아니라 도구·인증 세션 제약으로 분리했습니다.
+- LAONPAY 최종 제품 SHA/readiness 기반 hosted/API 실제 상호운용
+- 신규 Prisma schema 적용 후 주문+marker+charge 및 취소 대사 transaction E2E
+- Vercel LAONPAY env 3종 적용 후 registration return·signed API 왕복
+- 인증된 Android/iOS 등록 복귀·UNKNOWN·취소 상태 화면
+- Chrome/iOS exact 200% browser zoom
+- 실카드, 실 PG 승인·취소·해지
+
+미실행 항목은 제품 결함이 아니라 인증 세션, 미적용 schema/env와 외부 readiness 제약입니다.
 
 ## Cleanup
 
-- 브라우저 Mock 초기화, dialog 0, guard 0, 저장된 Mock 결제수단 0을 확인했습니다.
-- Chrome viewport와 제어 세션을 정리했습니다.
-- QA fixture와 DB write를 생성하지 않았습니다.
-- 운영 데이터, Vercel env, PG 설정은 변경하지 않았습니다.
+- Chrome viewport와 Chrome/in-app Browser 제어 세션을 정리했습니다.
+- Android font scale을 `1.0`, iOS content size를 `large`로 복구했습니다.
+- Android/iOS·로컬 임시 캡처를 삭제했습니다.
+- QA fixture와 DB write를 생성하지 않았고 운영 데이터·Vercel env·PG 상태를 변경하지 않았습니다.
 
 ## 개발 회신
 
-`QA-2C1-01`은 운영 Chrome 원 재현 좌표에서 수정 확인됐습니다. Chrome 웹 심사 시연은 조건부 GO입니다. 정확한 200%와 인증된 Android/iOS touch double-tap이 미실행이므로 플랫폼 전체 판정은 PARTIAL로 유지합니다. 제품 코드는 QA에서 수정하지 않았습니다.
+`91094a7`은 서명·멱등·hosted URL·취소 조회 계약과 운영 fail-closed 회귀를 통과했습니다. 현재 비활성 운영 배포 유지와 다음 격리 통합 단계 진입은 가능합니다. 실제 hosted 등록·원클릭·취소 활성화는 LAONPAY readiness, schema/env 적용과 양측 E2E 전까지 NO-GO이며, 인증 모바일 상태 화면 미실행 때문에 전체 결과는 PARTIAL입니다.
