@@ -8,6 +8,8 @@ import { requireShopUser } from "@/lib/auth";
 import { ClearCartOnPaid } from "./clear-cart";
 import { CancelRequest } from "./cancel-request";
 import { RetryPayment } from "./retry-payment";
+import { BillingStatusSubmit } from "./billing-status-submit";
+import { BillingOrderNotice } from "./billing-order-notice";
 import {
   isPaymentProcessingMarker,
   LAONPAY_BILLING_PROCESSING_MARKER,
@@ -161,16 +163,28 @@ export default async function OrderResultPage({
                   : "등록카드 취소 신청을 처리하고 있습니다. 완료 전까지 다시 신청하거나 카드를 해지하지 말아 주세요.",
             }
           : null;
-  const billingRefreshMessage =
+  const billingRefreshNotice =
     billingRefresh === "paid" && order.status === "PAID"
-      ? "등록카드 결제가 완료되었습니다."
+      ? { message: "등록카드 결제가 완료되었습니다.", alert: false }
       : billingRefresh === "declined" && order.status === "FAILED"
-        ? "등록카드 결제가 거절되었습니다. 다른 결제수단을 이용해 주세요."
+        ? {
+            message:
+              "등록카드 결제가 거절되었습니다. 다른 결제수단을 이용해 주세요.",
+            alert: true,
+          }
         : (billingRefresh === "pending" || billingRefresh === "unknown") &&
             billingProcessing
-          ? "결제 결과를 아직 확인 중입니다. 새로 결제하지 말고 잠시 후 다시 조회해 주세요."
+          ? {
+              message:
+                "결제 결과를 아직 확인 중입니다. 새로 결제하지 말고 잠시 후 다시 조회해 주세요.",
+              alert: true,
+            }
           : billingRefresh === "error" && billingProcessing
-            ? "결제 상태를 확인하지 못했습니다. 새로 결제하지 말고 고객센터에 문의해 주세요."
+            ? {
+                message:
+                  "결제 상태를 확인하지 못했습니다. 새로 결제하지 말고 고객센터에 문의해 주세요.",
+                alert: true,
+              }
             : null;
   const billingCancelRefreshMessage =
     billingCancelRefresh === "canceled" && order.status === "CANCELED"
@@ -226,13 +240,11 @@ export default async function OrderResultPage({
         </div>
       </div>
 
-      {billingRefreshMessage && (
-        <p
-          className="mt-5 rounded-[var(--radius-md)] border border-line bg-raised px-4 py-3 text-center text-step--1 text-fg-muted"
-          role="status"
-        >
-          {billingRefreshMessage}
-        </p>
+      {billingRefreshNotice && (
+        <BillingOrderNotice
+          message={billingRefreshNotice.message}
+          alert={billingRefreshNotice.alert}
+        />
       )}
 
       {billingCancelNotice && (
@@ -246,13 +258,10 @@ export default async function OrderResultPage({
       )}
 
       {billingCancelRefreshMessage && (
-        <p
-          role={billingCancelRefreshMessage.role}
-          aria-live={billingCancelRefreshMessage.role === "alert" ? "assertive" : "polite"}
-          className="mt-5 rounded-[var(--radius-md)] border border-line bg-raised px-4 py-3 text-center text-step--1 leading-relaxed text-fg-muted"
-        >
-          {billingCancelRefreshMessage.message}
-        </p>
+        <BillingOrderNotice
+          message={billingCancelRefreshMessage.message}
+          alert={billingCancelRefreshMessage.role === "alert"}
+        />
       )}
 
       {/* 심사 캡처 요소 — 주문번호·승인번호·결제수단·결제일시가 한 화면에 (카드사 결제경로 캡처 기준) */}
@@ -352,12 +361,7 @@ export default async function OrderResultPage({
             action={refreshBillingChargeStatusFormAction.bind(null, order.id)}
             className="mt-3"
           >
-            <button
-              type="submit"
-              className={`${buttonVariants({ variant: "outline", size: "lg" })} min-h-12 w-full !h-auto py-3 !whitespace-normal`}
-            >
-              결제 상태 조회
-            </button>
+            <BillingStatusSubmit label="결제 상태 조회" />
           </form>
         </div>
       )}
@@ -376,12 +380,7 @@ export default async function OrderResultPage({
           action={refreshBillingCancelStatusFormAction.bind(null, order.id)}
           className="mt-4"
         >
-          <button
-            type="submit"
-            className={`${buttonVariants({ variant: "outline", size: "lg" })} min-h-12 w-full !h-auto py-3 !whitespace-normal`}
-          >
-            취소 상태 조회
-          </button>
+          <BillingStatusSubmit label="취소 상태 조회" />
         </form>
       )}
 
@@ -402,7 +401,10 @@ export default async function OrderResultPage({
 
       {paid && !billingCancelRequestBlocked && (
         <div className="mt-8 border-t border-line pt-6">
-          <CancelRequest orderId={order.id} />
+          <CancelRequest
+            orderId={order.id}
+            billing={isBillingPaidOrder}
+          />
         </div>
       )}
     </div>

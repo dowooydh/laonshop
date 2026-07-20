@@ -5,7 +5,11 @@ import type {
   BillingPaymentMethod,
   BillingRegistrationStatus,
 } from "./billing-contract";
-import { isLaonpayBillingReady, type LaonpayBillingEnv } from "./billing-client";
+import {
+  isLaonpayBillingReady,
+  isLaonpayBillingReconciliationReady,
+  type LaonpayBillingEnv,
+} from "./billing-client";
 
 export const BILLING_REVIEW_ACCOUNT_EMAIL = "laontest@laontest.com";
 export const BILLING_REGISTRATION_COOKIE = "laonshop_billing_registration";
@@ -20,6 +24,16 @@ export function isBillingIntegrationEnabled(
   env?: LaonpayBillingEnv,
 ): boolean {
   return isBillingIntegrationAccount(email) && isLaonpayBillingReady(env);
+}
+
+export function isBillingReconciliationEnabled(
+  email: string,
+  env?: LaonpayBillingEnv,
+): boolean {
+  return (
+    isBillingIntegrationAccount(email) &&
+    isLaonpayBillingReconciliationReady(env)
+  );
 }
 
 export function billingRequestFingerprint(value: unknown): string {
@@ -89,7 +103,10 @@ export function paymentMethodSyncData(
 
 export function orderGoodsName(items: Array<{ name: string }>): string {
   if (items.length === 0) throw new Error("주문 상품이 없습니다.");
-  return (items.length === 1 ? items[0].name : `${items[0].name} 외 ${items.length - 1}건`).slice(0, 50);
+  // 같은 주문의 응답 유실 대사는 동일 멱등키뿐 아니라 byte-identical JSON body를
+  // 요구한다. DB 관계 반환 순서에 기대지 않고 상품명을 정규화·정렬해 결정적으로 만든다.
+  const names = items.map((item) => item.name.trim()).sort();
+  return (names.length === 1 ? names[0] : `${names[0]} 외 ${names.length - 1}건`).slice(0, 50);
 }
 
 export function calculateOrderAmount(items: Array<{ price: number; qty: number }>): number {
@@ -205,7 +222,15 @@ export function canClaimBillingChargeAttempt(
   charge: BillingChargeLedgerSnapshot,
   expected: BillingChargeLedgerExpectation,
   expectedAttempt: number,
+  allowInitialRequest = true,
 ): boolean {
+  if (
+    !allowInitialRequest &&
+    charge.status === "REQUESTING" &&
+    charge.requestAttempts === 0
+  ) {
+    return false;
+  }
   return (
     (expectedAttempt === 0 || expectedAttempt === 1) &&
     charge.requestAttempts === expectedAttempt &&

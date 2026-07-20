@@ -12,10 +12,11 @@ import {
   createPartnerCanonical,
   createPartnerSignature,
   getLaonpayBillingReadiness,
+  getLaonpayBillingReconciliationReadiness,
   type LaonpayBillingEnv,
 } from "../../lib/laonpay/billing-client";
 
-const API_ORIGIN = "https://billing.test.invalid";
+const API_ORIGIN = "https://pay.laonpay.com";
 const CUSTOMER_ID = "customer_123";
 const REGISTRATION_ID = "registration_123";
 const PAYMENT_METHOD_ID = "payment_method_123";
@@ -50,6 +51,8 @@ function signingFixture(): {
         .export({ format: "pem", type: "pkcs8" })
         .toString(),
       LAONPAY_BILLING_API_BASE: API_ORIGIN,
+      LAONPAY_BILLING_SCHEMA_READY: "1",
+      LAONPAY_BILLING_FEATURE_ENABLED: "1",
     },
     privateKey,
     publicKey,
@@ -294,7 +297,11 @@ test("누락되거나 유효하지 않은 설정은 외부 요청 없이 fail-cl
   const cases: Array<{
     name: string;
     env: LaonpayBillingEnv;
-    reason: "NOT_CONFIGURED" | "INVALID_API_BASE" | "INVALID_SIGNING_KEY";
+    reason:
+      | "NOT_CONFIGURED"
+      | "INVALID_API_BASE"
+      | "INVALID_KEY_ID"
+      | "INVALID_SIGNING_KEY";
   }> = [
     {
       name: "전체 누락",
@@ -314,7 +321,7 @@ test("누락되거나 유효하지 않은 설정은 외부 요청 없이 fail-cl
       name: "HTTPS가 아닌 API base",
       env: {
         ...fixture.env,
-        LAONPAY_BILLING_API_BASE: "http://billing.test.invalid",
+        LAONPAY_BILLING_API_BASE: "http://pay.laonpay.com",
       },
       reason: "INVALID_API_BASE",
     },
@@ -325,6 +332,30 @@ test("누락되거나 유효하지 않은 설정은 외부 요청 없이 fail-cl
         LAONPAY_BILLING_API_BASE: `${API_ORIGIN}/api`,
       },
       reason: "INVALID_API_BASE",
+    },
+    {
+      name: "계약되지 않은 HTTPS origin",
+      env: {
+        ...fixture.env,
+        LAONPAY_BILLING_API_BASE: "https://attacker.invalid",
+      },
+      reason: "INVALID_API_BASE",
+    },
+    {
+      name: "허용 문자 밖의 파트너 key id",
+      env: {
+        ...fixture.env,
+        LAONPAY_PARTNER_KEY_ID: "invalid key id",
+      },
+      reason: "INVALID_KEY_ID",
+    },
+    {
+      name: "128자를 넘는 파트너 key id",
+      env: {
+        ...fixture.env,
+        LAONPAY_PARTNER_KEY_ID: "k".repeat(129),
+      },
+      reason: "INVALID_KEY_ID",
     },
     {
       name: "Ed25519이 아닌 키",
@@ -358,6 +389,68 @@ test("누락되거나 유효하지 않은 설정은 외부 요청 없이 fail-cl
       assert.equal(fetchCount, 0);
     });
   }
+});
+
+test("schema와 feature kill switch는 신규 호출 readiness를 단계별로 차단한다", () => {
+  const { env } = signingFixture();
+  assert.deepEqual(
+    getLaonpayBillingReadiness({
+      ...env,
+      LAONPAY_BILLING_SCHEMA_READY: "0",
+    }),
+    { ready: false, reason: "SCHEMA_NOT_READY" },
+  );
+  assert.deepEqual(
+    getLaonpayBillingReadiness({
+      ...env,
+      LAONPAY_BILLING_FEATURE_ENABLED: "0",
+    }),
+    { ready: false, reason: "FEATURE_DISABLED" },
+  );
+  assert.equal(getLaonpayBillingReadiness(env).ready, true);
+});
+
+test("feature kill switch 중에도 기존 resource GET과 동일 요청 대사는 유지한다", async () => {
+  const fixture = signingFixture();
+  const env = {
+    ...fixture.env,
+    LAONPAY_BILLING_FEATURE_ENABLED: "0",
+  };
+  const calls: CapturedRequest[] = [];
+  const client = createLaonpayBillingClient(env, {
+    fetchImpl: captureFetch(calls, (url) =>
+      url.pathname.endsWith("/registration-intents")
+        ? jsonResponse(registrationCreated())
+        : jsonResponse({ paymentMethods: [] }),
+    ),
+    now: () => FIXED_NOW_MS,
+    nonce: () => FIXED_NONCE,
+  });
+
+  assert.deepEqual(getLaonpayBillingReadiness(env), {
+    ready: false,
+    reason: "FEATURE_DISABLED",
+  });
+  assert.equal(getLaonpayBillingReconciliationReadiness(env).ready, true);
+  assert.equal((await client.listPaymentMethods(CUSTOMER_ID)).ok, true);
+  assert.equal(
+    (
+      await client.createRegistrationIntent(
+        CUSTOMER_ID,
+        REGISTRATION_IDEMPOTENCY_KEY,
+      )
+    ).ok,
+    true,
+  );
+  assert.equal(calls.length, 2);
+  assert.equal(
+    new Headers(calls[0].init.headers).get("idempotency-key"),
+    null,
+  );
+  assert.equal(
+    new Headers(calls[1].init.headers).get("idempotency-key"),
+    REGISTRATION_IDEMPOTENCY_KEY,
+  );
 });
 
 test("앱 기본 클라이언트는 Vercel Production 외 런타임에서 fail-closed 처리한다", async () => {
@@ -636,6 +729,25 @@ test("hosted registration URL은 계약된 same-origin exact 경로만 허용한
     `${API_ORIGIN}/billing/register/lpbr1.other_registration.${"s".repeat(43)}`,
     `${API_ORIGIN}/billing/register/lpbr1.${REGISTRATION_ID}.short`,
   ];
+  const overlongRegistrationId = "r".repeat(106);
+  const overlongHostedUrl =
+    `${API_ORIGIN}/billing/register/lpbr1.${overlongRegistrationId}.${"s".repeat(43)}`;
+  const overlongClient = createLaonpayBillingClient(env, {
+    fetchImpl: (async () =>
+      jsonResponse({
+        ...registrationCreated(overlongHostedUrl),
+        registrationId: overlongRegistrationId,
+      })) as typeof fetch,
+    now: () => FIXED_NOW_MS,
+    nonce: () => FIXED_NONCE,
+  });
+  assert.deepEqual(
+    await overlongClient.createRegistrationIntent(
+      CUSTOMER_ID,
+      REGISTRATION_IDEMPOTENCY_KEY,
+    ),
+    { ok: false, outcome: "UNKNOWN" },
+  );
 
   for (const hostedUrl of invalidUrls) {
     await t.test(hostedUrl, async () => {
@@ -756,11 +868,25 @@ test("취소요청 POST는 cancel request와 charge의 허용 상태쌍만 수�
         cancelRequest: {
           id: CANCEL_REQUEST_ID,
           status: cancelRequestStatus,
+          reason: "구매자 요청",
+          rejectReason:
+            cancelRequestStatus === "REJECTED" ? "처리할 수 없습니다." : null,
           createdAt: ISO_DATE,
+          processedAt:
+            cancelRequestStatus === "DONE" ||
+            cancelRequestStatus === "REJECTED"
+              ? ISO_DATE
+              : null,
         },
         charge: {
           id: CHARGE_ID,
+          externalOrderId: ORDER_ID,
           status: chargeStatus,
+          amount: 1_004,
+          paymentId: "payment_123",
+          createdAt: ISO_DATE,
+          updatedAt: ISO_DATE,
+          error: null,
         },
         idempotent: false,
       };

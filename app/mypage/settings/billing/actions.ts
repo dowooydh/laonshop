@@ -11,21 +11,26 @@ import {
   BILLING_SETTINGS_RETURN_URL,
   createLaonpayBillingClient,
 } from "@/lib/laonpay/billing-client";
+import { upsertOwnedBillingPaymentMethod } from "@/lib/laonpay/billing-ledger";
 import {
   billingRequestFingerprint,
   BILLING_REGISTRATION_COOKIE,
   isBillingIntegrationEnabled,
+  isBillingReconciliationEnabled,
   mapPaymentMethodStatus,
   mergeRegistrationStatus,
-  paymentMethodData,
-  paymentMethodSyncData,
 } from "@/lib/laonpay/billing-policy";
 import type { BillingRegistrationStatus } from "@/lib/laonpay/billing-contract";
 
 const REGISTRATION_OPEN_STATUSES = ["REQUESTING", "PENDING", "PROCESSING", "UNKNOWN"] as const;
 const BILLING_TX_OPTIONS = { maxWait: 5_000, timeout: 15_000 } as const;
+const REGISTRATION_REQUEST_STALE_MS = 5 * 60 * 1_000;
 
-export type BillingSettingsActionState = { ok?: true; error?: string };
+export type BillingSettingsActionState = {
+  ok?: true;
+  error?: string;
+  message?: string;
+};
 
 function registrationCookieValue(localId: string, providerId: string): string {
   return `${localId}.${providerId}`;
@@ -135,18 +140,37 @@ async function claimRegistrationAttempt(registrationId: string): Promise<boolean
         const registration = await tx.shopBillingRegistration.findUnique({
           where: { id: registrationId },
         });
+        if (!registration) {
+          return false;
+        }
+        const staleInitialRequest =
+          registration.status === "REQUESTING" &&
+          registration.requestAttempts === 1 &&
+          registration.laonpayRegistrationId === null &&
+          registration.updatedAt.getTime() <=
+            Date.now() - REGISTRATION_REQUEST_STALE_MS;
+        const canClaimInitial =
+          registration.status === "REQUESTING" &&
+          registration.requestAttempts === 0;
+        const canClaimReconciliation =
+          registration.requestAttempts === 1 &&
+          (registration.status === "UNKNOWN" ||
+            (registration.laonpayRegistrationId !== null &&
+              (registration.status === "PENDING" ||
+                registration.status === "PROCESSING")));
         if (
-          !registration ||
-          !REGISTRATION_OPEN_STATUSES.includes(
-            registration.status as (typeof REGISTRATION_OPEN_STATUSES)[number],
-          ) ||
-          registration.requestAttempts >= 2
+          !canClaimInitial &&
+          !canClaimReconciliation &&
+          !staleInitialRequest
         ) {
           return false;
         }
         await tx.shopBillingRegistration.update({
           where: { id: registration.id },
-          data: { requestAttempts: { increment: 1 } },
+          data: {
+            requestAttempts: { increment: 1 },
+            ...(staleInitialRequest ? { status: "UNKNOWN" } : {}),
+          },
         });
         return true;
       }, BILLING_TX_OPTIONS)
@@ -218,33 +242,11 @@ async function refreshKnownRegistration(input: {
         });
         return status;
       }
-      const existing = await tx.shopBillingPaymentMethod.findUnique({
-        where: { laonpayPaymentMethodId: remote.paymentMethod.id },
-        select: { id: true, userId: true, status: true, deregisterIdempotencyKey: true },
-      });
-      if (existing && existing.userId !== input.userId) return false;
-      if (existing) {
-        await acquireTransactionLock(tx, `billing-method:${existing.id}`);
-      }
-      const lockedExisting = existing
-        ? await tx.shopBillingPaymentMethod.findUnique({
-            where: { id: existing.id },
-            select: {
-              id: true,
-              userId: true,
-              status: true,
-              deregisterIdempotencyKey: true,
-            },
-          })
-        : null;
-      if (existing && !lockedExisting) return false;
-      const method = await tx.shopBillingPaymentMethod.upsert({
-        where: { laonpayPaymentMethodId: remote.paymentMethod.id },
-        create: { userId: input.userId, ...paymentMethodData(remote.paymentMethod) },
-        // 해지 완료는 로컬 terminal 상태다. 지연된 등록/목록 응답이 다시 ACTIVE로
-        // 되돌리지 못하게 한다.
-        update: paymentMethodSyncData(remote.paymentMethod, lockedExisting),
-      });
+      const method = await upsertOwnedBillingPaymentMethod(
+        tx,
+        input.userId,
+        remote.paymentMethod,
+      );
       await tx.shopBillingRegistration.update({
         where: { id: local.id },
         data: {
@@ -276,8 +278,12 @@ export async function startBillingRegistrationAction(
   _previous: BillingSettingsActionState,
 ): Promise<BillingSettingsActionState> {
   const user = await requireShopUser();
-  if (!isBillingIntegrationEnabled(user.email)) {
-    return { error: "간편결제 카드 등록 연동이 아직 준비되지 않았습니다. 일반 카드결제를 이용해 주세요." };
+  const featureEnabled = isBillingIntegrationEnabled(user.email);
+  if (!isBillingReconciliationEnabled(user.email)) {
+    return {
+      error:
+        "간편결제 카드 등록 연동이 아직 준비되지 않았습니다. 일반 카드결제를 이용해 주세요.",
+    };
   }
 
   const requestBody = { externalCustomerId: user.id, returnTargetCode: "settings" as const };
@@ -313,6 +319,13 @@ export async function startBillingRegistrationAction(
         }
         return { ok: true as const, registration: existing };
       }
+      if (!featureEnabled) {
+        return {
+          ok: false as const,
+          error:
+            "신규 카드 등록은 점검 중입니다. 기존 요청이 있다면 상태 조회를 이용해 주세요.",
+        };
+      }
       const registration = await tx.shopBillingRegistration.create({
         data: {
           userId: user.id,
@@ -328,6 +341,16 @@ export async function startBillingRegistrationAction(
     return { error: "간편결제 원장을 사용할 수 없어 카드 등록을 안전하게 차단했습니다." };
   }
   if (!prepared.ok) return { error: prepared.error };
+  if (
+    !featureEnabled &&
+    prepared.registration.requestAttempts === 0 &&
+    !prepared.registration.laonpayRegistrationId
+  ) {
+    return {
+      error:
+        "신규 카드 등록 전송은 점검 중입니다. 기능 재개 전에는 외부 요청을 시작하지 않습니다.",
+    };
+  }
   if (prepared.registration.laonpayRegistrationId) {
     const refreshed = await refreshKnownRegistration({
       localRegistrationId: prepared.registration.id,
@@ -399,18 +422,27 @@ export async function startBillingRegistrationAction(
   if (!(await claimRegistrationAttempt(prepared.registration.id))) {
     return {
       error:
-        "카드 등록 요청의 확인 횟수를 모두 사용했습니다. 새 요청을 만들지 말고 고객센터에 문의해 주세요.",
+        prepared.registration.status === "REQUESTING"
+          ? "카드 등록 요청을 전송하고 있습니다. 중복 등록하지 말고 잠시 후 상태를 확인해 주세요."
+          : "카드 등록 요청의 확인 횟수를 모두 사용했습니다. 새 요청을 만들지 말고 고객센터에 문의해 주세요.",
     };
   }
   const client = createLaonpayBillingClient();
   let result = await client.createRegistrationIntent(user.id, prepared.registration.idempotencyKey);
-  if (
-    !result.ok &&
-    result.outcome === "UNKNOWN" &&
-    (await claimRegistrationAttempt(prepared.registration.id))
-  ) {
-    // 같은 key+body 재호출은 LAONPAY 계약상 기존 resource 조회이며 새 KSNET 호출을 만들지 않는다.
-    result = await client.createRegistrationIntent(user.id, prepared.registration.idempotencyKey);
+  if (!result.ok && result.outcome === "UNKNOWN") {
+    // 첫 응답이 끝났다는 사실을 UNKNOWN으로 원자 기록한 뒤에만 동일 key/body
+    // reconciliation POST 1회를 허용한다. REQUESTING/attempts=1인 실제 in-flight
+    // 요청은 다른 탭이 선점할 수 없다.
+    await markRegistrationUnknown({
+      localRegistrationId: prepared.registration.id,
+      userId: user.id,
+    });
+    if (await claimRegistrationAttempt(prepared.registration.id)) {
+      result = await client.createRegistrationIntent(
+        user.id,
+        prepared.registration.idempotencyKey,
+      );
+    }
   }
   if (!result.ok) {
     await markRegistrationUnknown({
@@ -462,7 +494,7 @@ export async function refreshBillingPaymentMethodsAction(
   _previous: BillingSettingsActionState,
 ): Promise<BillingSettingsActionState> {
   const user = await requireShopUser();
-  if (!isBillingIntegrationEnabled(user.email)) {
+  if (!isBillingReconciliationEnabled(user.email)) {
     return { error: "간편결제 연동이 준비되지 않았습니다." };
   }
 
@@ -509,41 +541,11 @@ export async function refreshBillingPaymentMethodsAction(
         lockedExistingMethods.map((method) => [method.laonpayPaymentMethodId, method]),
       );
       for (const method of result.data.paymentMethods) {
-        const existing =
-          existingByProviderId.get(method.id) ??
-          (await tx.shopBillingPaymentMethod.findUnique({
-            where: { laonpayPaymentMethodId: method.id },
-            select: {
-              id: true,
-              userId: true,
-              laonpayPaymentMethodId: true,
-              status: true,
-              deregisterIdempotencyKey: true,
-            },
-          }));
-        if (existing && existing.userId !== user.id) throw new Error("결제수단 소유권 불일치");
-        let lockedExisting = existing;
-        if (existing && !existingByProviderId.has(method.id)) {
-          await acquireTransactionLock(tx, `billing-method:${existing.id}`);
-          lockedExisting = await tx.shopBillingPaymentMethod.findUnique({
-            where: { id: existing.id },
-            select: {
-              id: true,
-              userId: true,
-              laonpayPaymentMethodId: true,
-              status: true,
-              deregisterIdempotencyKey: true,
-            },
-          });
-          if (!lockedExisting || lockedExisting.userId !== user.id) {
-            throw new Error("결제수단 소유권 불일치");
-          }
+        const existing = existingByProviderId.get(method.id);
+        if (existing && existing.userId !== user.id) {
+          throw new Error("결제수단 소유권 불일치");
         }
-        await tx.shopBillingPaymentMethod.upsert({
-          where: { laonpayPaymentMethodId: method.id },
-          create: { userId: user.id, ...paymentMethodData(method) },
-          update: paymentMethodSyncData(method, lockedExisting),
-        });
+        await upsertOwnedBillingPaymentMethod(tx, user.id, method);
       }
       await tx.shopBillingPaymentMethod.updateMany({
         where: {
@@ -561,32 +563,10 @@ export async function refreshBillingPaymentMethodsAction(
   }
   revalidatePath("/mypage/settings");
   revalidatePath("/checkout");
-  return { ok: true };
-}
-
-async function claimDeregisterAttempt(paymentMethodId: string): Promise<boolean> {
-  return (
-    (await prisma
-      .$transaction(async (tx) => {
-        await acquireTransactionLock(tx, `billing-method:${paymentMethodId}`);
-        const method = await tx.shopBillingPaymentMethod.findUnique({
-          where: { id: paymentMethodId },
-        });
-        if (
-          !method ||
-          !["DEREGISTERING", "UNKNOWN"].includes(method.status) ||
-          method.deregisterRequestAttempts >= 1
-        ) {
-          return false;
-        }
-        await tx.shopBillingPaymentMethod.update({
-          where: { id: method.id },
-          data: { deregisterRequestAttempts: { increment: 1 } },
-        });
-        return true;
-      }, BILLING_TX_OPTIONS)
-      .catch(() => false)) === true
-  );
+  return {
+    ok: true,
+    message: "등록 카드 상태를 최신 정보로 확인했습니다.",
+  };
 }
 
 export async function deregisterBillingPaymentMethodAction(
@@ -605,7 +585,11 @@ export async function deregisterBillingPaymentMethodAction(
       });
       if (!method) return { ok: false as const, error: "등록 카드를 찾을 수 없습니다." };
       if (method.status === "DEREGISTERED") return { ok: true as const, done: true as const, method };
-      if (method.status !== "ACTIVE") {
+      const resumableUnsent =
+        method.status === "DEREGISTERING" &&
+        method.deregisterRequestAttempts === 0 &&
+        method.deregisterIdempotencyKey !== null;
+      if (method.status !== "ACTIVE" && !resumableUnsent) {
         return {
           ok: false as const,
           error: "카드 해지 또는 상태 확인을 이미 처리 중입니다. 상태 조회 후 다시 확인해 주세요.",
@@ -634,21 +618,25 @@ export async function deregisterBillingPaymentMethodAction(
           error: "결제 또는 취소 상태를 확인 중인 주문이 있어 카드를 해지할 수 없습니다.",
         };
       }
-      const idempotencyKey = method.deregisterIdempotencyKey ?? randomUUID();
+      const idempotencyKey =
+        method.deregisterIdempotencyKey ?? randomUUID();
       const claimed = await tx.shopBillingPaymentMethod.update({
         where: { id: method.id },
-        data: { status: "DEREGISTERING", deregisterIdempotencyKey: idempotencyKey },
+        data: {
+          status: "DEREGISTERING",
+          deregisterIdempotencyKey: idempotencyKey,
+          deregisterRequestAttempts: { increment: 1 },
+        },
       });
       return { ok: true as const, done: false as const, method: claimed };
     })
     .catch(() => null);
   if (!prepared) return { error: "간편결제 원장을 확인하지 못해 카드 해지를 안전하게 차단했습니다." };
   if (!prepared.ok) return { error: prepared.error };
-  if (prepared.done) return { ok: true };
-
-  if (!(await claimDeregisterAttempt(prepared.method.id))) {
-    return { error: "카드 해지 요청을 이미 전송했습니다. 상태 조회 후 다시 확인해 주세요." };
+  if (prepared.done) {
+    return { ok: true, message: "이미 해지된 카드입니다." };
   }
+
   // 해지는 등록/결제 생성과 달리 동일 POST reconciliation 계약이 없다.
   // timeout·5xx도 자동 재호출하지 않고 목록 상태 조회로만 확정한다.
   const result = await createLaonpayBillingClient().deregisterPaymentMethod(
@@ -716,5 +704,5 @@ export async function deregisterBillingPaymentMethodAction(
   }
   revalidatePath("/mypage/settings");
   revalidatePath("/checkout");
-  return { ok: true };
+  return { ok: true, message: "카드 해지를 완료했습니다." };
 }

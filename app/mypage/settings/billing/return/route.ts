@@ -2,13 +2,15 @@ import { type NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { acquireTransactionLock } from "@/lib/order-guard";
-import { createLaonpayBillingClient, isLaonpayBillingReady } from "@/lib/laonpay/billing-client";
+import {
+  createLaonpayBillingClient,
+  isLaonpayBillingReconciliationReady,
+} from "@/lib/laonpay/billing-client";
+import { upsertOwnedBillingPaymentMethod } from "@/lib/laonpay/billing-ledger";
 import {
   BILLING_REGISTRATION_COOKIE,
   isBillingIntegrationAccount,
   mergeRegistrationStatus,
-  paymentMethodData,
-  paymentMethodSyncData,
 } from "@/lib/laonpay/billing-policy";
 
 export const runtime = "nodejs";
@@ -45,9 +47,21 @@ function parseRegistrationCookie(value: string | undefined): { localId: string; 
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
-  if (!session.userId) return NextResponse.redirect(new URL("/login", request.url), 303);
+  if (!session.userId) {
+    const login = new URL("/login", request.url);
+    login.searchParams.set(
+      "next",
+      `${request.nextUrl.pathname}${request.nextUrl.search}`,
+    );
+    return NextResponse.redirect(login, 303);
+  }
   const user = await prisma.shopUser.findUnique({ where: { id: session.userId } });
-  if (!user || user.deletedAt || !isBillingIntegrationAccount(user.email) || !isLaonpayBillingReady()) {
+  if (
+    !user ||
+    user.deletedAt ||
+    !isBillingIntegrationAccount(user.email) ||
+    !isLaonpayBillingReconciliationReady()
+  ) {
     return settingsRedirect(request, "unavailable");
   }
 
@@ -128,37 +142,18 @@ export async function GET(request: NextRequest) {
         return status.toLowerCase();
       }
 
-      const existing = await tx.shopBillingPaymentMethod.findUnique({
-        where: { laonpayPaymentMethodId: remote.paymentMethod.id },
-        select: { id: true, userId: true, status: true, deregisterIdempotencyKey: true },
-      });
-      if (existing && existing.userId !== user.id) {
+      const method = await upsertOwnedBillingPaymentMethod(
+        tx,
+        user.id,
+        remote.paymentMethod,
+      ).catch(() => null);
+      if (!method) {
         await tx.shopBillingRegistration.update({
           where: { id: local.id },
           data: { status: "UNKNOWN" },
         });
         return "unknown";
       }
-      if (existing) {
-        await acquireTransactionLock(tx, `billing-method:${existing.id}`);
-      }
-      const lockedExisting = existing
-        ? await tx.shopBillingPaymentMethod.findUnique({
-            where: { id: existing.id },
-            select: {
-              id: true,
-              userId: true,
-              status: true,
-              deregisterIdempotencyKey: true,
-            },
-          })
-        : null;
-      if (existing && !lockedExisting) return "unknown";
-      const method = await tx.shopBillingPaymentMethod.upsert({
-        where: { laonpayPaymentMethodId: remote.paymentMethod.id },
-        create: { userId: user.id, ...paymentMethodData(remote.paymentMethod) },
-        update: paymentMethodSyncData(remote.paymentMethod, lockedExisting),
-      });
       await tx.shopBillingRegistration.update({
         where: { id: local.id },
         data: {

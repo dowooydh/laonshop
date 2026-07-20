@@ -144,21 +144,21 @@ export const billingDeregisterResponseSchema = z
   })
   .strict();
 
+const billingCancelRequestSchema = z
+  .object({
+    id: opaqueId,
+    status: billingCancelRequestStatusSchema,
+    reason: exactSafeText(200).nullable(),
+    rejectReason: exactSafeText(500).nullable(),
+    createdAt: isoDate,
+    processedAt: nullableIsoDate,
+  })
+  .strict();
+
 export const billingCancelRequestResponseSchema = z
   .object({
-    cancelRequest: z
-      .object({
-        id: opaqueId,
-        status: billingCancelRequestStatusSchema,
-        createdAt: isoDate,
-      })
-      .strict(),
-    charge: z
-      .object({
-        id: opaqueId,
-        status: billingChargeStatusSchema,
-      })
-      .strict(),
+    cancelRequest: billingCancelRequestSchema,
+    charge: billingChargeSchema,
     idempotent: z.boolean(),
   })
   .strict()
@@ -166,16 +166,7 @@ export const billingCancelRequestResponseSchema = z
 
 export const billingCancelRequestStatusResponseSchema = z
   .object({
-    cancelRequest: z
-      .object({
-        id: opaqueId,
-        status: billingCancelRequestStatusSchema,
-        reason: exactSafeText(200).nullable(),
-        rejectReason: exactSafeText(500).nullable(),
-        createdAt: isoDate,
-        processedAt: nullableIsoDate,
-      })
-      .strict(),
+    cancelRequest: billingCancelRequestSchema,
     charge: billingChargeSchema,
   })
   .strict()

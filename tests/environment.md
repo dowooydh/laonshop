@@ -1,6 +1,6 @@
 # 로컬 테스트 환경
 
-최종 갱신: 2026-07-11
+최종 갱신: 2026-07-20
 
 ## 저장소/브랜치
 
@@ -23,7 +23,7 @@
 - `KSPAY_STORE_ID`: KSNET 테스트 MID
 - `SHOP_APP_URL`: `http://localhost:3003`
 
-계약 전 선택 변수 `KSPAY_API_KEY`, `KSPAY_REST_LIVE`, `KSPAY_STORE_KEY`는 현재 의도적으로 미설정이다. 실값은 `ENV_INVENTORY.md`의 원본 위치에서만 관리한다.
+계약 전 선택 변수 `KSPAY_API_KEY`, `KSPAY_REST_LIVE`, `KSPAY_STORE_KEY`는 현재 의도적으로 미설정이다. LAONPAY 파트너 env 3종과 `LAONPAY_BILLING_SCHEMA_READY`, `LAONPAY_BILLING_FEATURE_ENABLED`도 운영 활성화 전까지 미설정/`0`으로 유지한다. 실값은 `ENV_INVENTORY.md`의 원본 위치에서만 관리한다.
 
 ## 셋업 순서
 
@@ -32,6 +32,7 @@ pnpm install --frozen-lockfile
 pnpm prisma db push
 pnpm db:seed
 pnpm test
+pnpm test:billing:interop
 pnpm lint
 pnpm typecheck
 pnpm build
@@ -48,7 +49,8 @@ pnpm start
 - 결제 왕복은 callback URL 때문에 로컬에서만 수행한다.
 - Vercel Preview 결제 플로우는 callback이 운영으로 갈 수 있어 금지한다.
 - 테스트 MID도 실제 카드 승인이 발생할 수 있으므로 명시적 승인 없이는 카드번호를 입력하거나 승인하지 않는다.
-- 원클릭 카드 등록·결제는 별도 PG 계약과 카드 원문 비수집 방식이 확정될 때까지 모든 환경에서 비활성화한다.
+- 원클릭 카드 등록·결제 코드는 LAONPAY hosted/API 계약에 맞춰 integration-ready 상태지만, additive schema·파트너 env·readiness gate·실 상호운용 승인 전에는 운영에서 fail-closed다.
+- loopback HTTP harness는 실제 LAONPAY·KSNET·운영 DB에 접속하지 않으며 등록→조회→청구→조회→전체취소요청→해지 계약만 검증한다.
 - 수기 실호출은 계약 키와 live switch가 모두 준비되기 전에는 금지한다.
 - QA는 기본적으로 주문 생성과 KSPAY 결제창 진입까지만 확인한다.
 

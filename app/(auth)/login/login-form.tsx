@@ -3,7 +3,7 @@ import { Button, FieldError, Input, Label } from "@/lib/ui";
 import { useActionState, useState } from "react";
 import { loginAction, type AuthState } from "../actions";
 
-export function LoginForm() {
+export function LoginForm({ next }: { next?: string }) {
   const [state, action, pending] = useActionState<AuthState, FormData>(loginAction, {});
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -11,6 +11,7 @@ export function LoginForm() {
 
   return (
     <form action={action} className="space-y-4">
+      {next ? <input type="hidden" name="next" value={next} /> : null}
       <div className="space-y-1.5">
         <Label htmlFor="email">이메일</Label>
         <Input

@@ -20,6 +20,7 @@ import {
   calculateOrderAmount,
   isBillingIntegrationAccount,
   isBillingIntegrationEnabled,
+  isBillingReconciliationEnabled,
   isProvablyLocalBillingCharge,
   orderGoodsName,
 } from "@/lib/laonpay/billing-policy";
@@ -40,7 +41,9 @@ const schema = z.object({
   reason: z.string().trim().max(200, "사유는 200자 이내로 입력해 주세요.").optional(),
 });
 
-export type CancelResult = { ok: true } | { ok: false; error: string };
+export type CancelResult =
+  | { ok: true }
+  | { ok: false; error: string; retryBlocked?: true };
 
 async function requestKspayCancel(
   orderId: string,
@@ -81,6 +84,7 @@ export async function requestCancelAction(input: { orderId: string; reason?: str
       return {
         ok: false,
         error: "등록카드 취소 연동을 확인할 수 없습니다. 재신청하지 말고 고객센터에 문의해 주세요.",
+        retryBlocked: true,
       };
     }
     return requestKspayCancel(parsed.data.orderId, user.id, parsed.data.reason);
@@ -161,6 +165,7 @@ export async function requestCancelAction(input: { orderId: string; reason?: str
       return {
         ok: false as const,
         error: "이미 취소 신청을 처리 중입니다. 새로 신청하지 말고 주문 상태를 확인해 주세요.",
+        retryBlocked: true as const,
       };
     }
     // 외부 호출 전 프로세스가 중단된 REQUESTING 행만 같은 멱등키/저장 사유로
@@ -212,6 +217,7 @@ export async function requestCancelAction(input: { orderId: string; reason?: str
     return {
       ok: false,
       error: "이미 취소 신청을 처리 중입니다. 새로 신청하지 말고 주문 상태를 확인해 주세요.",
+      retryBlocked: true,
     };
   }
 
@@ -223,19 +229,24 @@ export async function requestCancelAction(input: { orderId: string; reason?: str
   );
 
   const sameRemoteCharge =
-    result.ok && result.data.charge.id === prepared.charge.laonpayChargeId;
+    result.ok &&
+    result.data.charge.id === prepared.charge.laonpayChargeId &&
+    result.data.charge.externalOrderId === prepared.order.id &&
+    result.data.charge.amount === prepared.charge.amount &&
+    result.data.charge.paymentId === prepared.charge.providerPaymentId;
   const accepted =
     sameRemoteCharge &&
     result.ok &&
     result.data.charge.status === "CANCEL_REQUESTED" &&
     (result.data.cancelRequest.status === "REQUESTED" ||
       result.data.cancelRequest.status === "PROCESSING");
+  // HTTP 4xx(특히 IDEMPOTENCY_CONFLICT)는 원격에 기존 요청이 존재할 수 있어
+  // terminal 반려 근거가 아니다. 서명된 full envelope의 REJECTED+PAID만 확정한다.
   const rejected =
-    result.ok
-      ? sameRemoteCharge &&
-        result.data.charge.status === "PAID" &&
-        result.data.cancelRequest.status === "REJECTED"
-      : result.outcome === "REJECTED";
+    result.ok &&
+    sameRemoteCharge &&
+    result.data.charge.status === "PAID" &&
+    result.data.cancelRequest.status === "REJECTED";
 
   const finalized = await prisma.$transaction(async (tx) => {
     await acquireTransactionLock(tx, `order:${prepared.order.id}`);
@@ -267,6 +278,11 @@ export async function requestCancelAction(input: { orderId: string; reason?: str
         data: {
           laonpayCancelRequestId: result.data.cancelRequest.id,
           status: result.data.cancelRequest.status,
+          reason: result.data.cancelRequest.reason,
+          rejectReason: result.data.cancelRequest.rejectReason,
+          providerProcessedAt: result.data.cancelRequest.processedAt
+            ? new Date(result.data.cancelRequest.processedAt)
+            : null,
         },
       });
       await tx.shopBillingCharge.update({
@@ -279,7 +295,7 @@ export async function requestCancelAction(input: { orderId: string; reason?: str
           status: "CANCEL_REQUESTED",
           cancelRequestedAt: new Date(),
           // 최초 원장에 저장하고 실제 LAONPAY 요청에 사용한 값과 일치시킨다.
-          cancelReason: cancelRequest.reason,
+          cancelReason: result.data.cancelRequest.reason,
         },
       });
       return { ok: true as const, accepted: true as const };
@@ -289,7 +305,14 @@ export async function requestCancelAction(input: { orderId: string; reason?: str
       where: { id: cancelRequest.id },
       data: {
         ...(result.ok && sameRemoteCharge
-          ? { laonpayCancelRequestId: result.data.cancelRequest.id }
+          ? {
+              laonpayCancelRequestId: result.data.cancelRequest.id,
+              reason: result.data.cancelRequest.reason,
+              rejectReason: result.data.cancelRequest.rejectReason,
+              providerProcessedAt: result.data.cancelRequest.processedAt
+                ? new Date(result.data.cancelRequest.processedAt)
+                : null,
+            }
           : {}),
         status: rejected ? "REJECTED" : "UNKNOWN",
       },
@@ -303,6 +326,7 @@ export async function requestCancelAction(input: { orderId: string; reason?: str
       error: rejected
         ? "취소 신청이 접수되지 않았습니다. 고객센터에 문의해 주세요."
         : "취소 신청 결과를 확인하지 못했습니다. 재신청하지 말고 고객센터에 문의해 주세요.",
+      retryBlocked: true,
     };
   }
 
@@ -326,7 +350,7 @@ export async function refreshBillingCancelStatusAction(input: {
   const user = await requireShopUser();
   const parsed = refreshBillingCancelSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "주문 정보를 확인해 주세요." };
-  if (!isBillingIntegrationEnabled(user.email)) {
+  if (!isBillingReconciliationEnabled(user.email)) {
     return { ok: false, error: "등록카드 취소 상태 조회가 준비되지 않았습니다." };
   }
 
@@ -794,9 +818,10 @@ export async function refreshBillingChargeStatusAction(input: {
   orderId: string;
 }): Promise<RefreshBillingChargeResult> {
   const user = await requireShopUser();
+  const featureEnabled = isBillingIntegrationEnabled(user.email);
   const parsed = refreshBillingChargeSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "주문 정보를 확인해 주세요." };
-  if (!isBillingIntegrationEnabled(user.email)) {
+  if (!isBillingReconciliationEnabled(user.email)) {
     return { ok: false, error: "등록카드 결제 상태 조회가 준비되지 않았습니다." };
   }
 
@@ -1015,8 +1040,20 @@ export async function refreshBillingChargeStatusAction(input: {
             claimableCharge,
             latestExpected,
             claimableCharge.requestAttempts,
+            featureEnabled,
           )
         ) {
+          if (
+            !featureEnabled &&
+            claimableCharge.status === "REQUESTING" &&
+            claimableCharge.requestAttempts === 0
+          ) {
+            return {
+              ok: true as const,
+              done: true as const,
+              status: "PENDING" as const,
+            };
+          }
           return {
             ok: false as const,
             error:

@@ -27,6 +27,7 @@ type BillingCardsProps = {
   paymentMethods: BillingPaymentMethodRow[];
   integrationEligible: boolean;
   integrationConfigured: boolean;
+  integrationFeatureEnabled: boolean;
   integrationStorageReady: boolean;
   hasOpenRegistration: boolean;
   registrationMessage: string | null;
@@ -71,6 +72,7 @@ export function BillingCards({
   paymentMethods,
   integrationEligible,
   integrationConfigured,
+  integrationFeatureEnabled,
   integrationStorageReady,
   hasOpenRegistration,
   registrationMessage,
@@ -78,14 +80,19 @@ export function BillingCards({
   const router = useRouter();
   const [deletingLegacy, startLegacyDelete] = useTransition();
   const [deregistering, startDeregister] = useTransition();
+  const billingUiLockedRef = useRef(false);
   const deregisteringIds = useRef(new Set<string>());
   const deregisterTriggerRefs = useRef(new Map<string, HTMLButtonElement>());
   const deregisterConfirmRef = useRef<HTMLButtonElement>(null);
+  const actionStatusRef = useRef<HTMLParagraphElement>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [activeAction, setActiveAction] = useState<BillingActionSource>(null);
   const [confirmingDeregisterId, setConfirmingDeregisterId] = useState<string | null>(null);
   const [deregisteringId, setDeregisteringId] = useState<string | null>(null);
   const [methodActionError, setMethodActionError] = useState<string | null>(null);
+  const [methodActionMessage, setMethodActionMessage] = useState<string | null>(
+    null,
+  );
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [registrationState, registrationAction, registrationPending] = useActionState(
     startBillingRegistrationAction,
@@ -95,10 +102,46 @@ export function BillingCards({
     refreshBillingPaymentMethodsAction,
     INITIAL_ACTION_STATE,
   );
+  const billingActionPending =
+    registrationPending || refreshPending || deregistering;
+
+  useEffect(() => {
+    if (!billingActionPending) billingUiLockedRef.current = false;
+  }, [billingActionPending]);
+
+  useEffect(() => {
+    const restoreAfterHostedHistory = (event: PageTransitionEvent) => {
+      if (!event.persisted) return;
+      // 외부 hosted 등록 화면에서 뒤로 돌아오면 BFCache가 action pending/ref
+      // 스냅샷을 그대로 복원할 수 있다. 전체 재로드로 HttpOnly cookie·DB 상태를
+      // 다시 읽고, 보이지 않는 영구 잠금 상태를 남기지 않는다.
+      billingUiLockedRef.current = false;
+      deregisteringIds.current.clear();
+      window.location.reload();
+    };
+    window.addEventListener("pageshow", restoreAfterHostedHistory);
+    return () =>
+      window.removeEventListener("pageshow", restoreAfterHostedHistory);
+  }, []);
 
   useEffect(() => {
     if (confirmingDeregisterId) deregisterConfirmRef.current?.focus();
   }, [confirmingDeregisterId]);
+
+  const actionMessage =
+    activeAction === "refresh"
+      ? refreshPending
+        ? null
+        : refreshState.message
+      : activeAction === "deregister"
+        ? methodActionMessage
+        : null;
+
+  useEffect(() => {
+    if (!actionMessage) return;
+    const frame = requestAnimationFrame(() => actionStatusRef.current?.focus());
+    return () => cancelAnimationFrame(frame);
+  }, [actionMessage]);
 
   const removeLegacy = (id: string) => {
     setDeleteError(null);
@@ -120,11 +163,19 @@ export function BillingCards({
   };
 
   const deregister = (id: string) => {
-    if (deregisteringIds.current.has(id)) return;
+    if (
+      billingUiLockedRef.current ||
+      billingActionPending ||
+      deregisteringIds.current.has(id)
+    ) {
+      return;
+    }
+    billingUiLockedRef.current = true;
     deregisteringIds.current.add(id);
     setActiveAction("deregister");
     setDeregisteringId(id);
     setMethodActionError(null);
+    setMethodActionMessage(null);
     startDeregister(async () => {
       try {
         const result = await deregisterBillingPaymentMethodAction(id);
@@ -133,19 +184,22 @@ export function BillingCards({
           router.refresh();
           return;
         }
+        setMethodActionMessage(result.message ?? "카드 상태를 확인했습니다.");
         setConfirmingDeregisterId(null);
         router.refresh();
       } catch {
         setMethodActionError("카드 해지 상태를 확인하지 못했습니다. 상태 조회 후 다시 확인해 주세요.");
         router.refresh();
       } finally {
+        billingUiLockedRef.current = false;
         deregisteringIds.current.delete(id);
         setDeregisteringId(null);
       }
     });
   };
 
-  const ready = integrationEligible && integrationConfigured && integrationStorageReady;
+  const ready =
+    integrationEligible && integrationConfigured && integrationStorageReady;
   const actionError =
     activeAction === "registration"
       ? registrationPending
@@ -187,6 +241,14 @@ export function BillingCards({
             <CardMark active />
           </div>
 
+          {!integrationFeatureEnabled ? (
+            <p className="rounded-[var(--radius-md)] border border-warning/30 bg-warning/5 p-[12px] text-step--1 leading-relaxed text-fg-muted">
+              현재 신규 카드 등록·결제·해지는 점검 중입니다. 기존 등록 상태 조회는
+              가능하며, 진행 중인 등록이 있으면 같은 요청만 이어서 확인할 수 있습니다.
+              확인이 끝날 때까지 일반 카드결제를 이용해 주세요.
+            </p>
+          ) : null}
+
           {hasOpenRegistration ? (
             <p className="rounded-[var(--radius-md)] border border-warning/30 bg-warning/5 p-[12px] text-step--1 text-warning">
               확인 중인 카드 등록 요청이 있습니다. 새 요청을 만들지 않고 같은 요청 상태를 이어서 확인합니다.
@@ -204,29 +266,58 @@ export function BillingCards({
             </p>
           ) : null}
 
-          <div className="flex min-w-0 flex-wrap gap-2">
-            <form
-              action={registrationAction}
-              onSubmit={() => {
-                setActiveAction("registration");
-                setMethodActionError(null);
-              }}
-              className="min-w-[min(100%,12rem)] flex-1"
+          {actionMessage ? (
+            <p
+              ref={actionStatusRef}
+              tabIndex={-1}
+              role="status"
+              aria-live="polite"
+              className="rounded-[var(--radius-md)] border border-success/30 bg-success/5 p-[12px] text-step--1 text-success focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-cyan"
             >
-              <Button
-                type="submit"
-                size="lg"
-                loading={registrationPending}
-                className="h-auto min-h-[48px] w-full min-w-0 whitespace-normal py-3 text-center leading-snug"
+              {actionMessage}
+            </p>
+          ) : null}
+
+          <div className="flex min-w-0 flex-wrap gap-2">
+            {integrationFeatureEnabled || hasOpenRegistration ? (
+              <form
+                action={registrationAction}
+                onSubmit={(event) => {
+                  if (billingUiLockedRef.current || billingActionPending) {
+                    event.preventDefault();
+                    return;
+                  }
+                  billingUiLockedRef.current = true;
+                  setActiveAction("registration");
+                  setMethodActionError(null);
+                  setMethodActionMessage(null);
+                }}
+                className="min-w-[min(100%,12rem)] flex-1"
               >
-                {hasOpenRegistration ? "등록 절차 이어서 확인" : "LAONPAY에서 카드 등록"}
-              </Button>
-            </form>
+                <Button
+                  type="submit"
+                  size="lg"
+                  loading={registrationPending}
+                  disabled={billingActionPending}
+                  className="h-auto min-h-[48px] w-full min-w-0 whitespace-normal py-3 text-center leading-snug"
+                >
+                  {hasOpenRegistration
+                    ? "등록 절차 이어서 확인"
+                    : "LAONPAY에서 카드 등록"}
+                </Button>
+              </form>
+            ) : null}
             <form
               action={refreshAction}
-              onSubmit={() => {
+              onSubmit={(event) => {
+                if (billingUiLockedRef.current || billingActionPending) {
+                  event.preventDefault();
+                  return;
+                }
+                billingUiLockedRef.current = true;
                 setActiveAction("refresh");
                 setMethodActionError(null);
+                setMethodActionMessage(null);
               }}
               className="min-w-[min(100%,10rem)] flex-1"
             >
@@ -235,6 +326,7 @@ export function BillingCards({
                 variant="outline"
                 size="lg"
                 loading={refreshPending}
+                disabled={billingActionPending}
                 className="h-auto min-h-[48px] w-full min-w-0 whitespace-normal py-3 text-center leading-snug"
               >
                 등록 카드 상태 조회
@@ -247,9 +339,14 @@ export function BillingCards({
       {ready && paymentMethods.length > 0 ? (
         <ul className="divide-y divide-line rounded-[var(--radius-lg)] border border-line bg-raised">
           {paymentMethods.map((method) => {
-            const canDeregister = method.status === "ACTIVE";
+            const canDeregister =
+              integrationFeatureEnabled && method.status === "ACTIVE";
             const confirming = confirmingDeregisterId === method.id;
             const targetDeregistering = deregisteringId === method.id;
+            const visibleStatusLabel =
+              !integrationFeatureEnabled && method.status === "ACTIVE"
+                ? "결제 일시 중지"
+                : methodStatusLabel(method.status);
             const confirmationId = `billing-deregister-confirm-${method.id}`;
             return (
               <li key={method.id} className="flex min-w-0 flex-wrap items-center gap-3 p-[16px]">
@@ -259,7 +356,11 @@ export function BillingCards({
                     {method.cardName} · •••• {method.cardLast4}
                   </p>
                   <p className="text-[0.72rem] text-fg-subtle [overflow-wrap:anywhere]">
-                    {method.cardType} · {method.dateLabel} 등록 · {methodStatusLabel(method.status)}
+                    {method.cardType === "UNKNOWN"
+                      ? "카드 유형 미확인"
+                      : method.cardType}{" "}
+                    · {method.dateLabel} 등록 ·{" "}
+                    {visibleStatusLabel}
                   </p>
                 </div>
                 {canDeregister ? (
@@ -271,7 +372,7 @@ export function BillingCards({
                     type="button"
                     variant="ghost"
                     size="md"
-                    disabled={deregistering}
+                    disabled={billingActionPending}
                     aria-expanded={confirming}
                     aria-controls={confirmationId}
                     onClick={() => {
@@ -285,7 +386,7 @@ export function BillingCards({
                   </Button>
                 ) : (
                   <span className="rounded-full bg-overlay px-3 py-2 font-mono text-[0.7rem] text-fg-subtle">
-                    {methodStatusLabel(method.status)}
+                    {visibleStatusLabel}
                   </span>
                 )}
                 {canDeregister && confirming ? (
@@ -304,7 +405,7 @@ export function BillingCards({
                         type="button"
                         variant="ghost"
                         size="md"
-                        disabled={deregistering}
+                        disabled={billingActionPending}
                         className="min-h-11 min-w-[min(100%,6rem)] flex-1 sm:flex-none"
                         onClick={() => {
                           setConfirmingDeregisterId(null);
@@ -319,7 +420,7 @@ export function BillingCards({
                         variant="danger"
                         size="md"
                         loading={targetDeregistering}
-                        disabled={deregistering && !targetDeregistering}
+                        disabled={billingActionPending}
                         aria-describedby={methodActionError ? "billing-method-action-error" : undefined}
                         className="min-h-11 min-w-[min(100%,6rem)] flex-1 sm:flex-none"
                         onClick={() => deregister(method.id)}

@@ -40,13 +40,16 @@ enum ShopUserRole {
   ADMIN
 }
 
-// 과거 원클릭 mock 등록 레코드 — 신규 등록·결제는 안전 연동 전까지 비활성화하고 삭제만 허용한다.
-// NEEDS_PG_SPEC: KSNET 빌링키 등록·승인·해지 계약 후 별도 마이그레이션으로 실제 토큰 모델을 설계한다.
+// 과거 원클릭 mock 등록 레코드 — 신규 등록·결제에는 사용하지 않고 삭제만 허용한다.
+// 과거 provider token 컬럼은 애플리케이션 스키마에서 제거했다. 운영 물리 컬럼 정리는
+// 데이터 확인·백업 후 별도 승인된 cleanup으로만 수행한다.
 model ShopBillingCard {
   id             String   @id @default(cuid())
   user           ShopUser @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId         String
-  billingToken   String   @unique
+  // 운영 물리 컬럼 정리 승인 전까지 schema drift/drop 대상에서 제외하되,
+  // Prisma Client 애플리케이션 API에는 노출하지 않는다.
+  billingToken   String   @unique @ignore
   maskedCardNumb String
   createdAt      DateTime @default(now())
 }
@@ -108,6 +111,7 @@ model ShopBillingPaymentMethod {
   createdAt                 DateTime                       @default(now())
   updatedAt                 DateTime                       @updatedAt
 
+  @@unique([id, userId])
   @@index([userId, status, createdAt])
 }
 
@@ -122,7 +126,7 @@ model ShopBillingRegistration {
   requestAttempts       Int                           @default(0)
   status                ShopBillingRegistrationStatus @default(REQUESTING)
   expiresAt             DateTime?
-  paymentMethod         ShopBillingPaymentMethod?     @relation(fields: [paymentMethodId], references: [id], onDelete: Restrict)
+  paymentMethod         ShopBillingPaymentMethod?     @relation(fields: [paymentMethodId, userId], references: [id, userId], onDelete: Restrict)
   paymentMethodId       String?
   createdAt             DateTime                      @default(now())
   updatedAt             DateTime                      @updatedAt
@@ -135,9 +139,9 @@ model ShopBillingCharge {
   id                 String                    @id @default(cuid())
   user               ShopUser                  @relation(fields: [userId], references: [id], onDelete: Restrict)
   userId             String
-  order              ShopOrder                 @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  order              ShopOrder                 @relation(fields: [orderId, userId], references: [id, userId], onDelete: Restrict)
   orderId            String                    @unique
-  paymentMethod      ShopBillingPaymentMethod  @relation(fields: [paymentMethodId], references: [id], onDelete: Restrict)
+  paymentMethod      ShopBillingPaymentMethod  @relation(fields: [paymentMethodId, userId], references: [id, userId], onDelete: Restrict)
   paymentMethodId    String
   laonpayChargeId    String?                   @unique
   idempotencyKey     String                    @unique
@@ -145,12 +149,14 @@ model ShopBillingCharge {
   requestAttempts    Int                       @default(0)
   amount             Int
   status             ShopBillingChargeStatus   @default(REQUESTING)
-  providerPaymentId  String?
+  providerPaymentId  String?                   @unique
   failureCode        String?
   cancelRequest      ShopBillingCancelRequest?
   createdAt          DateTime                  @default(now())
   updatedAt          DateTime                  @updatedAt
 
+  @@unique([id, userId])
+  @@unique([orderId, userId])
   @@index([userId, status, createdAt])
   @@index([paymentMethodId, status])
 }
@@ -160,7 +166,7 @@ model ShopBillingCancelRequest {
   id                     String                         @id @default(cuid())
   user                   ShopUser                       @relation(fields: [userId], references: [id], onDelete: Restrict)
   userId                 String
-  charge                 ShopBillingCharge              @relation(fields: [chargeId], references: [id], onDelete: Restrict)
+  charge                 ShopBillingCharge              @relation(fields: [chargeId, userId], references: [id, userId], onDelete: Restrict)
   chargeId               String                         @unique
   laonpayCancelRequestId String?                        @unique
   idempotencyKey         String                         @unique
@@ -172,6 +178,7 @@ model ShopBillingCancelRequest {
   createdAt              DateTime                       @default(now())
   updatedAt              DateTime                       @updatedAt
 
+  @@unique([chargeId, userId])
   @@index([userId, status, createdAt])
 }
 
@@ -240,6 +247,7 @@ model ShopOrder {
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
 
+  @@unique([id, userId])
   @@index([userId, createdAt])
   @@index([status, approvalNo, updatedAt])
 }

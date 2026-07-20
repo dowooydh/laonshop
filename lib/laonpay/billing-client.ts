@@ -25,6 +25,8 @@ const RESPONSE_LIMIT_BYTES = 64 * 1024;
 const REQUEST_TIMEOUT_MS = 8_000;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const OPAQUE_ID_PATTERN = /^[A-Za-z0-9_-]{8,128}$/;
+const KEY_ID_PATTERN = /^[A-Za-z0-9._:-]{1,128}$/;
+const LAONPAY_SELLER_ORIGIN = "https://pay.laonpay.com";
 
 export const BILLING_SETTINGS_RETURN_URL = "https://laonshop.com/mypage/settings/billing/return";
 
@@ -32,6 +34,8 @@ export type LaonpayBillingEnv = {
   LAONPAY_PARTNER_KEY_ID?: string;
   LAONPAY_PARTNER_PRIVATE_KEY?: string;
   LAONPAY_BILLING_API_BASE?: string;
+  LAONPAY_BILLING_SCHEMA_READY?: string;
+  LAONPAY_BILLING_FEATURE_ENABLED?: string;
 };
 
 export type LaonpayBillingReadiness =
@@ -42,7 +46,10 @@ export type LaonpayBillingReadiness =
         | "NOT_PRODUCTION_RUNTIME"
         | "NOT_CONFIGURED"
         | "INVALID_API_BASE"
-        | "INVALID_SIGNING_KEY";
+        | "INVALID_KEY_ID"
+        | "INVALID_SIGNING_KEY"
+        | "SCHEMA_NOT_READY"
+        | "FEATURE_DISABLED";
     };
 
 type BillingClientConfig = {
@@ -85,6 +92,9 @@ function envSnapshot(): LaonpayBillingEnv {
     LAONPAY_PARTNER_KEY_ID: process.env.LAONPAY_PARTNER_KEY_ID,
     LAONPAY_PARTNER_PRIVATE_KEY: process.env.LAONPAY_PARTNER_PRIVATE_KEY,
     LAONPAY_BILLING_API_BASE: process.env.LAONPAY_BILLING_API_BASE,
+    LAONPAY_BILLING_SCHEMA_READY: process.env.LAONPAY_BILLING_SCHEMA_READY,
+    LAONPAY_BILLING_FEATURE_ENABLED:
+      process.env.LAONPAY_BILLING_FEATURE_ENABLED,
   };
 }
 
@@ -93,6 +103,7 @@ function parseApiOrigin(value: string | undefined): string | null {
   try {
     const url = new URL(value);
     if (
+      url.origin !== LAONPAY_SELLER_ORIGIN ||
       url.protocol !== "https:" ||
       url.username ||
       url.password ||
@@ -130,11 +141,13 @@ function loadConfig(env: LaonpayBillingEnv): BillingClientConfig | null {
   const keyId = env.LAONPAY_PARTNER_KEY_ID?.trim();
   const apiOrigin = parseApiOrigin(env.LAONPAY_BILLING_API_BASE);
   const privateKey = parsePrivateKey(env.LAONPAY_PARTNER_PRIVATE_KEY);
-  if (!keyId || keyId.length > 128 || !apiOrigin || !privateKey) return null;
+  if (!keyId || !KEY_ID_PATTERN.test(keyId) || !apiOrigin || !privateKey) {
+    return null;
+  }
   return { keyId, apiOrigin, privateKey };
 }
 
-export function getLaonpayBillingReadiness(
+function getConfiguredBillingReadiness(
   injectedEnv?: LaonpayBillingEnv,
 ): LaonpayBillingReadiness {
   // 고정 복귀 URL과 HttpOnly 등록 쿠키는 apex 운영 도메인을 전제로 한다.
@@ -145,20 +158,56 @@ export function getLaonpayBillingReadiness(
   }
 
   const env = injectedEnv ?? envSnapshot();
-  const hasAny = Object.values(env).some((value) => Boolean(value?.trim()));
-  const hasAll = Object.values(env).every((value) => Boolean(value?.trim()));
+  const partnerValues = [
+    env.LAONPAY_PARTNER_KEY_ID,
+    env.LAONPAY_PARTNER_PRIVATE_KEY,
+    env.LAONPAY_BILLING_API_BASE,
+  ];
+  const hasAny = partnerValues.some((value) => Boolean(value?.trim()));
+  const hasAll = partnerValues.every((value) => Boolean(value?.trim()));
   if (!hasAny || !hasAll) return { ready: false, reason: "NOT_CONFIGURED" };
   if (!parseApiOrigin(env.LAONPAY_BILLING_API_BASE)) {
     return { ready: false, reason: "INVALID_API_BASE" };
   }
+  const keyId = env.LAONPAY_PARTNER_KEY_ID?.trim();
+  if (!keyId || !KEY_ID_PATTERN.test(keyId)) {
+    return { ready: false, reason: "INVALID_KEY_ID" };
+  }
   if (!parsePrivateKey(env.LAONPAY_PARTNER_PRIVATE_KEY)) {
     return { ready: false, reason: "INVALID_SIGNING_KEY" };
+  }
+  if (env.LAONPAY_BILLING_SCHEMA_READY !== "1") {
+    return { ready: false, reason: "SCHEMA_NOT_READY" };
   }
   return { ready: true, apiOrigin: parseApiOrigin(env.LAONPAY_BILLING_API_BASE)! };
 }
 
+export function getLaonpayBillingReconciliationReadiness(
+  injectedEnv?: LaonpayBillingEnv,
+): LaonpayBillingReadiness {
+  return getConfiguredBillingReadiness(injectedEnv);
+}
+
+export function getLaonpayBillingReadiness(
+  injectedEnv?: LaonpayBillingEnv,
+): LaonpayBillingReadiness {
+  const configured = getConfiguredBillingReadiness(injectedEnv);
+  if (!configured.ready) return configured;
+  const env = injectedEnv ?? envSnapshot();
+  if (env.LAONPAY_BILLING_FEATURE_ENABLED !== "1") {
+    return { ready: false, reason: "FEATURE_DISABLED" };
+  }
+  return configured;
+}
+
 export function isLaonpayBillingReady(env?: LaonpayBillingEnv): boolean {
   return getLaonpayBillingReadiness(env).ready;
+}
+
+export function isLaonpayBillingReconciliationReady(
+  env?: LaonpayBillingEnv,
+): boolean {
+  return getLaonpayBillingReconciliationReadiness(env).ready;
 }
 
 function requireOpaqueId(value: string, label: string): string {
@@ -240,6 +289,10 @@ function validateHostedUrl(
 ): boolean {
   try {
     const hosted = new URL(value);
+    const hostedToken = hosted.pathname.startsWith("/billing/register/")
+      ? hosted.pathname.slice("/billing/register/".length)
+      : "";
+    if (hostedToken.length > 150) return false;
     // LAONPAY hosted token은 lpbr1.<intent id>.<HMAC-SHA256 base64url>이며
     // 응답 registrationId와 같은 intent에 결박되어야 한다.
     const pathMatch = hosted.pathname.match(
@@ -264,7 +317,10 @@ export function createLaonpayBillingClient(
   dependencies: RequestDependencies = {},
 ) {
   const env = injectedEnv ?? envSnapshot();
-  const readiness = getLaonpayBillingReadiness(injectedEnv);
+  // Client 자체는 기존 resource의 signed GET 대사를 위해 feature kill switch가
+  // 내려간 뒤에도 schema+partner 설정이 준비돼 있으면 생성할 수 있다. 신규 POST
+  // 허용 여부는 각 Server Action의 feature 정책에서 별도로 막는다.
+  const readiness = getLaonpayBillingReconciliationReadiness(injectedEnv);
   const config = readiness.ready ? loadConfig(env) : null;
   const fetchImpl = dependencies.fetchImpl ?? fetch;
   const now = dependencies.now ?? Date.now;

@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { requireShopUser } from "@/lib/auth";
-import { isLaonpayBillingReady } from "@/lib/laonpay/billing-client";
+import {
+  isLaonpayBillingReady,
+  isLaonpayBillingReconciliationReady,
+} from "@/lib/laonpay/billing-client";
 import { isBillingIntegrationAccount } from "@/lib/laonpay/billing-policy";
 import { BillingCards, type BillingPaymentMethodRow } from "./billing-cards";
 import { DeleteAccountForm, PasswordForm, ProfileForm } from "./settings-forms";
@@ -28,7 +31,10 @@ export default async function SettingsPage({
   const user = await requireShopUser();
   const { billingRegistration } = await searchParams;
   const integrationEligible = isBillingIntegrationAccount(user.email);
-  const integrationConfigured = integrationEligible && isLaonpayBillingReady();
+  const integrationConfigured =
+    integrationEligible && isLaonpayBillingReconciliationReady();
+  const integrationFeatureEnabled =
+    integrationEligible && isLaonpayBillingReady();
   const legacyCards = await prisma.shopBillingCard.findMany({
     where: { userId: user.id },
     orderBy: { createdAt: "asc" },
@@ -165,7 +171,13 @@ export default async function SettingsPage({
 
       <section id="billing-card-management" className="scroll-mt-24 space-y-5 border-t border-line pt-8">
         <div className="space-y-1">
-          <h2 className="font-mono text-step--1 uppercase tracking-widest text-accent-cyan">간편결제 카드 관리</h2>
+          <h2
+            id="billing-card-management-heading"
+            tabIndex={-1}
+            className="font-mono text-step--1 uppercase tracking-widest text-accent-cyan focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-cyan"
+          >
+            간편결제 카드 관리
+          </h2>
           <p className="text-step--1 text-fg-subtle">
             등록된 결제수단의 상태를 확인하거나 안전하게 해지할 수 있습니다.
           </p>
@@ -173,6 +185,7 @@ export default async function SettingsPage({
         <BillingCards
           integrationEligible={integrationEligible}
           integrationConfigured={integrationConfigured}
+          integrationFeatureEnabled={integrationFeatureEnabled}
           integrationStorageReady={integrationStorageReady}
           hasOpenRegistration={hasOpenRegistration}
           registrationMessage={registrationMessage}

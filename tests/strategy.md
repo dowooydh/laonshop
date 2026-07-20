@@ -14,8 +14,8 @@
 | 레벨 | 목적 | 현재 상태 | 제안 |
 | --- | --- | --- | --- |
 | 수동 탐색 QA | 실제 사용자 관점 검증 | 즉시 가능 | `checklists/manual-e2e.md` 사용 |
-| 브라우저 E2E | 핵심 플로우 자동 회귀 | 미구성 | Playwright 도입 후보 |
-| API/서버 테스트 | PG callback/result, auth action 검증 | 미구성 | route handler 단위 테스트 또는 통합 테스트 |
+| 브라우저 E2E | 핵심 플로우 자동 회귀 | QA별 격리 브라우저 러너 사용, 상시 패키지는 미구성 | 운영 쓰기 없는 표적 회귀 유지 |
+| API/서버 테스트 | PG callback/result, auth·LAONPAY 파트너 계약 검증 | Node test 및 loopback HTTP harness 구성 | `pnpm test`, `pnpm test:billing:interop` 유지 |
 | DB 검증 | 주문/상품/사용자 상태 확인 | 수동 가능 | 테스트 DB와 seed 필요 |
 | 접근성/반응형 | 모바일/키보드/텍스트 겹침 | 수동 가능 | 모바일 viewport와 키보드 탐색 체크 |
 
@@ -85,7 +85,7 @@ tests/
 ## 버그로 보고하지 않을 의도된 상태
 
 - 가상계좌·무통장입금은 현재 결제수단에서 제외한다.
-- 원클릭 카드 등록·결제는 계약과 안전한 PG 연동 완료 전까지 UI와 서버에서 모두 차단한다.
+- 원클릭 카드 등록·결제는 hosted/API·원장·멱등·UNKNOWN 계약까지 구현됐으나 운영 additive schema·파트너 env·readiness·실 상호운용 승인 전에는 fail-closed한다. feature gate만 내려도 기존 원장 signed GET 대사는 유지한다.
 - 수기결제는 계약 키와 live switch 준비 전까지 모든 계정의 UI·서버에서 차단하고 mock PAID를 만들지 않는다.
 - 카드·카카오페이·네이버페이·실시간계좌이체는 현재 코드의 KSPAY 결제창 수단이다.
 - KSPAY result는 HMAC·PG `ordno`·금액·승인번호·거래번호를 검증한다. `reHash` 사전 결박 규격 전에는 테스트 MID만 승인하며 실 MID는 차단한다.

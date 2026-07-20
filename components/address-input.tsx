@@ -46,10 +46,12 @@ export function AddressInput({
   initial,
   idPrefix = "addr",
   onChange,
+  disabled = false,
 }: {
   initial: AddressValue;
   idPrefix?: string;
   onChange?: (v: AddressValue) => void;
+  disabled?: boolean;
 }) {
   const [value, setValue] = useState<AddressValue>(initial);
   const [searchFailed, setSearchFailed] = useState(false);
@@ -63,6 +65,7 @@ export function AddressInput({
   );
 
   const search = useCallback(async () => {
+    if (disabled) return;
     try {
       await loadPostcodeScript();
       new window.daum!.Postcode({
@@ -81,7 +84,7 @@ export function AddressInput({
       // 스크립트 차단(광고차단기 등) 시 직접 입력으로 전환
       setSearchFailed(true);
     }
-  }, [idPrefix, update]);
+  }, [disabled, idPrefix, update]);
 
   const manual = searchFailed;
 
@@ -98,6 +101,7 @@ export function AddressInput({
           inputMode="numeric"
           className="w-[min(100%,6rem)] min-w-0 max-w-full px-[14px]"
           aria-label="우편번호"
+          disabled={disabled}
         />
         <Button
           type="button"
@@ -105,6 +109,7 @@ export function AddressInput({
           size="md"
           className="min-h-[44px] min-w-[min(100%,6rem)] max-w-full break-keep px-[12px] py-[10px] !h-auto !whitespace-normal leading-tight"
           onClick={search}
+          disabled={disabled}
         >
           주소 검색
         </Button>
@@ -117,6 +122,7 @@ export function AddressInput({
         onChange={(e) => update({ ...value, address: e.target.value })}
         placeholder={manual ? "주소를 직접 입력해 주세요" : "주소 검색을 눌러 주소를 선택해 주세요"}
         aria-label="기본 주소"
+        disabled={disabled}
       />
       <Input
         id={`${idPrefix}-detail`}
@@ -125,6 +131,7 @@ export function AddressInput({
         onChange={(e) => update({ ...value, addressDetail: e.target.value })}
         placeholder="상세 주소 (동·호수 등)"
         aria-label="상세 주소"
+        disabled={disabled}
       />
     </div>
   );

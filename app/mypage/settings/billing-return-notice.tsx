@@ -41,7 +41,14 @@ export function BillingReturnNotice({
         size="icon"
         className="min-h-11 min-w-11 shrink-0"
         aria-label="카드 등록 결과 안내 닫기"
-        onClick={() => setMessage(null)}
+        onClick={() => {
+          setMessage(null);
+          requestAnimationFrame(() =>
+            document
+              .getElementById("billing-card-management-heading")
+              ?.focus(),
+          );
+        }}
       >
         <span aria-hidden="true">×</span>
       </Button>

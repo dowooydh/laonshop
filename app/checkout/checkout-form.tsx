@@ -5,9 +5,13 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { AddressInput } from "@/components/address-input";
 import { KspayCheckout } from "@/components/kspay-checkout";
-import { cartTotal, getCart, type CartItem } from "@/lib/cart";
+import { CART_STORAGE_KEY, cartTotal, getCart, type CartItem } from "@/lib/cart";
 import { createCheckoutIdempotencyKey, getCheckoutNonce } from "@/lib/checkout-idempotency";
-import { createOrderAction } from "./actions";
+import { useRouter } from "next/navigation";
+import {
+  createOrderAction,
+  findCheckoutOrderAction,
+} from "./actions";
 
 export type CheckoutInitial = {
   receiverName: string;
@@ -23,6 +27,24 @@ export type CheckoutBillingPaymentMethod = {
   cardType: string;
 };
 
+function cartDisplayFingerprint(items: CartItem[]): string {
+  return JSON.stringify(
+    items
+      .map((item) => ({
+        productId: item.productId,
+        size: item.size ?? "",
+        qty: item.qty,
+        name: item.name,
+        price: item.price,
+      }))
+      .sort((left, right) =>
+        `${left.productId}\u0000${left.size}`.localeCompare(
+          `${right.productId}\u0000${right.size}`,
+        ),
+      ),
+  );
+}
+
 export function CheckoutForm({
   initial,
   manualPaymentEnabled,
@@ -32,6 +54,7 @@ export function CheckoutForm({
   manualPaymentEnabled: boolean;
   billingPaymentMethods: CheckoutBillingPaymentMethod[];
 }) {
+  const router = useRouter();
   // 결제수단 구성 — KSNET 김민규 팀장 가이드(2026-07): 카드/카카오/네이버/실시간계좌이체/수기(구인증).
   // 가상계좌는 KSNET 미지원+심사 거절 사유로 제외.
   const METHODS = [
@@ -55,15 +78,79 @@ export function CheckoutForm({
   const [pay, setPay] = useState<{ formAction: string; formFields: Record<string, string> } | null>(null);
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  const [oneclickUncertain, setOneclickUncertain] = useState(false);
   const [agree, setAgree] = useState(false);
   const submitLockedRef = useRef(false);
+  const displayedItemsRef = useRef<CartItem[]>([]);
 
   useEffect(() => {
-    setItems(getCart());
+    const initialItems = getCart();
+    displayedItemsRef.current = initialItems;
+    setItems(initialItems);
     setReady(true);
   }, []);
 
+  useEffect(() => {
+    const selectedExists = billingPaymentMethods.some(
+      (card) => card.id === billingCardId,
+    );
+    if (!selectedExists) {
+      setBillingCardId(billingPaymentMethods[0]?.id ?? "");
+    }
+    if (billingPaymentMethods.length === 0 && method === "oneclick") {
+      setMethod("card");
+      setError(
+        "등록 카드 상태가 변경되어 일반 카드결제로 전환했습니다.",
+      );
+    }
+  }, [billingCardId, billingPaymentMethods, method]);
+
+  useEffect(() => {
+    const synchronizeCart = () => {
+      if (submitLockedRef.current) return;
+      const nextItems = getCart();
+      if (
+        cartDisplayFingerprint(nextItems) ===
+        cartDisplayFingerprint(displayedItemsRef.current)
+      ) {
+        return;
+      }
+      displayedItemsRef.current = nextItems;
+      setItems(nextItems);
+      setAgree(false);
+      setError(
+        "다른 화면에서 장바구니가 변경되었습니다. 주문 상품과 결제금액을 다시 확인하고 동의해 주세요.",
+      );
+    };
+    const refreshOnVisible = () => {
+      if (document.visibilityState === "visible") {
+        synchronizeCart();
+        router.refresh();
+      }
+    };
+    const refreshOnHistoryRestore = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        synchronizeCart();
+        router.refresh();
+      }
+    };
+    const refreshOnStorage = (event: StorageEvent) => {
+      if (event.key === CART_STORAGE_KEY || event.key === null) synchronizeCart();
+    };
+    document.addEventListener("visibilitychange", refreshOnVisible);
+    window.addEventListener("pageshow", refreshOnHistoryRestore);
+    window.addEventListener("storage", refreshOnStorage);
+    window.addEventListener("laonshop-cart-change", synchronizeCart);
+    return () => {
+      document.removeEventListener("visibilitychange", refreshOnVisible);
+      window.removeEventListener("pageshow", refreshOnHistoryRestore);
+      window.removeEventListener("storage", refreshOnStorage);
+      window.removeEventListener("laonshop-cart-change", synchronizeCart);
+    };
+  }, [router]);
+
   const total = cartTotal(items);
+  const interactionLocked = pending || oneclickUncertain;
 
   const submit = async () => {
     if (submitLockedRef.current) return;
@@ -90,12 +177,27 @@ export function CheckoutForm({
       return;
     }
     setPending(true);
+    let keepLocked = false;
+    let checkoutIdempotencyKey: string | null = null;
     try {
       // 다른 탭에서 장바구니가 바뀌었을 수 있으므로 제출 직전에 다시 읽는다.
       const currentItems = getCart();
       if (currentItems.length === 0) {
         setItems([]);
         setError("장바구니가 비어 있습니다.");
+        submitLockedRef.current = false;
+        return;
+      }
+      if (
+        cartDisplayFingerprint(currentItems) !==
+        cartDisplayFingerprint(displayedItemsRef.current)
+      ) {
+        displayedItemsRef.current = currentItems;
+        setItems(currentItems);
+        setAgree(false);
+        setError(
+          "장바구니가 변경되어 결제를 시작하지 않았습니다. 주문 상품과 결제금액을 다시 확인하고 동의해 주세요.",
+        );
         submitLockedRef.current = false;
         return;
       }
@@ -109,8 +211,13 @@ export function CheckoutForm({
           : {}),
       };
       const idempotencyKey = await createCheckoutIdempotencyKey(orderInput, getCheckoutNonce());
+      checkoutIdempotencyKey = idempotencyKey;
       const res = await createOrderAction({ ...orderInput, idempotencyKey });
       if (!res.ok) {
+        if (res.recoveryOrderId) {
+          window.location.href = `/order/${encodeURIComponent(res.recoveryOrderId)}`;
+          return;
+        }
         setError(res.error);
       } else if ("redirect" in res) {
         // 결제창 없는 수기결제 승인 완료 후 주문 확인으로 이동
@@ -120,18 +227,44 @@ export function CheckoutForm({
         setPay({ formAction: res.formAction, formFields: res.formFields });
       }
     } catch {
-      setError("주문 처리 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.");
+      if (method === "oneclick" && checkoutIdempotencyKey) {
+        keepLocked = true;
+        setOneclickUncertain(true);
+        setError(
+          "등록카드 결제 응답을 확인하지 못했습니다. 중복 결제를 막기 위해 다시 결제하지 말고 주문 상태를 확인해 주세요.",
+        );
+        try {
+          const recovered = await findCheckoutOrderAction({
+            idempotencyKey: checkoutIdempotencyKey,
+          });
+          if (recovered.ok) {
+            window.location.href = `/order/${encodeURIComponent(recovered.orderId)}`;
+            return;
+          }
+        } catch {
+          // 네트워크가 복구되지 않은 경우에도 재승인하지 않고 주문내역 확인만 안내한다.
+        }
+      } else {
+        setError(
+          "주문 처리 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.",
+        );
+      }
     } finally {
       setPending(false);
-      submitLockedRef.current = false;
+      if (!keepLocked) submitLockedRef.current = false;
     }
   };
 
   if (pay) return <KspayCheckout formAction={pay.formAction} formFields={pay.formFields} />;
   if (!ready)
     return (
-      <div className="flex justify-center py-24">
+      <div
+        className="flex justify-center py-24"
+        role="status"
+        aria-live="polite"
+      >
         <Spinner />
+        <span className="sr-only">주문 정보를 불러오는 중입니다.</span>
       </div>
     );
   if (items.length === 0)
@@ -191,17 +324,18 @@ export function CheckoutForm({
         </div>
         <div>
           <Label htmlFor="rn">받는 분</Label>
-          <Input id="rn" value={form.receiverName} onChange={(e) => setForm({ ...form, receiverName: e.target.value })} />
+          <Input id="rn" value={form.receiverName} disabled={interactionLocked} onChange={(e) => setForm({ ...form, receiverName: e.target.value })} />
         </div>
         <div>
           <Label htmlFor="rp">연락처</Label>
-          <Input id="rp" inputMode="numeric" placeholder="010-0000-0000" value={form.receiverPhone} onChange={(e) => setForm({ ...form, receiverPhone: e.target.value })} />
+          <Input id="rp" inputMode="numeric" placeholder="010-0000-0000" value={form.receiverPhone} disabled={interactionLocked} onChange={(e) => setForm({ ...form, receiverPhone: e.target.value })} />
         </div>
         <div>
           <Label htmlFor="co-zipcode">배송지</Label>
           <AddressInput
             idPrefix="co"
             initial={{ zipcode: initial.zipcode, address: initial.address, addressDetail: initial.addressDetail }}
+            disabled={interactionLocked}
             onChange={(v) => setForm((f) => ({ ...f, zipcode: v.zipcode, address: v.address, addressDetail: v.addressDetail }))}
           />
         </div>
@@ -218,7 +352,7 @@ export function CheckoutForm({
             <button
               key={m.id}
               type="button"
-              disabled={!m.enabled}
+              disabled={!m.enabled || interactionLocked}
               aria-pressed={method === m.id}
               onClick={() => {
                 if (!m.enabled) return;
@@ -258,27 +392,28 @@ export function CheckoutForm({
                 autoComplete="cc-number"
                 placeholder="0000-0000-0000-0000"
                 value={manualCard.cardNo}
+                disabled={interactionLocked}
                 onChange={(e) => setManualCard({ ...manualCard, cardNo: e.target.value })}
               />
             </div>
             <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,7rem),1fr))] gap-3">
               <div>
                 <Label htmlFor="mc-mm">유효기간 (MM)</Label>
-                <Input id="mc-mm" inputMode="numeric" maxLength={2} placeholder="MM" value={manualCard.expMm} onChange={(e) => setManualCard({ ...manualCard, expMm: e.target.value })} />
+                <Input id="mc-mm" inputMode="numeric" maxLength={2} placeholder="MM" value={manualCard.expMm} disabled={interactionLocked} onChange={(e) => setManualCard({ ...manualCard, expMm: e.target.value })} />
               </div>
               <div>
                 <Label htmlFor="mc-yy">유효기간 (YY)</Label>
-                <Input id="mc-yy" inputMode="numeric" maxLength={2} placeholder="YY" value={manualCard.expYy} onChange={(e) => setManualCard({ ...manualCard, expYy: e.target.value })} />
+                <Input id="mc-yy" inputMode="numeric" maxLength={2} placeholder="YY" value={manualCard.expYy} disabled={interactionLocked} onChange={(e) => setManualCard({ ...manualCard, expYy: e.target.value })} />
               </div>
             </div>
             <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,7rem),1fr))] gap-3">
               <div>
                 <Label htmlFor="mc-pw">비밀번호 앞 2자리</Label>
-                <Input id="mc-pw" type="password" inputMode="numeric" maxLength={2} value={manualCard.pw2} onChange={(e) => setManualCard({ ...manualCard, pw2: e.target.value })} />
+                <Input id="mc-pw" type="password" inputMode="numeric" maxLength={2} value={manualCard.pw2} disabled={interactionLocked} onChange={(e) => setManualCard({ ...manualCard, pw2: e.target.value })} />
               </div>
               <div>
                 <Label htmlFor="mc-birth">생년월일 6자리</Label>
-                <Input id="mc-birth" inputMode="numeric" maxLength={10} placeholder="YYMMDD" value={manualCard.birth6} onChange={(e) => setManualCard({ ...manualCard, birth6: e.target.value })} />
+                <Input id="mc-birth" inputMode="numeric" maxLength={10} placeholder="YYMMDD" value={manualCard.birth6} disabled={interactionLocked} onChange={(e) => setManualCard({ ...manualCard, birth6: e.target.value })} />
               </div>
             </div>
             <p className="text-step--1 text-fg-subtle">
@@ -294,6 +429,7 @@ export function CheckoutForm({
                 <button
                   key={card.id}
                   type="button"
+                  disabled={interactionLocked}
                   aria-pressed={billingCardId === card.id}
                   onClick={() => {
                     setBillingCardId(card.id);
@@ -309,7 +445,11 @@ export function CheckoutForm({
                   <span className="min-w-[min(100%,8rem)] flex-1 text-step--1 font-semibold [overflow-wrap:anywhere]">
                     {card.cardName} · •••• {card.cardLast4}
                   </span>
-                  <span className="text-[0.72rem] text-fg-subtle [overflow-wrap:anywhere]">{card.cardType}</span>
+                  <span className="text-[0.72rem] text-fg-subtle [overflow-wrap:anywhere]">
+                    {card.cardType === "UNKNOWN"
+                      ? "카드 유형 미확인"
+                      : card.cardType}
+                  </span>
                 </button>
               ))}
             </div>
@@ -339,7 +479,11 @@ export function CheckoutForm({
       </div>
 
       {/* 전자상거래법 제8조 — 결제 전 주문내용 확인·구매조건 동의 (심사 캡처 요소) */}
-      <Checkbox checked={agree} onChange={(e) => setAgree(e.target.checked)}>
+      <Checkbox
+        checked={agree}
+        disabled={interactionLocked}
+        onChange={(e) => setAgree(e.target.checked)}
+      >
         [필수] 주문 상품·결제 정보를 확인하였으며,{" "}
         <Link href="/policy/terms" target="_blank" className="text-fg underline underline-offset-2 hover:text-accent-cyan">
           이용약관
@@ -356,12 +500,29 @@ export function CheckoutForm({
       </Checkbox>
 
       <FieldError>{error}</FieldError>
+      {oneclickUncertain ? (
+        <div
+          role="status"
+          className="space-y-2 rounded-[var(--radius-md)] border border-warning/35 bg-warning/5 p-3 text-step--1 leading-relaxed text-fg-muted"
+        >
+          <p>
+            이 화면에서는 결제를 다시 실행할 수 없습니다. 네트워크를 복구한 뒤
+            주문내역에서 결제 상태 조회를 이용해 주세요.
+          </p>
+          <Link
+            href="/mypage"
+            className={`${buttonVariants({ variant: "outline", size: "lg" })} min-h-12 w-full !h-auto py-3 text-center !whitespace-normal`}
+          >
+            주문내역에서 상태 확인
+          </Link>
+        </div>
+      ) : null}
       <Button
         type="button"
         size="xl"
         className="min-h-[56px] min-w-0 max-w-full flex-wrap gap-x-2 gap-y-1 px-[clamp(4px,3vw,1.5rem)] py-3 text-center !h-auto !whitespace-normal leading-tight"
         loading={pending}
-        disabled={!agree}
+        disabled={!agree || interactionLocked}
         onClick={submit}
       >
         <span className="min-w-0 max-w-full [overflow-wrap:anywhere]">{formatKrw(total)}</span>

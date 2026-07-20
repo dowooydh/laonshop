@@ -8,6 +8,7 @@ import { getSession } from "@/lib/session";
 import { getBoundaryWhitespaceTrimCandidate, normalizeEmail } from "@/lib/auth-input";
 import { acquireTransactionLock } from "@/lib/order-guard";
 import { Prisma } from "@prisma/client";
+import { safeLoginReturnTarget } from "@/lib/auth-redirect";
 
 export type AuthState = { error?: string };
 
@@ -116,7 +117,7 @@ export async function loginAction(_prev: AuthState, formData: FormData): Promise
   session.email = user.email;
   session.name = user.name;
   await session.save();
-  redirect("/");
+  redirect(safeLoginReturnTarget(formData.get("next")) ?? "/");
 }
 
 export async function logoutAction() {

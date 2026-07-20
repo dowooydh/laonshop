@@ -70,7 +70,11 @@ export type CheckoutInput = z.input<typeof schema>;
 export type CheckoutResult =
   | { ok: true; formAction: string; formFields: Record<string, string> }
   | { ok: true; redirect: string }
-  | { ok: false; error: string };
+  | { ok: false; error: string; recoveryOrderId?: string };
+
+export type CheckoutRecoveryResult =
+  | { ok: true; orderId: string }
+  | { ok: false };
 
 const TX_OPTIONS = { maxWait: 5_000, timeout: 15_000 } as const;
 
@@ -415,6 +419,7 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
           ok: false as const,
           error:
             "다른 주문의 등록카드 결제 결과를 확인 중입니다. 새로 결제하지 말고 주문내역에서 상태를 확인해 주세요.",
+          recoveryOrderId: unresolvedOtherOrder.id,
         };
       }
     }
@@ -465,6 +470,7 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
           return {
             ok: false as const,
             error: "이미 처리 중이거나 완료된 등록카드 결제 요청입니다. 주문내역을 확인해 주세요.",
+            recoveryOrderId: existing.id,
           };
         }
       }
@@ -590,7 +596,16 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
   }, TX_OPTIONS).catch(() => null);
 
   if (!prepared) return { ok: false, error: "주문을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요." };
-  if (!prepared.ok) return { ok: false, error: prepared.error };
+  if (!prepared.ok) {
+    return {
+      ok: false,
+      error: prepared.error,
+      ...("recoveryOrderId" in prepared &&
+      typeof prepared.recoveryOrderId === "string"
+        ? { recoveryOrderId: prepared.recoveryOrderId }
+        : {}),
+    };
+  }
   const order = prepared.order;
   if (order.status === "PAID") return { ok: true, redirect: `/order/${order.id}?receipt=1` };
   const goodsName = orderGoodsName(order.items);
@@ -758,9 +773,16 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
       return {
         ok: false,
         error: "등록카드 결제를 시작하지 못했습니다. 새로 결제하지 말고 주문내역을 확인해 주세요.",
+        recoveryOrderId: order.id,
       };
     }
-    if (!chargePrepared.ok) return { ok: false, error: chargePrepared.error };
+    if (!chargePrepared.ok) {
+      return {
+        ok: false,
+        error: chargePrepared.error,
+        recoveryOrderId: order.id,
+      };
+    }
     if (chargePrepared.paid) return { ok: true, redirect: `/order/${order.id}?receipt=1` };
 
     const claimExpected = {
@@ -785,6 +807,7 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
           claim.kind === "LOCAL_DECLINED"
             ? "주문 결제 정보가 변경되어 등록카드 결제를 종료했습니다. 주문내역을 확인해 주세요."
             : "등록카드 결제 요청 상태를 확인하지 못했습니다. 새로 결제하지 말고 주문내역을 확인해 주세요.",
+        recoveryOrderId: order.id,
       };
     }
     const client = createLaonpayBillingClient();
@@ -844,6 +867,7 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
       return {
         ok: false,
         error: "결제 결과를 확인하지 못했습니다. 중복 결제를 피하려면 주문내역에서 상태를 확인해 주세요.",
+        recoveryOrderId: order.id,
       };
     }
 
@@ -938,6 +962,7 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
       return {
         ok: false,
         error: "결제 상태 저장을 확인하지 못했습니다. 새로 결제하지 말고 주문내역을 확인해 주세요.",
+        recoveryOrderId: order.id,
       };
     }
     if (!finalized.ok || !finalized.paid) {
@@ -947,6 +972,7 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
           remoteStatus === "DECLINED"
             ? "등록카드 결제가 거절되었습니다. 주문내역에서 다른 결제수단을 이용해 주세요."
             : "결제 결과를 확인 중입니다. 새로 결제하지 말고 주문내역에서 상태를 확인해 주세요.",
+        recoveryOrderId: order.id,
       };
     }
     return { ok: true, redirect: `/order/${order.id}?receipt=1` };
@@ -1075,4 +1101,21 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
   }
   // 지원하지 않는 PG 응답 — shop은 kspay 폼 전제
   return { ok: false, error: "결제창을 열 수 없습니다. (PG 설정 확인)" };
+}
+
+/**
+ * 브라우저가 Server Action 응답을 잃었을 때 같은 checkout 멱등키로 만들어진
+ * 주문만 읽어 회수한다. 외부 승인·재승인·상태 변경은 수행하지 않는다.
+ */
+export async function findCheckoutOrderAction(input: {
+  idempotencyKey: string;
+}): Promise<CheckoutRecoveryResult> {
+  const user = await requireShopUser();
+  if (!/^[a-f0-9]{64}$/.test(input.idempotencyKey)) return { ok: false };
+  const moid = createIdempotentMoid(user.id, input.idempotencyKey);
+  const order = await prisma.shopOrder.findFirst({
+    where: { moid, userId: user.id },
+    select: { id: true },
+  });
+  return order ? { ok: true, orderId: order.id } : { ok: false };
 }
