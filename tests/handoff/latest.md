@@ -1,128 +1,97 @@
 # QA 핸드오프 최신본
 
-작성일: 2026-07-19
+작성일: 2026-07-21
 
-검증 제품 SHA: `cc19a4b82544f73703990a5dcf5f266e4add6d4d`
+검증 제품 SHA: `d987441eac4ad4dc4fcdb2eee68e54c0976566d0`
 
-비교 기준: 제품 `eb40faf803549b958c8a9b30950de766e33fd6f5` / QA `dbcb54b115c1868aa10f7793dbffc71b4b02b23b`
+비교 기준: 제품 `cc19a4b82544f73703990a5dcf5f266e4add6d4d` / QA `969ed0ab892401a6eb55c74494831d67d5d4510c`
 
-운영 배포: `dpl_96QZ7gTPRmRVasuzDjHuXifg9VwM` / `https://laonshop.com`
+운영 배포: `dpl_8yZRvLa5WcxtYA9im8GsgyNsF5dM` / `https://laonshop.com`
 
-결과: **PASS**
+결과: **PARTIAL**
 
 ## 판정
 
-- `QA-EB40-01` 첫 charge POST in-flight 중 병렬 재호출: **FIXED / PASS**
-- `QA-90B-01` 주문·오류 제목 reflow: **FIXED / PASS**
-- 현재 LAONPAY 비활성 fail-closed 운영과 기존 KSPAY 경로: **GO**
-- LAONPAY hosted 등록·원클릭 활성화: schema/env/key/KSNET readiness와 실제 상호운용 미완료로 **HOLD**
-- 신규 P0/P1/P2: **없음**
+- 신규 P0/P1/P2 제품 결함: **없음**
+- LAONPAY 계약·격리 생명주기·청구 동시성: **PASS**
+- 현재 LAONPAY 비활성 운영과 일반 KSPAY 경로: **GO**
+- LAONPAY hosted 등록·원클릭 실제 활성화: **HOLD**
+- Android/iOS 인증 등록카드 전 과정과 실 hosted/API·KSNET 상호운용: **미실행**
 
 상세 증거는
-[`2026-07-19-cc19a4b-billing-claim-concurrency-regression.md`](../reports/2026-07-19-cc19a4b-billing-claim-concurrency-regression.md)에 정리했습니다.
+[`2026-07-21-d987441-laonpay-billing-integration-regression.md`](../reports/2026-07-21-d987441-laonpay-billing-integration-regression.md)에 정리했습니다.
 
 ## 핵심 결과
 
 | 범위 | 결과 | 핵심 증거 |
 | --- | --- | --- |
-| 원 P1 900ms 병렬 재현 | PASS | 첫 응답 전/후 POST 1, 최대 동시 활성 1, 최종 `PAID+attempts=1` |
-| checkout/상태조회 교차 | PASS | 6초 in-flight 중 POST 1, charge `REQUESTING+1`; 최종 `PAID+1` |
-| UNKNOWN 순차 대사 | PASS | 첫 503 후 `UNKNOWN+1`, reconciliation 1회, 총 POST 2·동시 활성 1 |
-| UNKNOWN 병렬 claim | PASS | 두 조회 중 POST 1, 최종 `PAID+attempts=2` |
-| fresh/stale 경계 | PASS | fresh·5분-1초 POST 0, 5분+1초 POST 1 |
-| provider ID | PASS | charge POST 0, signed GET 1 |
-| UNKNOWN 기록 fault | PASS | rollback 후 `REQUESTING+1`, 후속 병렬 조회 POST 증가 0 |
-| 제목 reflow | PASS | 6상태+404, 320/360/390/412px × 100%/200%, 실패 0/56 |
-| 정적 검증 | PASS | focused 23/23, 전체 107/107, skip 0, lint/typecheck/prisma/audit/build |
-| 운영 배포 | PASS | READY production, SHA 일치, 최근 1시간 runtime error와 배포 error/fatal 0 |
-| Cleanup | PASS | 격리 DB 7종 count 0, listener·임시 파일 0 |
+| 정적 검증 | PASS | 전체 125/125, skip 0, lint/typecheck/prisma/audit/build |
+| HTTP 상호운용 | PASS | 등록→status→목록→charge/status→cancel GET→해지 2/2 |
+| schema harness | PASS | additive SQL 2회, post-verify, negative checks |
+| preflight | PASS | 운영 gate 모두 CLOSED, 값 출력 없음 |
+| 첫 charge 병렬 | PASS | 900ms 지연 중 POST 1, 최대 동시 1, 최종 `PAID+attempts=1` |
+| checkout/refresh 교차 | PASS | 6초 in-flight 중 POST 1, 최종 `PAID+attempts=1` |
+| UNKNOWN 대사 | PASS | 첫 503 후 `UNKNOWN+1`, 총 POST 2·최대 동시 1, 최종 `PAID+2` |
+| stale/provider 경계 | PASS | fresh·5분-1초 POST 0, 5분+1초 claim 1, provider ID는 POST 0/GET 1 |
+| fail-closed UI | PASS | 7폭 × 100%/200%, LAONPAY 요청 0, 일반 KSPAY 4수단 유지 |
+| Android Chrome | PARTIAL | 공개 경로·상품 DOM PASS, back 완료 신호 도구 timeout |
+| iOS MobileSafari | PARTIAL | 홈 및 guest checkout→login 시각 PASS, 인증 UI 미실행 |
+| 운영 배포 | PASS | READY, SHA·alias 일치, runtime/error/fatal 0 |
+| Cleanup | PASS | 격리 DB 9종 0, listener·forward·임시 파일 0 |
 
-## QA-EB40-01 수정 확인
+## 계약·동시성
 
-### 원 재현
+- Ed25519 7줄 canonical, POST lowercase UUID 멱등키 결박, GET 빈 멱등키 줄/no header를 대조했습니다.
+- 응답 유실 대사는 same key + byte-identical body와 fresh timestamp/nonce/signature를 사용합니다.
+- exact HTTPS origin, hosted path/token/registration intent, strict response/status parser가 변조를 fail-closed 합니다.
+- 408/425/5xx/timeout/malformed/64KiB 초과/UNKNOWN은 자동 재등록·재승인·재해지·재취소를 만들지 않습니다.
+- 첫 charge POST를 900ms 지연하고 병렬 조회 두 건을 실행해 외부 POST 1회와 최대 동시 활성 1회를 직접 확인했습니다.
+- checkout POST 6초 지연과 order refresh 교차에서도 POST는 1회였습니다.
+- `UNKNOWN+attempts=1` 병렬 대사는 한 요청만 claim했고 총 attempts 2로 수렴했습니다.
+- fresh `REQUESTING+1`과 5분-1초는 POST 0, 5분+1초는 claim 1이었습니다.
+- provider ID가 있으면 새 POST 없이 signed GET 1회만 수행했습니다.
 
-1. order `PENDING`, charge `REQUESTING+attempts=0`, provider ID 없음으로 준비했습니다.
-2. charge POST 응답을 900ms 지연했습니다.
-3. 같은 주문 상태 조회를 병렬 두 건 실행했습니다.
-4. 첫 응답 전 stub과 최종 DB 원장을 직접 조회했습니다.
+## 운영 fail-closed
 
-기대:
+LAONPAY env를 주입하지 않은 local production과 인증 fixture에서 아래를 확인했습니다.
 
-- 첫 POST in-flight 중 두 번째 외부 POST 0회
-- `requestAttempts=1` 유지
+- 320/360/375/390/412/768/1280px × 루트 글자 100%/200%
+- 설정의 연동 준비 안내, 카드 등록 명령과 카드 원문 입력 0
+- 체크아웃의 카드·카카오페이·네이버페이·실시간계좌이체 유지
+- 등록카드 결제·수기결제 미노출
+- document/descendant 가로 overflow 0, target console error 0
+- LAONPAY stub POST 0/GET 0, DB count 불변
 
-실제:
+Vercel production은 `d987441`과 일치하며 최근 1시간 runtime error cluster와 해당 배포 error/fatal log가 0입니다.
 
-- 첫 응답 전 POST 1회, 활성 POST 1회
-- 전체 POST 1회, 최대 동시 활성 POST 1회
-- 최종 order `PAID`
-- 최종 charge `PAID`, `requestAttempts=1`
-- order/charge 중복 0
+## 모바일
 
-이전 SHA의 POST 2회·9ms 간격 중첩은 재현되지 않았습니다.
+- Android 16/API 36 Chrome 133: 홈, 남성/여성, 검색, 로그인, 상품 상세의 CSS width 412, broken image 0, document overflow 0을 확인했습니다.
+- 상품 상세는 5장 이상 이미지를 로드하고 새로고침을 통과했습니다.
+- Android 뒤로가기는 `/shop/men` 이동을 확인했지만 CDP 완료 대기가 timeout됐습니다. 제품 실패가 아닌 도구 제약으로 분리했습니다.
+- iOS 26.5 MobileSafari: 홈의 헤더·히어로·CTA가 화면 안에 표시되고 guest checkout이 login으로 이동했습니다.
+- 인증된 Android/iOS 설정·체크아웃, 플랫폼 200%, 가로모드, BFCache/background, offline/reconnect는 미실행입니다.
 
-### 교차·복구 경계
+## 외부 blocker
 
-- checkout 최초 charge POST를 6초 지연한 상태에서 새 주문의 상태 조회를 실행해도 POST는 1회였습니다.
-- 첫 503은 `UNKNOWN+attempts=1`로 기록됐고, 이후 동일 key/body reconciliation 한 건만 허용됐습니다.
-- 병렬 reconciliation 두 건은 한 건만 claim해 최종 attempts 2에 수렴했습니다.
-- `REQUESTING+attempts=1`은 fresh와 5분-1초에서 POST 0, 5분+1초에서 POST 1이었습니다.
-- provider charge ID가 있으면 POST 없이 signed GET만 수행했습니다.
-- UNKNOWN 기록 transaction을 한 번 실패시킨 뒤 원장은 `REQUESTING+1`에 남았고 즉시 병렬 조회에서도 새 POST가 없었습니다.
+- 운영 additive migration과 post-verify 미실행
+- LAONPAY partner key/public key/API base/readiness env 미설정
+- LAONPAY hosted/API와 KSNET billing 권한·개발 pgapi 상호운용 미실행
+- 실카드, 실 PG, 운영 DB write, Vercel env/schema 변경 미실행
 
-## 제목 reflow
-
-다음 7개 제목을 320/360/390/412px, 루트 글자 100%/200%에서 측정했습니다.
-
-- 결제가 완료되었습니다
-- 결제가 완료되지 않았습니다
-- 결제에 실패했습니다
-- 취소·반품 신청이 접수되었습니다
-- 주문이 취소되었습니다
-- 결제 결과를 확인하고 있습니다
-- 페이지를 찾을 수 없습니다
-
-56조합 모두 아래 조건을 통과했습니다.
-
-- document 가로 overflow 0
-- H1 `scrollWidth <= parent.clientWidth`
-- H1 실제 right 경계가 부모 경계 안
-
-의도적인 404 경로의 8개 resource 404 메시지는 예상 결과로 분리했습니다.
-
-## 정적·운영 검증
-
-- Node 22.23.1 / pnpm 11.5.3
-- focused billing/policy 23/23 PASS, skip 0
-- `pnpm test` 107/107 PASS, skip 0
-- 이미지 gate: 상품 329개/1,316장, 큐레이션 20상품/100장 PASS
-- lint, typecheck, Prisma validate, production audit, build PASS
-- Next 15.5.19, static generation 20/20
-- `AGENTS.md`/`CLAUDE.md` byte-identical
-- Vercel `dpl_96QZ7gTPRmRVasuzDjHuXifg9VwM` READY/production, Git SHA `cc19a4b` 일치
-- apex HTTP 200, www→apex HTTP 308
-- 최근 1시간 runtime error cluster 0, 해당 배포 error/fatal 0
-
-## 외부 blocker와 미실행 범위
-
-- LAONPAY QA 증거 `c0c25417d6f824d8ad5ca0e65bcffff4323f0c54`의 제품 `bd88ef28` 범위는 PASS이며 신규 결함 0입니다.
-- LAONPAY 실제 hosted/API 상호운용, 운영 additive migration, partner key/readiness env, KSNET billing 권한·개발 pgapi는 아직 미활성·미검증입니다.
-- 실카드, 실 PG, 운영 DB write, Vercel env 변경과 KSNET 승인·취소·해지는 실행하지 않았습니다.
-- Android/iOS 인증 주문 상세은 이번 수정 직접 범위가 아니어서 실행하지 않았습니다.
-- stale CAS와 provider ID가 같은 순간에 생기는 미세 경합은 provider-ID 선행 GET과 transaction/CAS 코드를 대조했으며 별도 타이밍 fault injection은 실행하지 않았습니다.
-
-위 항목은 이번 수정 회귀의 결함이 아니라 활성화 선행 조건입니다. 실제 LAONPAY 기능 활성화는 양측 schema/env/key와 격리 상호운용 QA 완료 전까지 HOLD입니다.
+위 항목은 이번 제품 결함이 아니라 활성화 선행 조건입니다. 실제 LAONPAY 기능은 완료 전까지 HOLD입니다.
 
 ## Cleanup
 
-- 격리 fixture 삭제 후 users/products/orders/items/payment methods/charges/cancel requests가 모두 0건입니다.
-- custom HTTPS Next server, 지연 stub과 PostgreSQL을 정상 종료했습니다.
-- 일회성 Ed25519/TLS 키, 인증서, preload, fixture, browser runner, DB cluster와 log를 삭제했습니다.
-- port 3453, 3454, 55434 listener와 `/private/tmp/laonshop-cc19-*` 잔존 파일이 없습니다.
-- 운영 DB, Vercel env, LAONPAY/PG 상태와 제품 코드는 변경하지 않았습니다.
+- 격리 DB user/product/order/item/registration/payment method/charge/cancel request/audit를 모두 0건으로 복원했습니다.
+- Next server, HTTPS stub, PostgreSQL을 종료했습니다.
+- 일회성 key/cert, fixture, runner, DB cluster, screenshot, cache를 삭제했습니다.
+- port 3453/3454/55434/9222가 닫혔고 adb forward가 없는 것을 확인했습니다.
+- Android font scale 1.0과 자동 회전 활성 상태를 확인했습니다.
+- 운영 DB/env/schema/PG와 제품 코드는 변경하지 않았습니다.
 
 ## 개발 작업 전달
 
-자동 수정 2/2 제품 `cc19a4b`는 원 P1의 실제 지연·병렬 재현, checkout/조회 교차, UNKNOWN·stale·provider·fault 경계와 제목 56개 조합을 모두 통과했습니다. 따라서 이번 제품 회귀는 **PASS**입니다.
+제품 `d987441`은 정적 125/125, loopback 생명주기, 실제 임시 PostgreSQL schema harness, 지연 병렬 charge/UNKNOWN/stale/provider 경계와 비활성 UI 회귀를 통과했습니다. 신규 차단 결함은 없습니다.
 
-현재 fail-closed 운영과 기존 KSPAY 경로는 유지할 수 있습니다. LAONPAY 등록카드 활성화는 제품 결함과 별개로 실제 schema/env/key/KSNET readiness와 양측 상호운용 QA가 완료될 때까지 **HOLD**입니다.
+따라서 현재 fail-closed 운영과 일반 KSPAY는 **GO**입니다. 다만 실제 등록카드 활성화는 외부 readiness와 양측 hosted/API·KSNET 상호운용, 인증 모바일 전 과정이 끝날 때까지 **HOLD**입니다.
