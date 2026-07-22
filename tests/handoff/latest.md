@@ -1,50 +1,61 @@
 # QA 핸드오프 최신본
 
-작성일: 2026-07-22
+작성일: 2026-07-23
 
-검증 제품 SHA: `1c078a94d81a47378106d3381a2c857dca72f636`
+검증 제품 SHA: `f52d08126446fd6b21589958bb4c7cdb1de6fbdd`
 
-비교 기준: `97e81a52d17c9aed2d1fe4af94946cd733ba572e`
+비교 기준: `3d4de53f39698021a5d84cc56a92ea92095fcea7`
 
-운영 배포: `dpl_EpsJPjeckHsbWG8qjyYSudS4jvBK` / `https://laonshop.com`
+운영 배포: `dpl_F8ud1zQkBP8XTbH32PgeiTwnKAeW` / `https://laonshop.com`
 
 결과: **FAIL**
 
 ## 판정
 
-- 심사 계정 수기결제 시연: **NO-GO**
+- `QA-1C0-01` dialog 닫힘 연속 입력 관통: **PASS / CLOSED**
+- `QA-1C0-02` focus trap: **PASS / CLOSED**
+- 200% 확대 시연정보 internal scroll: **PASS / CLOSED**
+- `QA-F52-01` 취소 접수 후 화면 갱신 비결정성: **P2 / OPEN**
+- 심사 계정 수기결제 시연 전체: **NO-GO**
 - 기존 일반 KSPAY 운영: **GO, 이번 변경 귀책 회귀 없음**
-- 서버 권한·멱등·재고 제외·무 PG 경계: **PASS**
-- `QA-1C0-01` dialog 닫힘 입력 관통·키보드 재열림: **P2 / OPEN**
-- `QA-1C0-02` Tab 순환 중 `body` 포커스 이탈: **P2 / OPEN**
 
 상세 증거는
-[`2026-07-22-1c078a9-manual-payment-demo-regression.md`](../reports/2026-07-22-1c078a9-manual-payment-demo-regression.md)에 정리했습니다.
+[`2026-07-23-f52d081-manual-payment-dialog-regression.md`](../reports/2026-07-23-f52d081-manual-payment-dialog-regression.md)에 정리했습니다.
 
 ## 핵심 결과
 
 | 범위 | 결과 | 핵심 증거 |
 | --- | --- | --- |
 | 정적 검증 | PASS | focused 31/31, 전체 132/132, skip 0, lint/typecheck/prisma/audit/build |
-| 계정 경계 | PASS | 심사 계정만 타일 2개, 일반 고객 UI 0·Action 재전송 주문 0 |
-| 카드정보 경계 | PASS | dialog `name` 0, Action은 issuer만, 카드 원문 필드·값 0 |
-| 동일 key 두 탭 | PASS | 두 탭 동일 URL, PAID 주문 1건·항목 1건 |
-| 외부 결제·원장 | PASS | PG 요청 0, Billing/Audit 원장 전부 0 |
-| 재고 | PASS | stock=1에서 시연 PAID 2건, 실제 예약 합계 0 |
-| 완료·취소 | PASS | 영수증/TID 0, CANCEL_REQUESTED, 무 승인취소·환불 안내 |
-| dialog 연속 pointer | FAIL | 완료 double-click 두 번째 click이 배경 `#co-address`에 전달 |
-| dialog 연속 keyboard | FAIL | 닫힘 80ms 뒤 Enter가 trigger를 실행해 dialog 재열림 |
-| focus trap | FAIL | 완료 다음 Tab에서 activeElement가 `BODY`로 이탈 |
-| 반응형 | PARTIAL | 외부 overflow/clipping·44px 문제 0, 320~412px·200% input 내부 scroll 관찰 |
-| 운영 배포 | PASS | READY/production/SHA·alias 일치, runtime/error/fatal 0 |
+| pointer/touch guard | PASS | 완료/X/취소 mouse·touch 전부 배경 hit 0, 후속 guard event 4개씩 |
+| keyboard guard | PASS | Enter/Space 80ms 반복 재열림 0, 760ms 뒤 정상 복구 |
+| guard 재무장 | PASS | 400ms 후 입력으로 연장, 마지막 입력 760ms 뒤 shield 제거·배경 focus 복구 |
+| focus trap | PASS | Tab 30회+Shift+Tab 30회, BODY/dialog 외 이탈 0 |
+| opener focus | PASS | 상단 타일·입력·정보 수정·validation fallback 정확 복귀 |
+| 반응형 | PASS | 7폭 x 100/200%=14조합, overflow/clipping/internal scroll/44px 문제 0 |
+| 두 탭 멱등 | PASS | 동일 nonce 두 탭, PAID 주문 1·항목 1·동일 URL |
+| 카드정보·PG | PASS | 카드 필드 body 0, PG 요청 0, pgTrno null, Billing/Audit 0 |
+| 재고 | PASS | stock=1에서 demo PAID 2건, 실제 예약 0 |
+| 일반 고객 | PASS | demo UI 0, Action 재전송 주문 0, 일반 KSPAY 4수단 유지 |
+| 취소 DB·PG | PASS | CANCEL_REQUESTED 3/3, 외부 PG 0 |
+| 취소 화면 자동 갱신 | FAIL | 반복 3회 중 1회만 접수 화면, 명시적 reload는 3/3 수렴 |
+| 운영 배포 | PASS | READY/production/SHA·alias 일치, runtime error cluster 0 |
 | Cleanup | PASS | 격리 DB·fixture·서버·브라우저 삭제, 운영 write/PG/env 변경 0 |
 
 ## 개발 작업 전달
 
-`app/checkout/manual-payment-dialog.tsx:56`의 닫힘은 dialog 상태를 즉시 제거하고 다음 animation frame에 trigger를 focus합니다. 닫힘 event sequence를 흡수하는 guard가 없어 실제 double-click의 두 번째 click이 배경 주소 input으로 전달되고, 연속 Enter는 `app/checkout/checkout-form.tsx:404`의 trigger를 다시 실행합니다.
+### QA-F52-01 P2
 
-닫힘 직후 짧은 입력 guard를 유지하되 dialog/focus trap/body scroll은 즉시 정리하고, pointer/click/dblclick 및 keyboard repeat을 흡수한 뒤 정상 배경 조작을 복구하는 방향을 권장합니다. Tab/Shift+Tab의 처음·마지막 순환도 명시적으로 보강해야 합니다.
+심사 demo 주문에서 취소 신청을 한 번 제출하면 DB는 `CANCEL_REQUESTED`로 3/3 전환되고 외부 PG 요청은 0이었습니다. 그러나 [`app/order/[id]/cancel-request.tsx`](../../app/order/[id]/cancel-request.tsx)의 `res.ok -> router.refresh()` 이후 접수 heading으로 자동 전환된 것은 1/3뿐이었습니다. 실패 2회에는 8초 동안 기존 결제완료 화면과 취소 form이 남았고, 명시적 reload 뒤에는 3/3 접수 heading과 무 승인취소·환불 안내로 수렴했습니다.
 
-수정 후 완료/X/취소/Escape 각각에 대해 mouse double-click, touch double-tap, Enter/Space 반복, 배경 주소·구매동의·결제 submit sentinel, trigger focus 복원과 보호 종료 후 정상 조작을 실제 브라우저로 재검증해야 합니다.
+이번 `f52d081`의 dialog 변경 파일 밖에서 발견된 인접 기존 경로입니다. 실제 금전·PG 부작용은 없지만 사용자가 이미 처리된 취소 form을 다시 제출할 수 있으므로, 성공 결과를 화면의 terminal state로 즉시 반영하거나 신뢰할 수 있는 새 GET 전환/fallback을 둔 뒤 반복 브라우저 검증이 필요합니다.
 
-서버·DB 핵심 경계는 통과했지만 이번 기능의 필수 상호작용 조건이 실패했으므로 제품 전체 결과는 **FAIL**입니다.
+필수 회귀:
+
+1. 취소 성공 10회에서 DB 상태와 접수 heading 10/10 동시 수렴
+2. 성공 뒤 form 제거와 double-click·두 탭 중복 접수 0
+3. 느린/실패 refresh에서 완료 안내 또는 명확한 recovery 제공
+4. 뒤로가기·새로고침 뒤 접수 상태 유지
+5. 일반 KSPAY와 demo 취소 경로 교차 회귀
+
+Android/iOS 인증 dialog는 Chrome P2 확정 뒤 미실행했습니다. Chrome touch context는 통과했지만 실제 모바일 브라우저 PASS로 간주하지 않습니다.
