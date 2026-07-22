@@ -92,7 +92,8 @@ test("시연 제출은 카드 원문 없이 DB 이전 계정 가드와 PG 미호
   assert.match(orderInput, /method === "manual_demo"[\s\S]*demoIssuer: manualCard\.issuerCode/);
   assert.doesNotMatch(orderInput.slice(orderInput.indexOf('method === "manual_demo"')), /manualCard:\s*\{/);
   assert.doesNotMatch(dialog, /name=["']/);
-  assert.match(dialog, /autoComplete=\{mode === "review-demo" \? "off" : "cc-number"\}/);
+  assert.match(dialog, /aria-readonly="true"/);
+  assert.match(dialog, /autoComplete="cc-number"/);
   assert.match(demoSection, /lockAndValidateInventory/);
   assert.match(demoSection, /status:\s*"PAID"/);
   assert.match(demoSection, /pgTrno:\s*null/);

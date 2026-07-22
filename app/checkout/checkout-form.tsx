@@ -99,6 +99,7 @@ export function CheckoutForm({
   const submitLockedRef = useRef(false);
   const displayedItemsRef = useRef<CartItem[]>([]);
   const manualTriggerRef = useRef<HTMLButtonElement>(null);
+  const manualReturnFocusRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const initialItems = getCart();
@@ -190,6 +191,7 @@ export function CheckoutForm({
     }
     if (isManualSelected && !manualSelectionComplete) {
       setError("수기결제 카드 정보를 모두 입력해 주세요.");
+      manualReturnFocusRef.current = manualTriggerRef.current;
       setManualDialogOpen(true);
       submitLockedRef.current = false;
       return;
@@ -406,8 +408,9 @@ export function CheckoutForm({
               type="button"
               disabled={interactionLocked}
               aria-pressed={isManualSelected}
-              onClick={() => {
+              onClick={(event) => {
                 setMethod(manualMethod);
+                manualReturnFocusRef.current = event.currentTarget;
                 setManualDialogOpen(true);
                 setError("");
               }}
@@ -483,7 +486,10 @@ export function CheckoutForm({
                   size="md"
                   className="min-h-11 shrink-0"
                   disabled={interactionLocked}
-                  onClick={() => setManualDialogOpen(true)}
+                  onClick={(event) => {
+                    manualReturnFocusRef.current = event.currentTarget;
+                    setManualDialogOpen(true);
+                  }}
                 >
                   정보 수정
                 </Button>
@@ -495,7 +501,10 @@ export function CheckoutForm({
                 size="lg"
                 className="min-h-11 w-full !h-auto !whitespace-normal"
                 disabled={interactionLocked}
-                onClick={() => setManualDialogOpen(true)}
+                onClick={(event) => {
+                  manualReturnFocusRef.current = event.currentTarget;
+                  setManualDialogOpen(true);
+                }}
               >
                 카드사·카드정보 입력
               </Button>
@@ -624,7 +633,7 @@ export function CheckoutForm({
           mode={manualPaymentMode}
           value={manualCard}
           disabled={interactionLocked}
-          triggerRef={manualTriggerRef}
+          returnFocusRef={manualReturnFocusRef}
           onChange={setManualCard}
           onClose={() => setManualDialogOpen(false)}
           onComplete={() => setError("")}

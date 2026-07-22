@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, type RefObject } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type RefObject,
+} from "react";
 import {
   MANUAL_PAYMENT_DEMO_CARD,
   MANUAL_PAYMENT_ISSUERS,
@@ -18,44 +24,182 @@ type ManualPaymentDialogProps = {
   mode: Exclude<ManualPaymentMode, "disabled">;
   value: ManualPaymentCardInput;
   disabled: boolean;
-  triggerRef: RefObject<HTMLButtonElement | null>;
+  returnFocusRef: RefObject<HTMLButtonElement | null>;
   onChange: (value: ManualPaymentCardInput) => void;
   onClose: () => void;
   onComplete: () => void;
 };
+
+const DISMISS_INPUT_GUARD_MS = 700;
+const DIALOG_FOCUSABLE_SELECTOR = [
+  "button:not([disabled])",
+  "select:not([disabled])",
+  "input:not([disabled])",
+  "a[href]",
+  '[tabindex]:not([tabindex="-1"])',
+].join(",");
 
 export function ManualPaymentDialog({
   open,
   mode,
   value,
   disabled,
-  triggerRef,
+  returnFocusRef,
   onChange,
   onClose,
   onComplete,
 }: ManualPaymentDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const issuerRef = useRef<HTMLSelectElement>(null);
+  const dismissGuardActiveRef = useRef(false);
+  const dismissGuardTimerRef = useRef<number | null>(null);
+  const focusRestoreFrameRef = useRef<number | null>(null);
+  const [dismissGuardVisible, setDismissGuardVisible] = useState(false);
   const [error, setError] = useState("");
+
+  const clearDismissGuard = useCallback(() => {
+    if (dismissGuardTimerRef.current !== null) {
+      window.clearTimeout(dismissGuardTimerRef.current);
+      dismissGuardTimerRef.current = null;
+    }
+    dismissGuardActiveRef.current = false;
+    setDismissGuardVisible(false);
+  }, []);
+
+  const armDismissGuard = useCallback(() => {
+    dismissGuardActiveRef.current = true;
+    setDismissGuardVisible(true);
+    if (dismissGuardTimerRef.current !== null) {
+      window.clearTimeout(dismissGuardTimerRef.current);
+    }
+    dismissGuardTimerRef.current = window.setTimeout(() => {
+      dismissGuardTimerRef.current = null;
+      dismissGuardActiveRef.current = false;
+      setDismissGuardVisible(false);
+    }, DISMISS_INPUT_GUARD_MS);
+  }, []);
 
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
     if (open && !dialog.open) {
+      clearDismissGuard();
       dialog.showModal();
       requestAnimationFrame(() => issuerRef.current?.focus());
       return;
     }
     if (!open && dialog.open) dialog.close();
-  }, [open]);
+  }, [clearDismissGuard, open]);
 
   useEffect(() => {
     if (open) setError("");
   }, [open]);
 
+  useEffect(() => {
+    const absorbDismissInput = (event: Event) => {
+      if (!dismissGuardActiveRef.current) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      armDismissGuard();
+    };
+
+    const trapDialogFocus = (event: KeyboardEvent) => {
+      if (
+        dismissGuardActiveRef.current &&
+        (event.key === "Enter" || event.key === " " || event.key === "Spacebar")
+      ) {
+        absorbDismissInput(event);
+        return;
+      }
+
+      const dialog = dialogRef.current;
+      if (!dialog?.open || event.key !== "Tab") return;
+
+      const focusable = Array.from(
+        dialog.querySelectorAll<HTMLElement>(DIALOG_FOCUSABLE_SELECTOR),
+      ).filter((element) => element.getClientRects().length > 0);
+
+      if (focusable.length === 0) {
+        event.preventDefault();
+        dialog.focus({ preventScroll: true });
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement;
+      if (
+        !active ||
+        !dialog.contains(active) ||
+        (event.shiftKey && active === first) ||
+        (!event.shiftKey && active === last)
+      ) {
+        event.preventDefault();
+        (event.shiftKey ? last : first).focus({ preventScroll: true });
+      }
+    };
+
+    const absorbDismissKeyUp = (event: KeyboardEvent) => {
+      if (
+        dismissGuardActiveRef.current &&
+        (event.key === "Enter" || event.key === " " || event.key === "Spacebar")
+      ) {
+        absorbDismissInput(event);
+      }
+    };
+
+    const dismissPointerEvents = [
+      "pointerdown",
+      "pointerup",
+      "mousedown",
+      "mouseup",
+      "touchstart",
+      "touchend",
+      "click",
+      "dblclick",
+    ] as const;
+
+    for (const eventName of dismissPointerEvents) {
+      document.addEventListener(eventName, absorbDismissInput, {
+        capture: true,
+        passive: false,
+      });
+    }
+    document.addEventListener("keydown", trapDialogFocus, true);
+    document.addEventListener("keyup", absorbDismissKeyUp, true);
+
+    return () => {
+      for (const eventName of dismissPointerEvents) {
+        document.removeEventListener(eventName, absorbDismissInput, true);
+      }
+      document.removeEventListener("keydown", trapDialogFocus, true);
+      document.removeEventListener("keyup", absorbDismissKeyUp, true);
+    };
+  }, [armDismissGuard]);
+
+  useEffect(
+    () => () => {
+      if (dismissGuardTimerRef.current !== null) {
+        window.clearTimeout(dismissGuardTimerRef.current);
+      }
+      if (focusRestoreFrameRef.current !== null) {
+        window.cancelAnimationFrame(focusRestoreFrameRef.current);
+      }
+    },
+    [],
+  );
+
   const close = () => {
+    armDismissGuard();
+    dialogRef.current?.close();
     onClose();
-    requestAnimationFrame(() => triggerRef.current?.focus());
+    if (focusRestoreFrameRef.current !== null) {
+      window.cancelAnimationFrame(focusRestoreFrameRef.current);
+    }
+    focusRestoreFrameRef.current = window.requestAnimationFrame(() => {
+      focusRestoreFrameRef.current = null;
+      returnFocusRef.current?.focus({ preventScroll: true });
+    });
   };
 
   const complete = () => {
@@ -76,8 +220,10 @@ export function ManualPaymentDialog({
   const formattedCardNumber = cardDigits.replace(/(\d{4})(?=\d)/g, "$1 ");
 
   return (
-    <dialog
+    <>
+      <dialog
       ref={dialogRef}
+      tabIndex={-1}
       aria-labelledby="manual-payment-title"
       aria-describedby="manual-payment-description"
       onCancel={(event) => {
@@ -158,25 +304,51 @@ export function ManualPaymentDialog({
         </div>
 
         <div>
-          <Label htmlFor="manual-card-no">카드번호</Label>
-          <Input
-            id="manual-card-no"
-            inputMode="numeric"
-            autoComplete={mode === "review-demo" ? "off" : "cc-number"}
-            placeholder="0000 0000 0000 0000"
-            value={formattedCardNumber}
-            disabled={disabled}
-            onChange={(event) => {
-              onChange({
-                ...value,
-                cardNo: normalizeManualCardNumber(event.target.value),
-              });
-              setError("");
-            }}
-          />
+          {mode === "review-demo" ? (
+            <>
+              <Label id="manual-card-no-label">카드번호</Label>
+              <div
+                id="manual-card-no"
+                role="textbox"
+                aria-labelledby="manual-card-no-label"
+                aria-readonly="true"
+                tabIndex={0}
+                className="flex min-h-11 w-full min-w-0 flex-wrap items-center gap-x-2 gap-y-1 rounded-[var(--radius-md)] border border-line bg-raised px-3.5 py-2 text-step-0 text-fg outline-none transition-colors focus:border-accent-cyan focus:ring-1 focus:ring-accent-cyan"
+              >
+                {cardDigits.length > 0 ? (
+                  formattedCardNumber.split(" ").map((group, index) => (
+                    <span key={`${group}-${index}`} className="whitespace-nowrap font-mono">
+                      {group}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-fg-subtle">시연용 정보 자동 입력을 눌러 주세요</span>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              <Label htmlFor="manual-card-no">카드번호</Label>
+              <Input
+                id="manual-card-no"
+                inputMode="numeric"
+                autoComplete="cc-number"
+                placeholder="0000 0000 0000 0000"
+                value={formattedCardNumber}
+                disabled={disabled}
+                onChange={(event) => {
+                  onChange({
+                    ...value,
+                    cardNo: normalizeManualCardNumber(event.target.value),
+                  });
+                  setError("");
+                }}
+              />
+            </>
+          )}
         </div>
 
-        <div className="grid min-w-0 grid-cols-1 gap-3 min-[360px]:grid-cols-2">
+        <div className="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(min(100%,8rem),1fr))] gap-3">
           <div className="min-w-0">
             <Label htmlFor="manual-exp-mm">유효기간 월</Label>
             <Input
@@ -203,7 +375,7 @@ export function ManualPaymentDialog({
           </div>
         </div>
 
-        <div className="grid min-w-0 grid-cols-1 gap-3 min-[360px]:grid-cols-2">
+        <div className="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(min(100%,8rem),1fr))] gap-3">
           <div className="min-w-0">
             <Label htmlFor="manual-pw2">비밀번호 앞 2자리</Label>
             <Input
@@ -266,6 +438,14 @@ export function ManualPaymentDialog({
           카드정보 입력 완료
         </Button>
       </div>
-    </dialog>
+      </dialog>
+      {dismissGuardVisible ? (
+        <div
+          data-manual-payment-dismiss-guard
+          aria-hidden="true"
+          className="fixed inset-0 z-[120] touch-none"
+        />
+      ) : null}
+    </>
   );
 }
