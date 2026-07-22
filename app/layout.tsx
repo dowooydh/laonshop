@@ -147,7 +147,7 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
             {children}
           </main>
 
-          {/* 카드사 심사 필수 — 사업자정보 + 정책 링크 (통신판매번호는 신고 후 기재) */}
+          {/* 카드사 심사 필수 — 사업자정보 + 정책 링크 */}
           <footer className="border-t border-line bg-base">
             <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
               <div className="flex flex-col gap-8 sm:flex-row sm:items-start sm:justify-between">
@@ -186,13 +186,13 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
                 </div>
               </div>
 
-              {/* 전자상거래법 제10조 필수 표시 — 값은 ㈜커스텀오더 사업자등록증 서류와 글자까지 일치 (신고번호는 발급 후 기재) */}
+              {/* 전자상거래법 제10조 필수 표시 — 값은 ㈜커스텀오더의 사업자 서류와 글자까지 일치 */}
               <div className="mt-10 border-t border-line pt-6 text-step--1 leading-relaxed text-fg-subtle">
                 <div className="flex flex-wrap gap-x-4 gap-y-1">
                   <span>상호: (주)커스텀오더</span>
                   <span>대표: 유준혁</span>
                   <span>사업자등록번호: 864-88-03054</span>
-                  <span>통신판매업신고: 신고 예정</span>
+                  <span>통신판매업신고번호: 2025-성남분당A-0152</span>
                 </div>
                 <p>사업장 소재지: 경기도 성남시 수정구 청계산로 686, 415호 (판교반도아이비밸리)</p>
                 <div className="flex flex-wrap gap-x-4 gap-y-1">

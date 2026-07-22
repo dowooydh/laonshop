@@ -61,12 +61,13 @@
 
 ## 5. 미완료 — 외부 계약·사람 확인·키 발급 필요
 
-1. **통신판매업신고번호** — 신고 완료 후 번호 확정 → footer/정책 반영(현재 "신고 예정"). 카드사 심사의 **유일한 남은 외부 리스크**. [행정/사람]
-2. **KSPAY 실 MID·상점키·결과 결박 규격** — KSNET 정식 계약 후 `reCommConId`/`reHash`를 주문에 사전 결박하는 공식 규격을 구현·검증하고 `KSPAY_STORE_ID`(+`KSPAY_STORE_KEY`)를 실값으로 교체한다. 현재 코드는 테스트 MID 외 서버승인을 차단한다. [외부 계약·PG 스펙·보안 검토]
-3. **`KSPAY_API_KEY` + `KSPAY_REST_LIVE=1`(WEBFEP)** — 수기/구인증 **운영 연동**은 KSNET 사업부 별도 계약 + API키 발급 + 실 MID + 개인정보처리 고지를 확인한 후 이중 가드를 함께 활성화해야 한다. `KSPAY_REST_LIVE=1`은 운영 `pay.ksnet.co.kr` 전용이며 paydev 빌링 시연에는 사용하지 않는다. 현재 둘 다 미설정 → UI·서버 완전 비활성, mock 승인 없음. [외부 계약·키 발급·보안 검토]
-4. **원클릭 빌링 개발 시연·운영 전환** — 개발 시연 MID는 공용 테스트 MID `2999199999`로 결정했다. KSNET 공식 문서 콘솔에서 등록·조회·결제·취소·해지는 검증 완료했으나, 라온샵 계정·서버의 실 PG 연동 완료를 뜻하지 않는다. LAONSHOP 운영 additive SQL·post-verify는 2026-07-22 완료했다. 다음으로 LAONPAY 운영 migration·keyring·라온샵 파트너 공개키·KSNET 빌링 권한을 준비한 뒤 라온샵 Vercel Production에 파트너 env 3종과 readiness gate 2종을 feature `0`부터 설정한다. 2026-07-22 현재 LAONPAY seller에 `KSPAY_API_KEY` 변수명은 존재하지만 빌링 readiness 변수는 없고 unsigned 파트너 API는 HTTP 503으로 안전 차단된다. 변수의 실값·유효 권한은 확인하지 않았다. 카드 원문·KSNET `billingToken`·`pgapi`·공개 샘플 인증 문자열은 라온샵 코드·DB·Vercel에 두지 않는다. 고정 복귀 URL은 `https://laonshop.com/mypage/settings/billing/return`이며 query가 아닌 signed GET 상태 조회를 최종 근거로 사용한다. 서명 canonical은 POST의 소문자 UUID 멱등키까지 포함한 7줄이며 GET은 멱등키 줄과 header를 비운다. 등록/결제 응답 유실 시 같은 idempotency key·동일 본문의 reconciliation POST 1회만 허용하고 계속 `UNKNOWN`이면 신규 결제를 차단한다. 취소는 재POST하지 않고 전용 cancel-request signed GET으로 완료·반려를 확정한다. 공용 MID 외부 사용 정책과 별도 실 MID·권한은 정식 출시 전에 다시 확인한다. [LAONPAY 운영 migration·파트너 키·KSNET 권한·실 hosted 상호운용]
-5. **현금영수증 발급** — 계좌이체/가상계좌 오픈 시 의류 소매 의무발행 대상. KSNET 발급 API 이식 필요(라온페이에 실연동 존재). [향후]
-6. **Neon 콜드스타트** — 무료 티어 오토서스펜드 웨이크업(수 초)으로 첫 요청 지연·간헐 500 발생 이력. `DATABASE_URL`/`DIRECT_URL`에 `connect_timeout`/`pool_timeout` 파라미터로 완화 적용됨. 완전 제거는 **Neon 유료 전환** 필요(비용 결정). [비용]
+완료된 행정 항목: 통신판매업신고번호 `2025-성남분당A-0152`를 2026-07-22 footer와 기준 문서에 반영했다. 대표자 생년월일 등 개인정보가 포함된 신고증 원본은 gitignore된 `reference/legal/`에만 보관하며 공개 웹 자산·Git에는 포함하지 않는다.
+
+1. **KSPAY 실 MID·상점키·결과 결박 규격** — KSNET 정식 계약 후 `reCommConId`/`reHash`를 주문에 사전 결박하는 공식 규격을 구현·검증하고 `KSPAY_STORE_ID`(+`KSPAY_STORE_KEY`)를 실값으로 교체한다. 현재 코드는 테스트 MID 외 서버승인을 차단한다. [외부 계약·PG 스펙·보안 검토]
+2. **`KSPAY_API_KEY` + `KSPAY_REST_LIVE=1`(WEBFEP)** — 수기/구인증 **운영 연동**은 KSNET 사업부 별도 계약 + API키 발급 + 실 MID + 개인정보처리 고지를 확인한 후 이중 가드를 함께 활성화해야 한다. `KSPAY_REST_LIVE=1`은 운영 `pay.ksnet.co.kr` 전용이며 paydev 빌링 시연에는 활성화하지 않는다. 현재 둘 다 미설정 → UI·서버 완전 비활성, mock 승인 없음. [외부 계약·키 발급·보안 검토]
+3. **원클릭 빌링 개발 시연·운영 전환** — 개발 시연 MID는 공용 테스트 MID `2999199999`로 결정했다. KSNET 공식 문서 콘솔에서 등록·조회·결제·취소·해지는 검증 완료했으나, 라온샵 계정·서버의 실 PG 연동 완료를 뜻하지 않는다. LAONSHOP 운영 additive SQL·post-verify는 2026-07-22 완료했다. 다음으로 LAONPAY 운영 migration·keyring·라온샵 파트너 공개키·KSNET 빌링 권한을 준비한 뒤 라온샵 Vercel Production에 파트너 env 3종과 readiness gate 2종을 feature `0`부터 설정한다. 2026-07-22 현재 LAONPAY seller에 `KSPAY_API_KEY` 변수명은 존재하지만 빌링 readiness 변수는 없고 unsigned 파트너 API는 HTTP 503으로 안전 차단된다. 변수의 실값·유효 권한은 확인하지 않았다. 카드 원문·KSNET `billingToken`·`pgapi`·공개 샘플 인증 문자열은 라온샵 코드·DB·Vercel에 두지 않는다. 고정 복귀 URL은 `https://laonshop.com/mypage/settings/billing/return`이며 query가 아닌 signed GET 상태 조회를 최종 근거로 사용한다. 서명 canonical은 POST의 소문자 UUID 멱등키까지 포함한 7줄이며 GET은 멱등키 줄과 header를 비운다. 등록/결제 응답 유실 시 같은 idempotency key·동일 본문의 reconciliation POST 1회만 허용하고 계속 `UNKNOWN`이면 신규 결제를 차단한다. 취소는 재POST하지 않고 전용 cancel-request signed GET으로 완료·반려를 확정한다. 공용 MID 외부 사용 정책과 별도 실 MID·권한은 정식 출시 전에 다시 확인한다. [LAONPAY 운영 migration·파트너 키·KSNET 권한·실 hosted 상호운용]
+4. **현금영수증 발급** — 계좌이체/가상계좌 오픈 시 의류 소매 의무발행 대상. KSNET 발급 API 이식 필요(라온페이에 실연동 존재). [향후]
+5. **Neon 콜드스타트** — 무료 티어 오토서스펜드 웨이크업(수 초)으로 첫 요청 지연·간헐 500 발생 이력. `DATABASE_URL`/`DIRECT_URL`에 `connect_timeout`/`pool_timeout` 파라미터로 완화 적용됨. 완전 제거는 **Neon 유료 전환** 필요(비용 결정). [비용]
 
 ## 6. 재배포·재시작 규칙
 
