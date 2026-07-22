@@ -1,6 +1,6 @@
 # 라온샵 에이전트 현재 상태
 
-> 마지막 정리: 2026-07-20. 제품·결제 규칙은 `AGENTS.md`, 구현 사실은 현재 코드와 git 기록을 우선한다.
+> 마지막 정리: 2026-07-22. 제품·결제 규칙은 `AGENTS.md`, 구현 사실은 현재 코드와 git 기록을 우선한다.
 
 ## 읽기 순서
 
@@ -15,6 +15,7 @@
 - 라온샵은 라온페이와 데이터·배포가 분리된 독립 Next.js 15 쇼핑몰이다. 라온페이 모노레포로 다시 합치지 않는다.
 - 운영 주소는 `laonshop.com`과 `www.laonshop.com`, Vercel 프로젝트는 `customorder/laonshop`이다. main 푸시는 자동 배포된다.
 - KSPAY 테스트 MID 인증결제창이 동작한다. 원클릭 빌링의 브라우저 전용 Mock은 제거하고, LAONPAY 호스팅 카드 등록과 서버 간 파트너 API를 사용하는 integration-ready 경로로 교체했다. `LAONPAY_BILLING_API_BASE`·`LAONPAY_PARTNER_KEY_ID`·`LAONPAY_PARTNER_PRIVATE_KEY`와 전용 빌링 DB 스키마가 모두 준비되지 않으면 서버에서 fail-closed다. `LAONPAY_BILLING_SCHEMA_READY=1`은 additive SQL과 read-only post-verify 뒤에만 열고, `LAONPAY_BILLING_FEATURE_ENABLED=1`은 상호운용·독립 QA까지 통과한 뒤 신규 등록·청구를 여는 kill switch다. feature를 내려도 schema와 파트너 설정은 유지해 기존 원장의 signed GET·동일 key/body 대사를 계속한다. 이 5종은 Vercel Production scope에만 설정하며, Preview·Development 외부 호출은 차단한다. 과거 mock 카드 레코드는 설정에서 삭제만 가능하다.
+- 2026-07-22 운영 Neon에 `ops/laonpay-billing/sql/001_additive.sql`을 forward-only로 적용했고 read-only post-verify를 통과했다. 적용 전 schema-only 백업을 확보했으며 사용자·주문·과거 mock 카드 수는 전후 동일하고 신규 빌링 원장 4종은 모두 0건이다. Vercel Production의 LAONPAY 파트너 env 3종과 readiness gate 2종은 아직 미설정이므로 등록카드 기능은 계속 fail-closed다.
 - 빌링 개발 시연 MID는 KSNET 공용 테스트 MID `2999199999`를 사용한다. 공식 개발계 문서 콘솔에서 등록→조회→결제→취소→해지 전 과정은 검증했지만, 이는 라온샵 계정·서버 연동 완료를 뜻하지 않는다. 공용 MID의 외부 사용 정책 확인은 개발 구현 blocker가 아니라 정식 출시 전 확인사항으로 관리한다.
 - 라온샵은 등록 시작·고객/주문 원장·결과 표시만 담당하고, 카드 입력·KSNET `billingToken` 암호화 vault·조회·결제·해지·취소 요청은 LAONPAY가 담당한다. 카드 원문·KSNET `billingToken`·`pgapi`는 라온샵 브라우저·서버·DB·로그를 통과하지 않으며, 라온샵에는 opaque `paymentMethodId`와 카드사·끝 4자리·안전 상태만 저장한다. 공식 문서의 샘플 인증 문자열은 코드·Vercel 환경변수에 사용하지 않는다.
 - 호스팅 카드 등록 완료 고정 복귀 URL은 `https://laonshop.com/mypage/settings/billing/return`이다. 복귀 query는 힌트일 뿐이며, 시작 시 저장한 등록 ID와 대조한 뒤 Ed25519 서명된 LAONPAY 상태 조회 응답만 최종 근거로 사용한다.
@@ -32,8 +33,8 @@
 
 ## 다음 결제 작업
 
-1. `[LAONPAY] DEV` 제품 계약은 구현·교차 정렬됐지만, 운영 additive migration·keyring·파트너 활성화·KSNET 권한·실 hosted 상호운용은 계속 HOLD다.
-2. LAONSHOP에는 `docs/runbooks/laonpay-billing-rollout.md` 순서로 additive schema를 적용·검증하고 LAONPAY 파트너 env 3종과 readiness gate 2종만 안전하게 설정한다. LAONSHOP에 MID·`pgapi`·KSNET token을 추가하지 않는다.
+1. `[LAONPAY] DEV` 제품 계약은 구현·교차 정렬됐지만, LAONPAY 운영 migration·keyring·파트너 활성화·KSNET 빌링 권한·실 hosted 상호운용은 계속 HOLD다. 2026-07-22 현재 seller Vercel에는 `KSPAY_API_KEY` 변수명은 존재하지만 빌링 schema/keyring/partner readiness 변수는 없고, unsigned 파트너 API는 의도대로 HTTP 503 fail-closed다. 변수 존재만 확인했으며 값·유효 권한은 확인하지 않았다.
+2. LAONSHOP 운영 additive schema와 post-verify는 완료했다. 다음 단계는 LAONPAY가 파트너 공개키와 빌링 readiness를 먼저 준비한 뒤, 라온샵 Vercel Production에 파트너 env 3종과 readiness gate 2종을 feature `0`부터 설정하는 것이다. LAONSHOP에 MID·`pgapi`·KSNET token을 추가하지 않는다.
 3. env나 DB 스키마 중 하나라도 준비되지 않으면 integration-ready UI와 서버가 fail-closed한다. feature만 내려도 기존 원장 대사는 유지하며, 실제 PG 연결 완료로 표현하기 전에 LAONPAY readiness와 서명 계약을 다시 교차 확인한다.
 4. 두 제품 변경을 각각 QA 작업에 인계해 등록→조회→결제→취소 요청→해지, 중복 요청, timeout/5xx/`UNKNOWN`, 세션·소유권, Safari·Android 회귀까지 통과한 뒤 개발 시연을 연다.
 
