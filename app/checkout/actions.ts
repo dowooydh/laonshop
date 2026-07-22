@@ -12,6 +12,11 @@ import { requireShopUser } from "@/lib/auth";
 import { getDisabledBillingResult, MANUAL_PAYMENT_DISABLED_MESSAGE, ONECLICK_PAYMENT_DISABLED_MESSAGE } from "@/lib/billing";
 import { createLaonpayBillingClient } from "@/lib/laonpay/billing-client";
 import {
+  createManualPaymentDemoApproval,
+  getManualPaymentIssuerLabel,
+  resolveManualPaymentMode,
+} from "@/lib/manual-payment-demo";
+import {
   billingRequestFingerprint,
   canClaimBillingChargeAttempt,
   calculateOrderAmount,
@@ -35,7 +40,7 @@ import {
 const schema = z.object({
   // KSPAY 결제창 수단 — 가상계좌는 KSNET 미지원으로 제외.
   // oneclick = LAONPAY hosted 등록카드 / manual = 수기결제(구인증) 카드정보 직접 입력.
-  method: z.enum(["card", "kakaopay", "naverpay", "bank", "oneclick", "manual"]).default("card"),
+  method: z.enum(["card", "kakaopay", "naverpay", "bank", "oneclick", "manual", "manual_demo"]).default("card"),
   items: z
     .array(
       z.object({
@@ -54,9 +59,21 @@ const schema = z.object({
   addressDetail: z.union([z.string().trim().max(100), z.literal("")]).optional(),
   // 브라우저에는 라온샵 로컬의 불투명 결제수단 ID만 전달한다.
   billingCardId: z.string().min(8).max(128).optional(),
+  // 심사 시연은 카드 원문을 서버로 보내지 않고 허용된 카드사 코드만 전달한다.
+  demoIssuer: z
+    .string()
+    .min(1)
+    .max(16)
+    .refine((value) => getManualPaymentIssuerLabel(value) !== null, "카드사를 확인해 주세요.")
+    .optional(),
   // manual(구인증) 전용 — 카드정보는 승인 요청 후 즉시 폐기, 저장·로그 금지 (절대 규칙 2)
   manualCard: z
     .object({
+      issuerCode: z
+        .string()
+        .min(1)
+        .max(16)
+        .refine((value) => getManualPaymentIssuerLabel(value) !== null, "카드사를 확인해 주세요."),
       cardNo: z.string().regex(/^\d{15,16}$/, "카드번호 15~16자리를 입력해 주세요."),
       expMm: z.string().regex(/^(0[1-9]|1[0-2])$/, "유효기간 월(MM)을 확인해 주세요."),
       expYy: z.string().regex(/^\d{2}$/, "유효기간 연도(YY)를 확인해 주세요."),
@@ -64,6 +81,48 @@ const schema = z.object({
       birth6: z.string().regex(/^\d{6}(\d{4})?$/, "생년월일 6자리(법인카드는 사업자번호 10자리)를 입력해 주세요."),
     })
     .optional(),
+}).superRefine((value, ctx) => {
+  if (value.method === "manual") {
+    if (!value.manualCard) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["manualCard"],
+        message: "카드 정보를 입력해 주세요.",
+      });
+    }
+    if (value.demoIssuer) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["demoIssuer"],
+        message: "결제 정보를 확인해 주세요.",
+      });
+    }
+    return;
+  }
+  if (value.method === "manual_demo") {
+    if (!value.demoIssuer) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["demoIssuer"],
+        message: "카드사를 선택해 주세요.",
+      });
+    }
+    if (value.manualCard) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["manualCard"],
+        message: "시연 결제에는 카드 원문을 전송할 수 없습니다.",
+      });
+    }
+    return;
+  }
+  if (value.manualCard || value.demoIssuer) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["method"],
+      message: "결제 정보를 확인해 주세요.",
+    });
+  }
 });
 
 export type CheckoutInput = z.input<typeof schema>;
@@ -372,6 +431,10 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
   const parsed = schema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.errors[0]?.message ?? "입력값을 확인해 주세요." };
   const d = parsed.data;
+  const manualPaymentMode = resolveManualPaymentMode(
+    user.email,
+    isKspayRestLiveEnabled(),
+  );
   if (d.method === "oneclick") {
     if (!d.billingCardId || !isBillingIntegrationEnabled(user.email)) {
       return { ok: false, error: ONECLICK_PAYMENT_DISABLED_MESSAGE };
@@ -389,7 +452,18 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
 
   if (d.method === "manual") {
     if (!d.manualCard) return { ok: false, error: "카드 정보를 입력해 주세요." };
-    if (!isKspayRestLiveEnabled()) return { ok: false, error: MANUAL_PAYMENT_DISABLED_MESSAGE };
+    if (manualPaymentMode !== "live") {
+      return { ok: false, error: MANUAL_PAYMENT_DISABLED_MESSAGE };
+    }
+  }
+  if (d.method === "manual_demo") {
+    if (
+      manualPaymentMode !== "review-demo" ||
+      !d.demoIssuer ||
+      getManualPaymentIssuerLabel(d.demoIssuer) === null
+    ) {
+      return { ok: false, error: MANUAL_PAYMENT_DISABLED_MESSAGE };
+    }
   }
 
   // 동일 사용자·동일 체크아웃 요청은 같은 moid를 사용한다. DB advisory lock으로 다중 탭과
@@ -609,6 +683,58 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
   const order = prepared.order;
   if (order.status === "PAID") return { ok: true, redirect: `/order/${order.id}?receipt=1` };
   const goodsName = orderGoodsName(order.items);
+
+  // ── 심사 계정 수기결제 시연 ────────────────────────────────────────────
+  // 카드 원문이나 PG 자격정보를 받지 않고, 기존 서버 가격·재고·멱등 잠금만
+  // 사용해 결제 완료 화면을 재현한다. 실제 WEBFEP/KSNET 호출과 TID 생성은 없다.
+  if (d.method === "manual_demo") {
+    const issuerName = getManualPaymentIssuerLabel(d.demoIssuer!);
+    if (!issuerName) return { ok: false, error: MANUAL_PAYMENT_DISABLED_MESSAGE };
+
+    const demoFinalized = await prisma
+      .$transaction(async (tx) => {
+        await acquireTransactionLock(tx, `order:${order.id}`);
+        const current = await tx.shopOrder.findUnique({
+          where: { id: order.id },
+          include: { items: true },
+        });
+        if (!current || current.userId !== user.id) {
+          return { ok: false as const, error: "주문을 찾을 수 없습니다." };
+        }
+        if (current.status === "PAID") return { ok: true as const };
+        if (current.status !== "PENDING" || isPaymentProcessingMarker(current.approvalNo)) {
+          return { ok: false as const, error: "이미 처리된 주문입니다." };
+        }
+        const inventory = await lockAndValidateInventory(tx, current.items, current.id);
+        if (!inventory.ok || inventory.total !== current.totalAmount) {
+          await tx.shopOrder.update({
+            where: { id: current.id },
+            data: { status: "FAILED", approvalNo: null },
+          });
+          return inventory.ok
+            ? { ok: false as const, error: "주문 금액을 확인할 수 없습니다." }
+            : inventory;
+        }
+        await tx.shopOrder.update({
+          where: { id: current.id },
+          data: {
+            status: "PAID",
+            paidAt: new Date(),
+            approvalNo: createManualPaymentDemoApproval(current.id),
+            pgTrno: null,
+            cardName: `${issuerName} (수기결제 시연)`,
+          },
+        });
+        return { ok: true as const };
+      }, TX_OPTIONS)
+      .catch(() => null);
+
+    if (!demoFinalized) {
+      return { ok: false, error: "시연 주문을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요." };
+    }
+    if (!demoFinalized.ok) return { ok: false, error: demoFinalized.error };
+    return { ok: true, redirect: `/order/${order.id}?receipt=1` };
+  }
 
   // ── LAONPAY 등록카드 결제 ───────────────────────────────────────────────
   // 외부 호출 전에 주문·결제수단 소유권과 금액을 다시 검증하고, 주문당 하나인

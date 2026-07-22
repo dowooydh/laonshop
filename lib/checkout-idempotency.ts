@@ -14,6 +14,7 @@ export type CheckoutIdempotencyPayload = {
   address: string;
   addressDetail?: string;
   billingCardId?: string;
+  demoIssuer?: string;
 };
 
 export async function createCheckoutIdempotencyKey(
@@ -37,6 +38,7 @@ export async function createCheckoutIdempotencyKey(
     address: payload.address.trim(),
     addressDetail: payload.addressDetail?.trim() || "",
     billingCardId: payload.billingCardId ?? "",
+    demoIssuer: payload.demoIssuer ?? "",
   };
   const data = new TextEncoder().encode(JSON.stringify(canonical));
   const digest = await globalThis.crypto.subtle.digest("SHA-256", data);

@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { Prisma } from "@prisma/client";
+import { MANUAL_PAYMENT_DEMO_APPROVAL_PREFIX } from "@/lib/manual-payment-demo";
 
 export type RequestedOrderItem = {
   productId: string;
@@ -163,12 +164,15 @@ export async function lockAndValidateInventory(
 
   const products = await tx.product.findMany({ where: { id: { in: productIds } } });
   const exclude = excludeOrderId ? Prisma.sql`AND o."id" <> ${excludeOrderId}` : Prisma.empty;
+  const demoApprovalPattern = `${MANUAL_PAYMENT_DEMO_APPROVAL_PREFIX}%`;
   const reserved = await tx.$queryRaw<ReservedQuantity[]>(Prisma.sql`
     SELECT oi."productId", COALESCE(SUM(oi."qty"), 0)::int AS "qty"
     FROM "ShopOrderItem" oi
     JOIN "ShopOrder" o ON o."id" = oi."orderId"
     WHERE oi."productId" IN (${Prisma.join(productIds)})
       ${exclude}
+      -- 심사 시연 주문은 실제 출고·청구 주문이 아니므로 운영 재고를 점유하지 않는다.
+      AND COALESCE(o."approvalNo", '') NOT LIKE ${demoApprovalPattern}
       AND (
         o."status" IN ('PAID', 'CANCEL_REQUESTED')
         OR (

@@ -8,9 +8,11 @@ import { requestCancelAction } from "../actions";
 export function CancelRequest({
   orderId,
   billing = false,
+  demo = false,
 }: {
   orderId: string;
   billing?: boolean;
+  demo?: boolean;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -69,10 +71,16 @@ export function CancelRequest({
     return (
       <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <p className="break-keep text-step--1 text-fg-subtle">
-          단순 변심은 수령 후 7일 이내 신청할 수 있습니다.{" "}
-          <a href="/policy/refund" className="underline underline-offset-2 hover:text-fg-muted">
-            청약철회·환불 안내
-          </a>
+          {demo ? (
+            "시연 주문은 실제 청구 없이 취소 접수 화면까지 확인할 수 있습니다."
+          ) : (
+            <>
+              단순 변심은 수령 후 7일 이내 신청할 수 있습니다.{" "}
+              <a href="/policy/refund" className="underline underline-offset-2 hover:text-fg-muted">
+                청약철회·환불 안내
+              </a>
+            </>
+          )}
         </p>
         <Button
           ref={triggerRef}
@@ -82,7 +90,7 @@ export function CancelRequest({
           className="min-h-11 shrink-0"
           onClick={() => setOpen(true)}
         >
-          {billing ? "전체 주문 취소 요청" : "취소·반품 신청"}
+          {billing ? "전체 주문 취소 요청" : demo ? "시연 주문 취소" : "취소·반품 신청"}
         </Button>
       </div>
     );
@@ -91,7 +99,7 @@ export function CancelRequest({
   return (
     <div className="space-y-3">
       <p className="font-mono text-step--1 uppercase tracking-widest text-fg-subtle">
-        {billing ? "전체 주문 취소 요청" : "취소·반품 신청"}
+        {billing ? "전체 주문 취소 요청" : demo ? "시연 주문 취소" : "취소·반품 신청"}
       </p>
       {billing ? (
         <p className="rounded-[var(--radius-md)] border border-warning/30 bg-warning/5 p-3 text-step--1 leading-relaxed text-fg-muted">
@@ -112,7 +120,7 @@ export function CancelRequest({
         </p>
       ) : null}
       <Label htmlFor={reasonId}>
-        {billing ? "전체 취소 사유 (선택)" : "취소·반품 사유 (선택)"}
+        {billing ? "전체 취소 사유 (선택)" : demo ? "시연 취소 사유 (선택)" : "취소·반품 사유 (선택)"}
       </Label>
       <Textarea
         ref={reasonRef}
@@ -165,8 +173,9 @@ export function CancelRequest({
         </Button>
       ) : null}
       <p className="text-step--1 text-fg-subtle">
-        접수 후 고객센터(070-4044-7008)에서 확인 연락을 드리며, 카드 결제는
-        승인취소로 환불됩니다.
+        {demo
+          ? "시연 주문에는 실제 승인취소나 환불이 발생하지 않습니다."
+          : "접수 후 고객센터(070-4044-7008)에서 확인 연락을 드리며, 카드 결제는 승인취소로 환불됩니다."}
       </p>
     </div>
   );

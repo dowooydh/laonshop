@@ -79,6 +79,8 @@ export default async function OrderResultPage({
   });
   if (!order) notFound();
   const isBillingPaidOrder = order.cardName?.includes("(LAONPAY 원클릭)") === true;
+  const isManualPaymentDemoOrder =
+    order.cardName?.includes("(수기결제 시연)") === true;
   const billingCancelLedger = isBillingPaidOrder
     ? await prisma.shopBillingCharge
         .findFirst({
@@ -264,6 +266,17 @@ export default async function OrderResultPage({
         />
       )}
 
+      {isManualPaymentDemoOrder ? (
+        <p
+          role="status"
+          className="mt-5 rounded-[var(--radius-md)] border border-accent-cyan/30 bg-accent-cyan/5 px-4 py-3 text-center text-step--1 leading-relaxed text-fg-muted"
+        >
+          {paid
+            ? "심사용 수기결제 시연 주문입니다. 실제 카드 승인·청구 및 PG 거래는 발생하지 않았습니다."
+            : "심사용 수기결제 시연 주문의 취소 접수 상태입니다. 실제 승인취소·환불 및 PG 거래는 발생하지 않습니다."}
+        </p>
+      ) : null}
+
       {/* 심사 캡처 요소 — 주문번호·승인번호·결제수단·결제일시가 한 화면에 (카드사 결제경로 캡처 기준) */}
       <div className="mt-8 rounded-[var(--radius-lg)] border border-line bg-raised p-[20px] text-left shadow-elev1">
         <dl className="space-y-2 text-step--1 text-fg-muted">
@@ -275,7 +288,9 @@ export default async function OrderResultPage({
           </div>
           {order.approvalNo && !processing && (
             <div className="flex flex-wrap items-start justify-between gap-x-[16px] gap-y-[8px]">
-              <dt className="shrink-0">승인번호</dt>
+              <dt className="shrink-0">
+                {isManualPaymentDemoOrder ? "시연 식별번호" : "승인번호"}
+              </dt>
               <dd className="min-w-[min(100%,7rem)] flex-1 text-right font-mono font-medium text-fg [overflow-wrap:anywhere]">
                 {order.approvalNo}
               </dd>
@@ -286,7 +301,8 @@ export default async function OrderResultPage({
               <div className="flex flex-wrap items-start justify-between gap-x-[16px] gap-y-[8px]">
                 <dt className="shrink-0">결제수단</dt>
                 <dd className="min-w-[min(100%,7rem)] flex-1 text-right font-medium text-fg [overflow-wrap:anywhere]">
-                  {order.cardName?.includes("(LAONPAY 원클릭)")
+                  {order.cardName?.includes("(LAONPAY 원클릭)") ||
+                  isManualPaymentDemoOrder
                     ? order.cardName
                     : order.cardName
                       ? `${order.cardName} (KSPAY)`
@@ -404,6 +420,7 @@ export default async function OrderResultPage({
           <CancelRequest
             orderId={order.id}
             billing={isBillingPaidOrder}
+            demo={isManualPaymentDemoOrder}
           />
         </div>
       )}

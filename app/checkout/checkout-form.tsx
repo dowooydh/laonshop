@@ -9,9 +9,17 @@ import { CART_STORAGE_KEY, cartTotal, getCart, type CartItem } from "@/lib/cart"
 import { createCheckoutIdempotencyKey, getCheckoutNonce } from "@/lib/checkout-idempotency";
 import { useRouter } from "next/navigation";
 import {
+  getManualPaymentIssuerLabel,
+  isManualPaymentDemoInput,
+  isManualPaymentFormComplete,
+  type ManualPaymentCardInput,
+  type ManualPaymentMode,
+} from "@/lib/manual-payment-demo";
+import {
   createOrderAction,
   findCheckoutOrderAction,
 } from "./actions";
+import { ManualPaymentDialog } from "./manual-payment-dialog";
 
 export type CheckoutInitial = {
   receiverName: string;
@@ -47,11 +55,11 @@ function cartDisplayFingerprint(items: CartItem[]): string {
 
 export function CheckoutForm({
   initial,
-  manualPaymentEnabled,
+  manualPaymentMode,
   billingPaymentMethods,
 }: {
   initial: CheckoutInitial;
-  manualPaymentEnabled: boolean;
+  manualPaymentMode: ManualPaymentMode;
   billingPaymentMethods: CheckoutBillingPaymentMethod[];
 }) {
   const router = useRouter();
@@ -65,16 +73,24 @@ export function CheckoutForm({
     ...(billingPaymentMethods.length > 0
       ? [{ id: "oneclick", label: "등록카드 결제", desc: "LAONPAY 간편결제", enabled: true }]
       : []),
-    ...(manualPaymentEnabled
-      ? [{ id: "manual", label: "수기결제", desc: "카드번호 직접 입력 (구인증)", enabled: true }]
-      : []),
   ];
+  const manualMethod =
+    manualPaymentMode === "review-demo" ? "manual_demo" : "manual";
+  const manualPaymentAvailable = manualPaymentMode !== "disabled";
   const [items, setItems] = useState<CartItem[]>([]);
   const [ready, setReady] = useState(false);
   const [form, setForm] = useState(initial);
   const [method, setMethod] = useState("card");
   const [billingCardId, setBillingCardId] = useState(billingPaymentMethods[0]?.id ?? "");
-  const [manualCard, setManualCard] = useState({ cardNo: "", expMm: "", expYy: "", pw2: "", birth6: "" });
+  const [manualCard, setManualCard] = useState<ManualPaymentCardInput>({
+    issuerCode: "",
+    cardNo: "",
+    expMm: "",
+    expYy: "",
+    pw2: "",
+    birth6: "",
+  });
+  const [manualDialogOpen, setManualDialogOpen] = useState(false);
   const [pay, setPay] = useState<{ formAction: string; formFields: Record<string, string> } | null>(null);
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
@@ -82,6 +98,7 @@ export function CheckoutForm({
   const [agree, setAgree] = useState(false);
   const submitLockedRef = useRef(false);
   const displayedItemsRef = useRef<CartItem[]>([]);
+  const manualTriggerRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const initialItems = getCart();
@@ -151,6 +168,11 @@ export function CheckoutForm({
 
   const total = cartTotal(items);
   const interactionLocked = pending || oneclickUncertain;
+  const manualSelectionComplete =
+    manualPaymentMode === "review-demo"
+      ? isManualPaymentDemoInput(manualCard)
+      : isManualPaymentFormComplete(manualCard);
+  const isManualSelected = method === manualMethod;
 
   const submit = async () => {
     if (submitLockedRef.current) return;
@@ -166,8 +188,9 @@ export function CheckoutForm({
       submitLockedRef.current = false;
       return;
     }
-    if (method === "manual" && (!manualCard.cardNo || !manualCard.expMm || !manualCard.expYy || !manualCard.pw2 || !manualCard.birth6)) {
+    if (isManualSelected && !manualSelectionComplete) {
       setError("수기결제 카드 정보를 모두 입력해 주세요.");
+      setManualDialogOpen(true);
       submitLockedRef.current = false;
       return;
     }
@@ -202,12 +225,15 @@ export function CheckoutForm({
         return;
       }
       const orderInput = {
-        method: method as "card" | "kakaopay" | "naverpay" | "bank" | "oneclick" | "manual",
+        method: method as "card" | "kakaopay" | "naverpay" | "bank" | "oneclick" | "manual" | "manual_demo",
         items: currentItems.map((i) => ({ productId: i.productId, qty: i.qty, size: i.size })),
         ...form,
         ...(method === "oneclick" ? { billingCardId } : {}),
         ...(method === "manual"
           ? { manualCard: { ...manualCard, cardNo: manualCard.cardNo.replace(/[\s-]/g, "") } }
+          : {}),
+        ...(method === "manual_demo"
+          ? { demoIssuer: manualCard.issuerCode }
           : {}),
       };
       const idempotencyKey = await createCheckoutIdempotencyKey(orderInput, getCheckoutNonce());
@@ -347,8 +373,64 @@ export function CheckoutForm({
           <span className="font-mono text-step--1 text-fg-subtle">03</span>
           <span className="text-step-0 font-semibold text-fg">결제수단</span>
         </div>
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,7rem),1fr))] gap-2 sm:grid-cols-2">
-          {METHODS.map((m) => (
+        {manualPaymentAvailable ? (
+          <div
+            role="group"
+            aria-label="결제방식 선택"
+            className="grid min-w-0 grid-cols-1 gap-2 min-[360px]:grid-cols-2"
+          >
+            <button
+              type="button"
+              disabled={interactionLocked}
+              aria-pressed={!isManualSelected}
+              onClick={() => {
+                if (isManualSelected) setMethod("card");
+                setError("");
+              }}
+              className={cn(
+                "min-h-[68px] min-w-0 rounded-[var(--radius-md)] border p-3 text-left transition-colors duration-fast",
+                !isManualSelected
+                  ? "border-accent-cyan bg-[color-mix(in_oklab,var(--accent-cyan)_12%,transparent)] shadow-glow-cyan"
+                  : "border-line bg-overlay hover:bg-raised",
+              )}
+            >
+              <span className="block break-keep text-step--1 font-semibold text-fg">
+                카드·간편결제
+              </span>
+              <span className="mt-1 block break-keep text-[12px] leading-4 text-fg-subtle">
+                인증결제·간편결제·계좌이체
+              </span>
+            </button>
+            <button
+              ref={manualTriggerRef}
+              type="button"
+              disabled={interactionLocked}
+              aria-pressed={isManualSelected}
+              onClick={() => {
+                setMethod(manualMethod);
+                setManualDialogOpen(true);
+                setError("");
+              }}
+              className={cn(
+                "min-h-[68px] min-w-0 rounded-[var(--radius-md)] border p-3 text-left transition-colors duration-fast",
+                isManualSelected
+                  ? "border-accent-cyan bg-[color-mix(in_oklab,var(--accent-cyan)_12%,transparent)] shadow-glow-cyan"
+                  : "border-line bg-overlay hover:bg-raised",
+              )}
+            >
+              <span className="block break-keep text-step--1 font-semibold text-fg">
+                수기결제
+              </span>
+              <span className="mt-1 block break-keep text-[12px] leading-4 text-fg-subtle">
+                카드사 선택 후 구인증 입력
+              </span>
+            </button>
+          </div>
+        ) : null}
+
+        {!isManualSelected ? (
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,7rem),1fr))] gap-2 sm:grid-cols-2">
+            {METHODS.map((m) => (
             <button
               key={m.id}
               type="button"
@@ -379,46 +461,45 @@ export function CheckoutForm({
                 {m.desc}
               </div>
             </button>
-          ))}
-        </div>
-        {/* 수기결제(구인증) 선택 시 — 카드정보 직접 입력. 서버에서 승인 요청 후 즉시 폐기 */}
-        {method === "manual" && (
-          <div className="min-w-0 space-y-3 rounded-[var(--radius-md)] border border-line bg-overlay p-[16px]">
-            <div>
-              <Label htmlFor="mc-no">카드번호</Label>
-              <Input
-                id="mc-no"
-                inputMode="numeric"
-                autoComplete="cc-number"
-                placeholder="0000-0000-0000-0000"
-                value={manualCard.cardNo}
+            ))}
+          </div>
+        ) : (
+          <div className="min-w-0 space-y-3 rounded-[var(--radius-md)] border border-accent-cyan/25 bg-accent-cyan/5 p-[16px]">
+            {manualSelectionComplete ? (
+              <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
+                <div className="min-w-[min(100%,10rem)] flex-1">
+                  <p className="text-step--1 font-semibold text-fg">
+                    {getManualPaymentIssuerLabel(manualCard.issuerCode)} · •••• {manualCard.cardNo.slice(-4)}
+                  </p>
+                  <p className="mt-1 break-keep text-[12px] leading-5 text-fg-subtle">
+                    {manualPaymentMode === "review-demo"
+                      ? "실제 승인 없이 결제 완료 화면을 확인하는 심사용 시연입니다."
+                      : "입력한 카드정보는 승인 요청 후 저장하지 않습니다."}
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="md"
+                  className="min-h-11 shrink-0"
+                  disabled={interactionLocked}
+                  onClick={() => setManualDialogOpen(true)}
+                >
+                  정보 수정
+                </Button>
+              </div>
+            ) : (
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                className="min-h-11 w-full !h-auto !whitespace-normal"
                 disabled={interactionLocked}
-                onChange={(e) => setManualCard({ ...manualCard, cardNo: e.target.value })}
-              />
-            </div>
-            <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,7rem),1fr))] gap-3">
-              <div>
-                <Label htmlFor="mc-mm">유효기간 (MM)</Label>
-                <Input id="mc-mm" inputMode="numeric" maxLength={2} placeholder="MM" value={manualCard.expMm} disabled={interactionLocked} onChange={(e) => setManualCard({ ...manualCard, expMm: e.target.value })} />
-              </div>
-              <div>
-                <Label htmlFor="mc-yy">유효기간 (YY)</Label>
-                <Input id="mc-yy" inputMode="numeric" maxLength={2} placeholder="YY" value={manualCard.expYy} disabled={interactionLocked} onChange={(e) => setManualCard({ ...manualCard, expYy: e.target.value })} />
-              </div>
-            </div>
-            <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,7rem),1fr))] gap-3">
-              <div>
-                <Label htmlFor="mc-pw">비밀번호 앞 2자리</Label>
-                <Input id="mc-pw" type="password" inputMode="numeric" maxLength={2} value={manualCard.pw2} disabled={interactionLocked} onChange={(e) => setManualCard({ ...manualCard, pw2: e.target.value })} />
-              </div>
-              <div>
-                <Label htmlFor="mc-birth">생년월일 6자리</Label>
-                <Input id="mc-birth" inputMode="numeric" maxLength={10} placeholder="YYMMDD" value={manualCard.birth6} disabled={interactionLocked} onChange={(e) => setManualCard({ ...manualCard, birth6: e.target.value })} />
-              </div>
-            </div>
-            <p className="text-step--1 text-fg-subtle">
-              카드 정보는 결제 승인에만 사용되며 저장되지 않습니다. (법인카드는 생년월일 대신 사업자번호 10자리)
-            </p>
+                onClick={() => setManualDialogOpen(true)}
+              >
+                카드사·카드정보 입력
+              </Button>
+            )}
           </div>
         )}
         {method === "oneclick" && (
@@ -532,8 +613,23 @@ export function CheckoutForm({
       <p className="text-center text-step--1 text-fg-subtle">
         {method === "oneclick"
           ? "등록카드 결제는 LAONPAY 서버에서 안전하게 처리됩니다."
+          : method === "manual_demo"
+            ? "심사용 시연 결제이며 실제 카드 승인·청구는 발생하지 않습니다."
           : "결제는 KSPAY(KSNET) 인증결제창에서 안전하게 진행됩니다."}
       </p>
+
+      {manualPaymentMode !== "disabled" ? (
+        <ManualPaymentDialog
+          open={manualDialogOpen}
+          mode={manualPaymentMode}
+          value={manualCard}
+          disabled={interactionLocked}
+          triggerRef={manualTriggerRef}
+          onChange={setManualCard}
+          onClose={() => setManualDialogOpen(false)}
+          onComplete={() => setError("")}
+        />
+      ) : null}
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { requireShopUser } from "@/lib/auth";
 import { isKspayRestLiveEnabled } from "@/lib/kspay/webfep";
 import { isLaonpayBillingReady } from "@/lib/laonpay/billing-client";
 import { isBillingIntegrationAccount } from "@/lib/laonpay/billing-policy";
+import { resolveManualPaymentMode } from "@/lib/manual-payment-demo";
 import { CheckoutForm, type CheckoutBillingPaymentMethod } from "./checkout-form";
 
 export const metadata = { title: "주문/결제" };
@@ -34,7 +35,10 @@ export default async function CheckoutPage() {
 
   return (
     <CheckoutForm
-      manualPaymentEnabled={isKspayRestLiveEnabled()}
+      manualPaymentMode={resolveManualPaymentMode(
+        user.email,
+        isKspayRestLiveEnabled(),
+      )}
       billingPaymentMethods={billingPaymentMethods}
       initial={{
         receiverName: lastOrder?.receiverName ?? user.name ?? "",
