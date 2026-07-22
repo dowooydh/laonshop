@@ -1,7 +1,6 @@
 "use client";
 // 취소·반품 신청 — 결제완료(PAID) 주문 하단의 절제된 접이식 폼.
 import { Button, FieldError, Label, Textarea } from "@/lib/ui";
-import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { requestCancelAction } from "../actions";
 
@@ -14,7 +13,6 @@ export function CancelRequest({
   billing?: boolean;
   demo?: boolean;
 }) {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
   const [error, setError] = useState("");
@@ -45,10 +43,16 @@ export function CancelRequest({
     setError("");
     setPending(true);
     let keepLocked = false;
+    let reloading = false;
     try {
       const res = await requestCancelAction({ orderId, reason });
-      if (res.ok) router.refresh();
-      else {
+      if (res.ok) {
+        // 취소 접수 원장을 source of truth로 다시 읽는다. 부분 갱신만으로는
+        // 간헐적으로 기존 화면이 남아 사용자가 중복 신청할 수 있다.
+        reloading = true;
+        window.location.reload();
+        return;
+      } else {
         setError(res.error);
         if (res.retryBlocked) {
           keepLocked = true;
@@ -62,8 +66,8 @@ export function CancelRequest({
         "취소 요청 응답을 확인하지 못했습니다. 중복 요청을 막기 위해 다시 신청하지 말고 주문 상태를 조회해 주세요.",
       );
     } finally {
-      if (!keepLocked) submittingRef.current = false;
-      setPending(false);
+      if (!keepLocked && !reloading) submittingRef.current = false;
+      if (!reloading) setPending(false);
     }
   };
 
