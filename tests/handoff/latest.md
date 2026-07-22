@@ -2,60 +2,57 @@
 
 작성일: 2026-07-23
 
-검증 제품 SHA: `f52d08126446fd6b21589958bb4c7cdb1de6fbdd`
+검증 제품 SHA: `246dcb7b62d05afbc4c28be3e6a094f11ba67980`
 
-비교 기준: `3d4de53f39698021a5d84cc56a92ea92095fcea7`
+비교 기준: `1737eae0956cc2d27ab1743e15dffa076ed90735`
 
-운영 배포: `dpl_F8ud1zQkBP8XTbH32PgeiTwnKAeW` / `https://laonshop.com`
+운영 배포: `dpl_F2ZJXVF4H3B4LXtBa5Ckk7TZXmTj` / `https://laonshop.com`
 
-결과: **FAIL**
+결과: **PARTIAL**
 
 ## 판정
 
-- `QA-1C0-01` dialog 닫힘 연속 입력 관통: **PASS / CLOSED**
-- `QA-1C0-02` focus trap: **PASS / CLOSED**
-- 200% 확대 시연정보 internal scroll: **PASS / CLOSED**
-- `QA-F52-01` 취소 접수 후 화면 갱신 비결정성: **P2 / OPEN**
-- 심사 계정 수기결제 시연 전체: **NO-GO**
-- 기존 일반 KSPAY 운영: **GO, 이번 변경 귀책 회귀 없음**
+- `QA-F52-01` 취소 접수 후 화면 갱신 비결정성: **PASS / CLOSED**
+- 취소 반복·네트워크·중복·오류 경계: **PASS**
+- 직전 dialog 입력 guard/focus/200% 회귀: **PASS 유지**
+- 신규 제품 결함: **없음**
+- 웹/Chrome 심사 시연: **GO**
+- 실제 Android/iOS 인증 touch 전체 흐름: **HOLD / 미실행**
 
 상세 증거는
-[`2026-07-23-f52d081-manual-payment-dialog-regression.md`](../reports/2026-07-23-f52d081-manual-payment-dialog-regression.md)에 정리했습니다.
+[`2026-07-23-246dcb7-cancel-reload-regression.md`](../reports/2026-07-23-246dcb7-cancel-reload-regression.md)에 정리했습니다.
 
 ## 핵심 결과
 
 | 범위 | 결과 | 핵심 증거 |
 | --- | --- | --- |
 | 정적 검증 | PASS | focused 31/31, 전체 132/132, skip 0, lint/typecheck/prisma/audit/build |
-| pointer/touch guard | PASS | 완료/X/취소 mouse·touch 전부 배경 hit 0, 후속 guard event 4개씩 |
-| keyboard guard | PASS | Enter/Space 80ms 반복 재열림 0, 760ms 뒤 정상 복구 |
-| guard 재무장 | PASS | 400ms 후 입력으로 연장, 마지막 입력 760ms 뒤 shield 제거·배경 focus 복구 |
-| focus trap | PASS | Tab 30회+Shift+Tab 30회, BODY/dialog 외 이탈 0 |
-| opener focus | PASS | 상단 타일·입력·정보 수정·validation fallback 정확 복귀 |
-| 반응형 | PASS | 7폭 x 100/200%=14조합, overflow/clipping/internal scroll/44px 문제 0 |
-| 두 탭 멱등 | PASS | 동일 nonce 두 탭, PAID 주문 1·항목 1·동일 URL |
-| 카드정보·PG | PASS | 카드 필드 body 0, PG 요청 0, pgTrno null, Billing/Audit 0 |
-| 재고 | PASS | stock=1에서 demo PAID 2건, 실제 예약 0 |
-| 일반 고객 | PASS | demo UI 0, Action 재전송 주문 0, 일반 KSPAY 4수단 유지 |
-| 취소 DB·PG | PASS | CANCEL_REQUESTED 3/3, 외부 PG 0 |
-| 취소 화면 자동 갱신 | FAIL | 반복 3회 중 1회만 접수 화면, 명시적 reload는 3/3 수렴 |
-| 운영 배포 | PASS | READY/production/SHA·alias 일치, runtime error cluster 0 |
-| Cleanup | PASS | 격리 DB·fixture·서버·브라우저 삭제, 운영 write/PG/env 변경 0 |
+| 취소 성공 반복 | PASS | 10/10, 최대 506ms, DB·heading·badge 동시 수렴, form 제거 |
+| 성공 네트워크 | PASS | Action POST 10, 전체 GET 10, POST 재전송 0, PG 0 |
+| 연속 click·Enter | PASS | 각 Action POST 1, GET 1, pending disabled 및 aria-busy 유지 |
+| 같은 주문 두 탭 | PASS | POST 2 중 성공 GET 1, DB 상태 변경 1건, 다른 탭 명시 오류, PG 0 |
+| 명시 오류·재시도 | PASS | reload 0, 인라인 오류·버튼 재활성, 재시도 성공 |
+| 응답 단절·retryBlocked | PASS | reload 0, DB 불변, 입력 잠금·상태조회 안내, 외부 요청 0 |
+| reload/back/forward | PASS | 접수 heading 유지, form 복원 0, Action POST 0 |
+| IDOR | PASS | 다른 고객 주문은 404, DB 변화 0 |
+| 직전 dialog 회귀 | PASS 유지 | 제품 파일 diff 0, 실제 mouse/touch/keyboard·14개 responsive 증거 계승 |
+| 운영 배포 | PASS | READY/production/SHA·alias 일치, 최근 1시간 runtime error 0 |
+| Android/iOS | NOT EXECUTED | Android 연결 기기 없음, iOS Simulator Shutdown·인증 세션 없음 |
+| Cleanup | PASS | 격리 DB·fixture·서버·브라우저·러너 삭제, 운영 write/PG/env 변경 0 |
 
 ## 개발 작업 전달
 
-### QA-F52-01 P2
+`QA-F52-01`은 닫았습니다. [`app/order/[id]/cancel-request.tsx`](../../app/order/[id]/cancel-request.tsx)의 성공 경로가 현재 주문을 전체 GET reload하고 문서 교체 전까지 제출 잠금을 유지하는지 실제 브라우저와 DB로 확인했습니다.
 
-심사 demo 주문에서 취소 신청을 한 번 제출하면 DB는 `CANCEL_REQUESTED`로 3/3 전환되고 외부 PG 요청은 0이었습니다. 그러나 [`app/order/[id]/cancel-request.tsx`](../../app/order/[id]/cancel-request.tsx)의 `res.ok -> router.refresh()` 이후 접수 heading으로 자동 전환된 것은 1/3뿐이었습니다. 실패 2회에는 8초 동안 기존 결제완료 화면과 취소 form이 남았고, 명시적 reload 뒤에는 3/3 접수 heading과 무 승인취소·환불 안내로 수렴했습니다.
+주요 수치:
 
-이번 `f52d081`의 dialog 변경 파일 밖에서 발견된 인접 기존 경로입니다. 실제 금전·PG 부작용은 없지만 사용자가 이미 처리된 취소 form을 다시 제출할 수 있으므로, 성공 결과를 화면의 terminal state로 즉시 반영하거나 신뢰할 수 있는 새 GET 전환/fallback을 둔 뒤 반복 브라우저 검증이 필요합니다.
+1. 독립 demo 주문 취소 10회 모두 3초 기준 통과, 최대 506ms
+2. 각 성공은 Action POST 1회와 document GET 1회, 외부 PG 0회
+3. 연속 click·Enter는 동일 탭 POST 1회로 수렴
+4. 두 탭은 요청 2회 중 DB 조건부 상태 변경 1회, 성공 reload 1회, 다른 탭 명시 오류
+5. 명시 오류·connection reset·LAONPAY integration OFF는 reload 없이 기존 재시도 또는 잠금 UX 유지
+6. reload/back/forward 뒤 접수 form이 복원되지 않고 POST 재전송 0
 
-필수 회귀:
+수정 파일 밖의 수기결제 dialog·멱등·재고 제외 경계는 `f52d081`부터 변경되지 않았고 전체 테스트 및 직전 실제 런타임 증거가 유지됩니다.
 
-1. 취소 성공 10회에서 DB 상태와 접수 heading 10/10 동시 수렴
-2. 성공 뒤 form 제거와 double-click·두 탭 중복 접수 0
-3. 느린/실패 refresh에서 완료 안내 또는 명확한 recovery 제공
-4. 뒤로가기·새로고침 뒤 접수 상태 유지
-5. 일반 KSPAY와 demo 취소 경로 교차 회귀
-
-Android/iOS 인증 dialog는 Chrome P2 확정 뒤 미실행했습니다. Chrome touch context는 통과했지만 실제 모바일 브라우저 PASS로 간주하지 않습니다.
+실제 Android/iOS 인증 touch 전체 흐름은 환경 부재로 실행하지 않았습니다. Chrome touch context를 플랫폼 PASS로 대체하지 않으며, 통합 판정은 `PARTIAL`입니다. 웹/Chrome 심사 시연은 GO지만 모바일 최종 사인은 별도 확인 전까지 HOLD입니다.
