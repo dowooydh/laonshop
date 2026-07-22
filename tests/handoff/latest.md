@@ -2,42 +2,49 @@
 
 작성일: 2026-07-22
 
-검증 제품 SHA: `55465ce5cf268a6f897536f6136b9668b6ab6bcc`
+검증 제품 SHA: `1c078a94d81a47378106d3381a2c857dca72f636`
 
-비교 기준: `3068c64df156320973f0b28d52888ba03304b6ce`
+비교 기준: `97e81a52d17c9aed2d1fe4af94946cd733ba572e`
 
-운영 배포: `dpl_HEvkp7tL2fWt511YcztVS8MLCErG` / `https://laonshop.com`
+운영 배포: `dpl_EpsJPjeckHsbWG8qjyYSudS4jvBK` / `https://laonshop.com`
 
-결과: **PASS**
+결과: **FAIL**
 
 ## 판정
 
-- 통신판매업신고번호 footer 반영: **PASS / GO**
-- 신규 P0/P1/P2 제품 결함: **없음**
-- 공개 신고증 PDF·대표자 개인정보 노출: **없음**
-- API/DB/인증/세션/결제 회귀 영향: **없음**
+- 심사 계정 수기결제 시연: **NO-GO**
+- 기존 일반 KSPAY 운영: **GO, 이번 변경 귀책 회귀 없음**
+- 서버 권한·멱등·재고 제외·무 PG 경계: **PASS**
+- `QA-1C0-01` dialog 닫힘 입력 관통·키보드 재열림: **P2 / OPEN**
+- `QA-1C0-02` Tab 순환 중 `body` 포커스 이탈: **P2 / OPEN**
 
 상세 증거는
-[`2026-07-22-55465ce-business-info-regression.md`](../reports/2026-07-22-55465ce-business-info-regression.md)에 정리했습니다.
+[`2026-07-22-1c078a9-manual-payment-demo-regression.md`](../reports/2026-07-22-1c078a9-manual-payment-demo-regression.md)에 정리했습니다.
 
 ## 핵심 결과
 
 | 범위 | 결과 | 핵심 증거 |
 | --- | --- | --- |
-| 변경 독립 검토 | PASS | 공통 footer 문구와 QA 문서만 변경, 제품 동작 변경 없음 |
-| 정적 검증 | PASS | focused 1/1, 전체 126/126, skip 0, lint/typecheck/prisma/audit/build |
-| 운영 배포 | PASS | READY/production/sin1, SHA·apex/www alias 일치, runtime/error/fatal 0 |
-| footer 내용 | PASS | 정확한 번호 1회, `신고 예정` 0회 |
-| 반응형 | PASS | 4경로 x 320/360/390/412/1280px x 100%/200% = 40조합 |
-| overflow/clipping | PASS | document·footer descendant 이탈/잘림 0 |
-| 링크 | PASS | 정책 5경로 200, 카카오·전화·이메일 href 유지, 정책 링크 44px+ |
-| 공개 비노출 | PASS | tracked PDF 0, public/build/network PDF·legal 경로 0, 운영 경로 404 |
-| Cleanup | PASS | 임시 runner/screenshot 제거, DB/env/PG/제품 코드 변경 0 |
+| 정적 검증 | PASS | focused 31/31, 전체 132/132, skip 0, lint/typecheck/prisma/audit/build |
+| 계정 경계 | PASS | 심사 계정만 타일 2개, 일반 고객 UI 0·Action 재전송 주문 0 |
+| 카드정보 경계 | PASS | dialog `name` 0, Action은 issuer만, 카드 원문 필드·값 0 |
+| 동일 key 두 탭 | PASS | 두 탭 동일 URL, PAID 주문 1건·항목 1건 |
+| 외부 결제·원장 | PASS | PG 요청 0, Billing/Audit 원장 전부 0 |
+| 재고 | PASS | stock=1에서 시연 PAID 2건, 실제 예약 합계 0 |
+| 완료·취소 | PASS | 영수증/TID 0, CANCEL_REQUESTED, 무 승인취소·환불 안내 |
+| dialog 연속 pointer | FAIL | 완료 double-click 두 번째 click이 배경 `#co-address`에 전달 |
+| dialog 연속 keyboard | FAIL | 닫힘 80ms 뒤 Enter가 trigger를 실행해 dialog 재열림 |
+| focus trap | FAIL | 완료 다음 Tab에서 activeElement가 `BODY`로 이탈 |
+| 반응형 | PARTIAL | 외부 overflow/clipping·44px 문제 0, 320~412px·200% input 내부 scroll 관찰 |
+| 운영 배포 | PASS | READY/production/SHA·alias 일치, runtime/error/fatal 0 |
+| Cleanup | PASS | 격리 DB·fixture·서버·브라우저 삭제, 운영 write/PG/env 변경 0 |
 
 ## 개발 작업 전달
 
-제품 `55465ce`는 발급 번호 `2025-성남분당A-0152`를 홈·정책·로그인·상품 공통 footer에 정확히 표시합니다. 최소 320px와 루트 글자 200%에서도 사업자정보와 연락처가 잘리지 않았고 정책 링크 동작도 유지됐습니다.
+`app/checkout/manual-payment-dialog.tsx:56`의 닫힘은 dialog 상태를 즉시 제거하고 다음 animation frame에 trigger를 focus합니다. 닫힘 event sequence를 흡수하는 guard가 없어 실제 double-click의 두 번째 click이 배경 주소 input으로 전달되고, 연속 Enter는 `app/checkout/checkout-form.tsx:404`의 trigger를 다시 실행합니다.
 
-신고증 원본은 Git/배포 산출물/운영 네트워크에 포함되지 않았습니다. 개인정보 보호를 위해 로컬 원본 PDF 자체는 열거나 OCR하지 않았으며, 인계된 발급 번호와 저장소 기준 문서만 대조했습니다.
+닫힘 직후 짧은 입력 guard를 유지하되 dialog/focus trap/body scroll은 즉시 정리하고, pointer/click/dblclick 및 keyboard repeat을 흡수한 뒤 정상 배경 조작을 복구하는 방향을 권장합니다. Tab/Shift+Tab의 처음·마지막 순환도 명시적으로 보강해야 합니다.
 
-따라서 이번 법정 표시 변경은 **PASS / 출시 가능**입니다.
+수정 후 완료/X/취소/Escape 각각에 대해 mouse double-click, touch double-tap, Enter/Space 반복, 배경 주소·구매동의·결제 submit sentinel, trigger focus 복원과 보호 종료 후 정상 조작을 실제 브라우저로 재검증해야 합니다.
+
+서버·DB 핵심 경계는 통과했지만 이번 기능의 필수 상호작용 조건이 실패했으므로 제품 전체 결과는 **FAIL**입니다.
