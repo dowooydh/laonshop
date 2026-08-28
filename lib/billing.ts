@@ -10,6 +10,7 @@ export type DisabledBillingResult = { ok: false; error: string };
 
 const LAONPAY_BILLING_ORDER_LABEL = "(LAONPAY 등록카드)";
 const LEGACY_LAONPAY_BILLING_ORDER_LABEL = "(LAONPAY 원클릭)";
+const BILLING_ORDER_DISPLAY_LABEL = "(등록카드)";
 
 export function isLaonpayBillingOrderCardName(cardName: string | null | undefined): boolean {
   return (
@@ -23,10 +24,9 @@ export function createLaonpayBillingOrderCardName(cardName: string): string {
 }
 
 export function normalizeLaonpayBillingOrderCardName(cardName: string): string {
-  return cardName.replace(
-    LEGACY_LAONPAY_BILLING_ORDER_LABEL,
-    LAONPAY_BILLING_ORDER_LABEL,
-  );
+  return cardName
+    .replace(LAONPAY_BILLING_ORDER_LABEL, BILLING_ORDER_DISPLAY_LABEL)
+    .replace(LEGACY_LAONPAY_BILLING_ORDER_LABEL, BILLING_ORDER_DISPLAY_LABEL);
 }
 
 /**

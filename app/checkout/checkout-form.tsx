@@ -71,7 +71,7 @@ export function CheckoutForm({
     { id: "naverpay", label: "네이버페이", desc: "네이버페이 간편결제", enabled: true },
     { id: "bank", label: "실시간 계좌이체", desc: "은행 계좌 즉시 이체", enabled: true },
     ...(billingPaymentMethods.length > 0
-      ? [{ id: "oneclick", label: "등록카드 결제", desc: "LAONPAY 등록카드(정기결제)", enabled: true }]
+      ? [{ id: "oneclick", label: "등록카드", desc: "등록된 카드로 결제", enabled: true }]
       : []),
   ];
   const manualMethod =
@@ -118,7 +118,7 @@ export function CheckoutForm({
     if (billingPaymentMethods.length === 0 && method === "oneclick") {
       setMethod("card");
       setError(
-        "등록 카드 상태가 변경되어 일반 카드결제로 전환했습니다.",
+        "등록카드 상태가 변경되어 일반 카드결제로 전환했습니다.",
       );
     }
   }, [billingCardId, billingPaymentMethods, method]);
@@ -197,7 +197,7 @@ export function CheckoutForm({
       return;
     }
     if (method === "oneclick" && !billingCardId) {
-      setError("등록 카드를 선택해 주세요.");
+      setError("등록카드를 선택해 주세요.");
       submitLockedRef.current = false;
       return;
     }
@@ -401,7 +401,7 @@ export function CheckoutForm({
               </span>
               <span className="mt-1 block break-keep text-[12px] leading-4 text-fg-subtle">
                 {billingPaymentMethods.length > 0
-                  ? "KSPAY 인증결제·LAONPAY 등록카드"
+                  ? "KSPAY 인증결제·등록카드"
                   : "KSPAY 인증결제·계좌이체"}
               </span>
             </button>
@@ -515,7 +515,7 @@ export function CheckoutForm({
         )}
         {method === "oneclick" && (
           <div className="min-w-0 space-y-2 rounded-[var(--radius-md)] border border-line bg-overlay p-[16px]">
-            <p className="text-step--1 font-medium text-fg">등록 카드 선택</p>
+            <p className="text-step--1 font-medium text-fg">등록카드 선택</p>
             <div className="grid min-w-0 grid-cols-1 gap-2">
               {billingPaymentMethods.map((card) => (
                 <button
@@ -623,7 +623,7 @@ export function CheckoutForm({
 
       <p className="text-center text-step--1 text-fg-subtle">
         {method === "oneclick"
-          ? "등록카드 결제는 LAONPAY 서버에서 안전하게 처리됩니다."
+          ? "등록카드는 LAONPAY 연동 경로에서 안전하게 처리됩니다."
           : method === "manual_demo"
             ? "심사용 시연 결제이며 실제 카드 승인·청구는 발생하지 않습니다."
           : "결제는 KSPAY(KSNET) 인증결제창에서 안전하게 진행됩니다."}

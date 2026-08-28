@@ -514,7 +514,7 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
         select: { id: true },
       });
       if (!selectedMethod) {
-        return { ok: false as const, error: "사용 가능한 등록 카드를 찾을 수 없습니다." };
+        return { ok: false as const, error: "사용 가능한 등록카드를 찾을 수 없습니다." };
       }
       selectedBillingMethodId = selectedMethod.id;
     }
@@ -849,7 +849,7 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
             "PAYMENT_METHOD_UNAVAILABLE",
           );
         }
-        return { ok: false as const, error: "사용 가능한 등록 카드를 찾을 수 없습니다." };
+        return { ok: false as const, error: "사용 가능한 등록카드를 찾을 수 없습니다." };
       }
 
       const requestFingerprint = billingRequestFingerprint(requestBody);
@@ -889,7 +889,7 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
       if (chargeDecision.kind !== "READY") {
         return {
           ok: false as const,
-          error: "등록카드 결제 원장을 확인할 수 없습니다. 주문내역에서 상태를 확인해 주세요.",
+          error: "등록카드 결제 내역을 확인할 수 없습니다. 주문내역에서 상태를 확인해 주세요.",
         };
       }
       return {

@@ -109,7 +109,7 @@ export async function requestCancelAction(input: { orderId: string; reason?: str
     if (labeledBillingOrder) {
       return {
         ok: false,
-        error: "등록카드 결제 원장을 확인할 수 없습니다. 재신청하지 말고 고객센터에 문의해 주세요.",
+        error: "등록카드 결제 내역을 확인할 수 없습니다. 재신청하지 말고 고객센터에 문의해 주세요.",
       };
     }
     return requestKspayCancel(parsed.data.orderId, user.id, parsed.data.reason);

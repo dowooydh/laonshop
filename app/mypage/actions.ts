@@ -156,7 +156,7 @@ export async function deleteAccountAction(_prev: SettingsState, formData: FormDa
           return {
             ok: false as const,
             error:
-              "카드 등록·해지 또는 결제·취소 상태 확인이 필요합니다. LAONPAY 등록카드 관리에서 정리한 뒤 탈퇴해 주세요.",
+              "카드 등록·해지 또는 결제·취소 상태 확인이 필요합니다. 등록카드 관리에서 정리한 뒤 탈퇴해 주세요.",
           };
         }
       }

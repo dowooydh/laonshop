@@ -17,10 +17,15 @@ test("등록카드 UI는 간편결제 AUTH와 구분된 BILLING 용어를 사용
   const cards = source("app/mypage/settings/billing-cards.tsx");
   const settings = source("app/mypage/settings/page.tsx");
   const checkout = source("app/checkout/checkout-form.tsx");
+  const billingActions = source("app/mypage/settings/billing/actions.ts");
+  const mypageActions = source("app/mypage/actions.ts");
 
-  assert.match(cards, /LAONPAY 등록카드 결제/);
-  assert.match(settings, /LAONPAY 등록카드 관리/);
-  assert.match(checkout, /LAONPAY 등록카드\(정기결제\)/);
+  assert.match(cards, />등록카드<\/h3>/);
+  assert.match(settings, />\s*등록카드 관리\s*</);
+  assert.match(checkout, /label: "등록카드", desc: "등록된 카드로 결제"/);
+  for (const uiSource of [cards, settings, checkout, billingActions, mypageActions]) {
+    assert.doesNotMatch(uiSource, /LAONPAY 등록카드 결제|등록카드\(정기결제\)/);
+  }
   assert.doesNotMatch(cards, /LAONPAY 간편결제|간편결제 연동|간편결제 원장/);
   assert.doesNotMatch(settings, /간편결제 카드 관리|간편결제 연동/);
   assert.doesNotMatch(checkout, /desc: "LAONPAY 간편결제"/);
@@ -40,8 +45,9 @@ test("기존 원클릭 주문 표식은 판별하되 화면에는 등록카드�
   assert.equal(isLaonpayBillingOrderCardName(current), true);
   assert.equal(
     normalizeLaonpayBillingOrderCardName(legacy),
-    "테스트카드 (LAONPAY 등록카드)",
+    "테스트카드 (등록카드)",
   );
+  assert.equal(normalizeLaonpayBillingOrderCardName(current), "테스트카드 (등록카드)");
 });
 
 test("공개 안내는 일반 KSPAY와 LAONPAY 등록카드 경로를 구분한다", () => {
@@ -55,6 +61,7 @@ test("공개 안내는 일반 KSPAY와 LAONPAY 등록카드 경로를 구분한�
     assert.match(page, /LAONPAY/);
     assert.match(page, /등록카드/);
     assert.doesNotMatch(page, /Baum|바움/);
+    assert.doesNotMatch(page, /LAONPAY 등록카드 결제|등록카드\(정기결제\)/);
   }
   assert.match(privacy, /불투명 결제수단 ID와 마스킹된 카드정보/);
   assert.match(support, /라온샵은 카드번호나 PG 결제 토큰을 저장하지 않습니다/);

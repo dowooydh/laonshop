@@ -282,7 +282,7 @@ export async function startBillingRegistrationAction(
   if (!isBillingReconciliationEnabled(user.email)) {
     return {
       error:
-        "LAONPAY 등록카드 연동이 아직 준비되지 않았습니다. 일반 카드결제를 이용해 주세요.",
+        "등록카드 연동이 아직 준비되지 않았습니다. 일반 카드결제를 이용해 주세요.",
     };
   }
 
@@ -338,7 +338,7 @@ export async function startBillingRegistrationAction(
     })
     .catch(() => null);
   if (!prepared) {
-    return { error: "등록카드 결제 원장을 사용할 수 없어 카드 등록을 안전하게 차단했습니다." };
+    return { error: "등록카드 정보를 확인할 수 없어 카드 등록을 안전하게 차단했습니다." };
   }
   if (!prepared.ok) return { error: prepared.error };
   if (
@@ -495,12 +495,12 @@ export async function refreshBillingPaymentMethodsAction(
 ): Promise<BillingSettingsActionState> {
   const user = await requireShopUser();
   if (!isBillingReconciliationEnabled(user.email)) {
-    return { error: "LAONPAY 등록카드 연동이 준비되지 않았습니다." };
+    return { error: "등록카드 연동이 준비되지 않았습니다." };
   }
 
   const result = await createLaonpayBillingClient().listPaymentMethods(user.id);
   if (!result.ok) {
-    return { error: "등록 카드 상태를 확인하지 못했습니다. 기존 상태를 유지합니다." };
+    return { error: "등록카드 상태를 확인하지 못했습니다. 기존 상태를 유지합니다." };
   }
 
   const synchronized = await prisma
@@ -559,13 +559,13 @@ export async function refreshBillingPaymentMethodsAction(
     .then(() => true)
     .catch(() => false);
   if (!synchronized) {
-    return { error: "등록 카드 상태를 안전하게 반영하지 못했습니다. 기존 상태를 유지합니다." };
+    return { error: "등록카드 상태를 안전하게 반영하지 못했습니다. 기존 상태를 유지합니다." };
   }
   revalidatePath("/mypage/settings");
   revalidatePath("/checkout");
   return {
     ok: true,
-    message: "등록 카드 상태를 최신 정보로 확인했습니다.",
+    message: "등록카드 상태를 최신 정보로 확인했습니다.",
   };
 }
 
@@ -574,7 +574,7 @@ export async function deregisterBillingPaymentMethodAction(
 ): Promise<BillingSettingsActionState> {
   const user = await requireShopUser();
   if (!isBillingIntegrationEnabled(user.email)) {
-    return { error: "LAONPAY 등록카드 연동이 준비되지 않았습니다." };
+    return { error: "등록카드 연동이 준비되지 않았습니다." };
   }
 
   const prepared = await prisma
@@ -583,7 +583,7 @@ export async function deregisterBillingPaymentMethodAction(
       const method = await tx.shopBillingPaymentMethod.findFirst({
         where: { id: localPaymentMethodId, userId: user.id },
       });
-      if (!method) return { ok: false as const, error: "등록 카드를 찾을 수 없습니다." };
+      if (!method) return { ok: false as const, error: "등록카드를 찾을 수 없습니다." };
       if (method.status === "DEREGISTERED") return { ok: true as const, done: true as const, method };
       const resumableUnsent =
         method.status === "DEREGISTERING" &&
@@ -631,7 +631,7 @@ export async function deregisterBillingPaymentMethodAction(
       return { ok: true as const, done: false as const, method: claimed };
     })
     .catch(() => null);
-  if (!prepared) return { error: "등록카드 결제 원장을 확인하지 못해 카드 해지를 안전하게 차단했습니다." };
+  if (!prepared) return { error: "등록카드 정보를 확인하지 못해 카드 해지를 안전하게 차단했습니다." };
   if (!prepared.ok) return { error: prepared.error };
   if (prepared.done) {
     return { ok: true, message: "이미 해지된 카드입니다." };

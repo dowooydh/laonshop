@@ -38,7 +38,8 @@ test("카드 등록은 hosted Action만 사용하며 라온샵에 카드 원문 
   const returnRoute = source("app/mypage/settings/billing/return/route.ts");
   const schema = source("prisma/schema.prisma");
 
-  assert.match(settings, /LAONPAY에서 카드 등록/);
+  assert.match(settings, /:\s*"카드 등록"}/);
+  assert.doesNotMatch(settings, /LAONPAY에서 카드 등록/);
   assert.match(settings, /startBillingRegistrationAction/);
   assert.doesNotMatch(settings, /name=["'](?:cardNo|expMm|expYy|pw2|birth6)["']/);
   assert.doesNotMatch(settings, /sessionStorage|localStorage|billing-card-review-mock/);

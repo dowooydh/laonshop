@@ -219,21 +219,21 @@ export function BillingCards({
 
       {!integrationEligible ? (
         <div className="rounded-[var(--radius-md)] border border-line bg-overlay p-[16px] text-step--1 leading-relaxed text-fg-subtle">
-          LAONPAY 등록카드 결제는 현재 이용할 수 없습니다. 결제 시 일반 카드결제의 KSPAY 인증결제창을 이용해 주세요.
+          등록카드는 현재 이용할 수 없습니다. 결제 시 일반 카드결제의 KSPAY 인증결제창을 이용해 주세요.
         </div>
       ) : !integrationConfigured ? (
         <div className="rounded-[var(--radius-md)] border border-warning/30 bg-warning/5 p-[16px] text-step--1 leading-relaxed text-fg-muted">
-          LAONPAY 등록카드 연동을 준비하고 있습니다. 연결이 확인되기 전에는 카드정보를 입력받지 않으며 일반 카드결제를 이용할 수 있습니다.
+          등록카드 연동을 준비하고 있습니다. 연결이 확인되기 전에는 카드정보를 입력받지 않으며 일반 카드결제를 이용할 수 있습니다.
         </div>
       ) : !integrationStorageReady ? (
         <div className="rounded-[var(--radius-md)] border border-danger/30 bg-danger/5 p-[16px] text-step--1 leading-relaxed text-danger">
-          등록카드 결제 원장을 사용할 수 없어 카드 등록을 안전하게 차단했습니다. 설정 확인 전에는 일반 카드결제를 이용해 주세요.
+          등록카드 정보를 확인할 수 없어 카드 등록을 안전하게 차단했습니다. 설정 확인 전에는 일반 카드결제를 이용해 주세요.
         </div>
       ) : (
         <div className="min-w-0 space-y-4 rounded-[var(--radius-lg)] border border-accent-cyan/25 bg-raised p-[16px] sm:p-[20px]">
           <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
             <div className="min-w-0 space-y-1">
-              <h3 className="font-display text-step-1 font-semibold text-fg">LAONPAY 등록카드 결제</h3>
+              <h3 className="font-display text-step-1 font-semibold text-fg">등록카드</h3>
               <p className="max-w-[54ch] text-step--1 leading-relaxed text-fg-muted">
                 카드 등록은 LAONPAY의 보안 등록 화면에서 진행됩니다. 라온샵에는 카드사·끝 4자리와 불투명 결제수단 ID만 저장됩니다.
               </p>
@@ -303,7 +303,7 @@ export function BillingCards({
                 >
                   {hasOpenRegistration
                     ? "등록 절차 이어서 확인"
-                    : "LAONPAY에서 카드 등록"}
+                    : "카드 등록"}
                 </Button>
               </form>
             ) : null}
@@ -329,7 +329,7 @@ export function BillingCards({
                 disabled={billingActionPending}
                 className="h-auto min-h-[48px] w-full min-w-0 whitespace-normal py-3 text-center leading-snug"
               >
-                등록 카드 상태 조회
+                등록카드 상태 조회
               </Button>
             </form>
           </div>
@@ -397,8 +397,8 @@ export function BillingCards({
                     className="w-full min-w-0 space-y-3 rounded-[var(--radius-md)] border border-warning/35 bg-warning/5 p-3"
                   >
                     <p className="break-keep text-step--1 leading-relaxed text-fg-muted">
-                      {method.cardName} 끝 {method.cardLast4} 카드를 해지하면 등록카드 결제에 더 이상
-                      사용할 수 없습니다. 해지를 진행할까요?
+                      {method.cardName} 끝 {method.cardLast4} 카드를 해지하면 결제에 더 이상 사용할 수 없습니다.
+                      해지를 진행할까요?
                     </p>
                     <div className="flex min-w-0 flex-wrap justify-end gap-2">
                       <Button
@@ -435,7 +435,7 @@ export function BillingCards({
           })}
         </ul>
       ) : ready ? (
-        <p className="text-step--1 text-fg-subtle">등록된 결제 카드가 없습니다.</p>
+        <p className="text-step--1 text-fg-subtle">등록된 카드가 없습니다.</p>
       ) : null}
 
       {deleteError ? (
