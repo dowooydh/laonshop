@@ -72,9 +72,9 @@
 - [ ] 배송정보 누락 시 오류
 - [ ] 구매조건 동의 미체크 시 오류
 - [ ] 카드/카카오/네이버/실시간계좌이체 KSPAY 수단 선택
-- [ ] 비대상 계정·env 누락·빌링 스키마 미적용 시 hosted 카드 등록과 원클릭 결제를 UI·서버 모두 fail-closed
+- [ ] 비대상 계정·env 누락·빌링 스키마 미적용 시 hosted 카드 등록과 LAONPAY 등록카드 결제를 UI·서버 모두 fail-closed
 - [ ] 지정 계정 카드 등록은 LAONPAY hosted 화면으로 이동하고 복귀 ID·HttpOnly cookie를 대조한 뒤 signed GET 결과만 반영
-- [ ] 라온샵 브라우저·서버·DB·로그에 카드 원문·KSNET billingToken·pgapi·서명키가 노출되지 않음
+- [ ] 라온샵 브라우저·서버·DB·로그에 카드 원문·provider token·upstream PG 자격정보·서명키가 노출되지 않음
 - [ ] 등록카드 결제는 본인 ACTIVE 결제수단과 서버 재계산 금액만 사용하고 주문당 charge 1건으로 수렴
 - [ ] charge 응답 유실은 같은 key·동일 body 대사 POST 1회까지만 허용하고 계속 UNKNOWN이면 상태조회 외 재결제 차단
 - [ ] 등록카드 결제 상태조회는 provider charge ID가 있으면 GET만 사용하며, ID/주문/금액 불일치 시 성공 처리하지 않음

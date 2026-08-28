@@ -6,7 +6,11 @@ import { prisma } from "@/lib/db";
 import { requireShopUser } from "@/lib/auth";
 import { getPgProvider } from "@/lib/kspay";
 import { sanitizePgParam } from "@/lib/format";
-import { getDisabledBillingResult } from "@/lib/billing";
+import {
+  createLaonpayBillingOrderCardName,
+  getDisabledBillingResult,
+  isLaonpayBillingOrderCardName,
+} from "@/lib/billing";
 import { createKspayResultToken } from "@/lib/kspay/result-token";
 import { createLaonpayBillingClient } from "@/lib/laonpay/billing-client";
 import type {
@@ -75,7 +79,7 @@ export async function requestCancelAction(input: { orderId: string; reason?: str
     select: { cardName: true },
   });
   if (!orderSnapshot) return { ok: false, error: "취소 신청할 수 없는 주문입니다." };
-  const labeledBillingOrder = orderSnapshot.cardName?.includes("(LAONPAY 원클릭)") === true;
+  const labeledBillingOrder = isLaonpayBillingOrderCardName(orderSnapshot.cardName);
 
   if (!isBillingIntegrationEnabled(user.email)) {
     // 연동 환경이 일시적으로 제거되어도 이미 승인된 등록카드 주문을 KSPAY 수동취소
@@ -1235,7 +1239,7 @@ export async function refreshBillingChargeStatusAction(input: {
           paidAt: new Date(),
           approvalNo: null,
           pgTrno: null,
-          cardName: `${paymentMethod.cardName} (LAONPAY 원클릭)`,
+          cardName: createLaonpayBillingOrderCardName(paymentMethod.cardName),
         },
       });
       return { ok: true as const, status: "PAID" as const };

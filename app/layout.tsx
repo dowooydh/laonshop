@@ -210,7 +210,7 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
                     </a>
                   </span>
                 </div>
-                <p className="mt-3">© LAON SHOP · ㈜커스텀오더. 결제는 KSPAY(KSNET)로 안전하게 처리됩니다.</p>
+                <p className="mt-3">© LAON SHOP · ㈜커스텀오더. 일반 인증결제는 KSPAY(KSNET), 등록카드 결제는 LAONPAY 연동 경로로 구분하여 처리됩니다.</p>
               </div>
             </div>
           </footer>

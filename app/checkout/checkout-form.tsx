@@ -71,7 +71,7 @@ export function CheckoutForm({
     { id: "naverpay", label: "네이버페이", desc: "네이버페이 간편결제", enabled: true },
     { id: "bank", label: "실시간 계좌이체", desc: "은행 계좌 즉시 이체", enabled: true },
     ...(billingPaymentMethods.length > 0
-      ? [{ id: "oneclick", label: "등록카드 결제", desc: "LAONPAY 간편결제", enabled: true }]
+      ? [{ id: "oneclick", label: "등록카드 결제", desc: "LAONPAY 등록카드(정기결제)", enabled: true }]
       : []),
   ];
   const manualMethod =
@@ -400,7 +400,9 @@ export function CheckoutForm({
                 카드·간편결제
               </span>
               <span className="mt-1 block break-keep text-[12px] leading-4 text-fg-subtle">
-                인증결제·간편결제·계좌이체
+                {billingPaymentMethods.length > 0
+                  ? "KSPAY 인증결제·LAONPAY 등록카드"
+                  : "KSPAY 인증결제·계좌이체"}
               </span>
             </button>
             <button

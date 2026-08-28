@@ -72,7 +72,7 @@ export async function changePasswordAction(_prev: SettingsState, formData: FormD
   return { ok: true };
 }
 
-// ── 과거 원클릭 mock 카드 정리 ──────────────────────────────────────────
+// ── 과거 등록카드 mock 정리 ─────────────────────────────────────────────
 // 신규 등록카드는 LAONPAY opaque 결제수단 원장을 사용한다. 아래 액션은 과거 mock
 // 레코드 삭제 전용이며 실제 provider 결제수단 해지로 사용하지 않는다.
 export async function deleteBillingCardAction(cardId: string): Promise<SettingsState> {
@@ -156,7 +156,7 @@ export async function deleteAccountAction(_prev: SettingsState, formData: FormDa
           return {
             ok: false as const,
             error:
-              "카드 등록·해지 또는 결제·취소 상태 확인이 필요합니다. 간편결제 카드 관리에서 정리한 뒤 탈퇴해 주세요.",
+              "카드 등록·해지 또는 결제·취소 상태 확인이 필요합니다. LAONPAY 등록카드 관리에서 정리한 뒤 탈퇴해 주세요.",
           };
         }
       }
@@ -181,7 +181,7 @@ export async function deleteAccountAction(_prev: SettingsState, formData: FormDa
     .catch(() => null);
   if (!deletion) {
     return {
-      error: "간편결제 상태를 안전하게 확인할 수 없어 탈퇴를 보류했습니다. 잠시 후 다시 시도해 주세요.",
+      error: "등록카드 결제 상태를 안전하게 확인할 수 없어 탈퇴를 보류했습니다. 잠시 후 다시 시도해 주세요.",
     };
   }
   if (!deletion.ok) return { error: deletion.error };

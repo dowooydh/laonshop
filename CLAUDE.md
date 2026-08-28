@@ -17,9 +17,9 @@
 ## 절대 규칙 (라온페이 계승)
 
 1. **금액은 정수(원)**, 모든 돈 계산은 서버에서.
-2. **카드정보 비저장** — KSPAY 결제창 방식(카드정보는 PG사가 직접 받음). 로그 마스킹.
+2. **카드정보 비저장** — 일반 인증결제는 KSPAY 결제창, 등록카드 결제는 LAONPAY 호스팅 등록 화면에서 카드정보를 직접 받는다. 라온샵은 카드 원문·provider token을 수신하거나 저장하지 않으며 로그를 마스킹한다.
 3. **미확보·미계약 PG 기능은 `NEEDS_PG_SPEC` 주석 + 안전한 비활성 또는 mock** — UI가 있어도 운영 계약·키 없이 실연동으로 간주하지 않는다.
-4. **결제수단**: 카드·카카오페이·네이버페이·실시간계좌이체는 KSPAY 수단별 결제창을 사용한다. 원클릭(빌링)은 KSNET 계약과 카드 입력 보안 방식이 확정되기 전까지 등록·승인을 비활성화한다. 수기(구인증)는 사업부 계약, `KSPAY_API_KEY`, `KSPAY_REST_LIVE=1` 전에는 운영 호출하지 않는다. 가상계좌는 KSNET 미지원 정책으로 제외한다.
+4. **결제수단**: 카드·카카오페이·네이버페이·실시간계좌이체는 현재 KSPAY 수단별 인증결제창을 사용한다. 등록카드(정기결제)는 provider 중립적인 LAONPAY 호스팅 등록·파트너 API 경로를 사용하며, 실제 PG 식별자·자격정보·token은 LAONPAY 내부에서만 관리한다. 수기(구인증)는 현재 사업부 계약, `KSPAY_API_KEY`, `KSPAY_REST_LIVE=1` 전에는 운영 호출하지 않는다. 가상계좌는 KSNET 미지원 정책으로 제외한다.
 5. **카드사 심사 필수 요소**: footer 사업자정보(상호·사업자등록번호·통신판매업신고번호·대표·주소·연락처) + 이용약관·개인정보처리방침·청약철회/교환/환불 정책 페이지.
 
 ## 스택 / 구조
@@ -27,9 +27,10 @@
 - Next.js 15 App Router + TypeScript + Tailwind
 - Prisma + PostgreSQL (Neon)
 - 배포: Vercel
-- 결제: KSNET KSPAY 인증결제창. 테스트 MID `2999199999` (상점키 불필요, 테스트 거래는 승인 후 몇 분 뒤 자동취소). 실 MID/키는 정식 계약 후 교체.
+- 일반 인증결제: KSNET KSPAY 인증결제창. 테스트 MID `2999199999` (상점키 불필요, 테스트 거래는 승인 후 몇 분 뒤 자동취소). 실 MID/키는 정식 계약 후 교체.
   - ⚠️ KSPAY 결제창(`kspay_web_ssl.js`)은 **jQuery($) 의존** → jQuery 먼저 로드한 뒤 `_pay()` 호출.
   - 흐름: 주문 생성 → `createAuthOrder`(KSPayWeb 폼) → 결제창 → `/api/pg/kspay/callback`(rcv 브릿지) → `/api/pg/kspay/result`(recv_post.jsp 서버승인 `sndActionType=1`) → 주문 확정.
+- 등록카드(정기결제): LAONPAY의 동일-origin 호스팅 등록 화면과 Ed25519 서명 파트너 API를 사용한다. LAONSHOP에는 GID·MID·RID·PG 키를 추가하지 않고 opaque `paymentMethodId`와 마스킹 카드정보만 다룬다.
 
 ## 작업 워크플로우
 

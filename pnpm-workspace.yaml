@@ -7,7 +7,9 @@ allowBuilds:
   sharp: true
   unrs-resolver: true
 
-# Next 15의 하위 의존성이 고정한 취약 PostCSS와 sharp/libvips를 안전 버전으로 통일한다.
+# Next 15·Prisma 6의 하위 의존성을 현재 보안 패치 버전으로 통일한다.
 overrides:
-  'postcss@8.4.31': 8.5.16
+  postcss: 8.5.23
+  nanoid: 3.3.18
+  deepmerge-ts: 8.0.0
   sharp: 0.35.3

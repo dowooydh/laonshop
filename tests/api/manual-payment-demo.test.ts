@@ -111,7 +111,11 @@ test("주문 완료 화면은 시연 결제를 KSPAY 거래나 영수증으로 �
   assert.doesNotMatch(page, /isManualPaymentDemoOrder && paid/);
   assert.match(page, /실제 승인취소·환불 및 PG 거래는 발생하지 않습니다/);
   assert.match(page, /isManualPaymentDemoOrder \? "시연 식별번호" : "승인번호"/);
-  assert.match(page, /isManualPaymentDemoOrder[\s\S]*\? order\.cardName/);
+  assert.match(page, /isBillingPaidOrder \|\| isManualPaymentDemoOrder/);
+  assert.match(
+    page,
+    /isBillingPaidOrder && order\.cardName[\s\S]*normalizeLaonpayBillingOrderCardName\(order\.cardName\)[\s\S]*: order\.cardName/,
+  );
   assert.match(cancel, /시연 주문에는 실제 승인취소나 환불이 발생하지 않습니다/);
   assert.match(inventory, /MANUAL_PAYMENT_DEMO_APPROVAL_PREFIX/);
   assert.match(inventory, /COALESCE\(o\."approvalNo", ''\) NOT LIKE/);

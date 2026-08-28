@@ -1,12 +1,12 @@
-# LAONPAY 등록카드·원클릭 운영 전환 런북
+# LAONPAY 등록카드(정기결제) 운영 전환 런북
 
-이 문서는 LAONSHOP의 LAONPAY 호스팅 카드등록·원클릭 결제를 **forward-only**로 준비하고, 문제가 생기면 외부 재승인 없이 안전하게 닫는 절차입니다. 실제 환경변수 값, 카드 원문, KSNET `billingToken`, PG 인증정보는 이 문서·명령 출력·로그·DB 일반 필드에 남기지 않습니다.
+이 문서는 LAONSHOP의 LAONPAY 호스팅 카드등록·등록카드 결제를 **forward-only**로 준비하고, 문제가 생기면 외부 재승인 없이 안전하게 닫는 절차입니다. 실제 환경변수 값, 카드 원문, provider token, PG 인증정보는 이 문서·명령 출력·로그·DB 일반 필드에 남기지 않습니다.
 
 ## 현재 기본 상태: HOLD
 
-- 운영 additive SQL, LAONPAY keyring·파트너 공개키·활성화, KSNET 빌링 권한·개발 `pgapi`, 실제 hosted 상호운용 검증이 모두 완료되기 전까지 기능을 열지 않습니다.
-- LAONSHOP에는 KSNET MID·`pgapi`를 추가하지 않습니다. 카드 원문은 LAONPAY hosted origin에서만 입력하고 LAONSHOP 브라우저·서버·DB를 통과하지 않습니다.
-- 공용 개발 MID `2999199999`는 개발계 응답 시연용이며 실제 카드 청구 가능 상태를 뜻하지 않습니다.
+- 운영 additive SQL, LAONPAY keyring·파트너 공개키·활성화, LAONPAY 내부 provider의 BILLING 권한·자격정보, 실제 hosted 상호운용 검증이 모두 완료되기 전까지 기능을 열지 않습니다.
+- LAONSHOP에는 GID·MID·RID·provider token·PG 자격정보를 추가하지 않습니다. 카드 원문은 LAONPAY hosted origin에서만 입력하고 LAONSHOP 브라우저·서버·DB를 통과하지 않습니다.
+- upstream provider의 개발 식별자와 자격정보는 LAONPAY 내부에서만 관리하며, 그 존재만으로 실제 카드 청구 가능 상태를 뜻하지 않습니다.
 - `prisma db push`, seed, 실카드·실 PG 호출, 운영 주문 생성으로 이 전환을 대신하지 않습니다.
 
 ## 게이트 의미
@@ -14,7 +14,7 @@
 | 게이트 | 값 | 의미 |
 | --- | --- | --- |
 | `LAONPAY_BILLING_SCHEMA_READY` | `1` | additive schema와 post-verify가 완료되어 기존 원장 조회·상태 대사가 가능합니다. |
-| `LAONPAY_BILLING_FEATURE_ENABLED` | `1` | 신규 등록·신규 원클릭 청구를 사용자에게 엽니다. schema gate보다 먼저 열면 안 됩니다. |
+| `LAONPAY_BILLING_FEATURE_ENABLED` | `1` | 신규 등록·신규 등록카드 청구를 사용자에게 엽니다. schema gate보다 먼저 열면 안 됩니다. |
 
 feature gate를 내려도 이미 생성된 `PENDING`·`PROCESSING`·`UNKNOWN` 원장의 signed GET 대사는 유지해야 합니다. 이를 위해 미결 원장이 있는 동안 schema gate, 파트너 키 3종, API base를 제거하지 않습니다.
 
@@ -71,7 +71,7 @@ enum, 필수 컬럼·기본값, 금지된 민감 컬럼 부재, unique/index, FK
 1. LAONPAY 운영 migration·keyring·LAONSHOP 공개키·파트너 활성화·return target가 준비됐는지 LAONPAY 담당자와 교차 확인합니다.
 2. Vercel Production scope에 서버 전용 파트너 환경변수 3종과 고정 앱 URL을 안전하게 설정합니다. 값을 터미널 출력이나 문서로 복사하지 않습니다.
 3. `LAONPAY_BILLING_SCHEMA_READY=1`, `LAONPAY_BILLING_FEATURE_ENABLED=0`으로 배포합니다.
-4. 새 등록 버튼·새 원클릭 결제가 계속 닫혀 있고, 기존 원장 조회·UNKNOWN 대사만 가능한지 확인합니다.
+4. 새 등록 버튼·새 등록카드 결제가 계속 닫혀 있고, 기존 원장 조회·UNKNOWN 대사만 가능한지 확인합니다.
 5. readiness는 아직 `CLOSED`가 정상입니다. Vercel Production 값은 로컬 셸에 자동으로 주입되지 않으므로 승인된 운영 담당자만 아래처럼 권한이 `0600`인 임시 파일로 내려받아 검사하고 즉시 삭제합니다. 명령 추적(`set -x`)과 파일 내용 출력은 금지합니다.
 
 ```bash

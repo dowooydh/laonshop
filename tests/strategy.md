@@ -85,7 +85,7 @@ tests/
 ## 버그로 보고하지 않을 의도된 상태
 
 - 가상계좌·무통장입금은 현재 결제수단에서 제외한다.
-- 원클릭 카드 등록·결제는 hosted/API·원장·멱등·UNKNOWN 계약까지 구현됐으나 운영 additive schema·파트너 env·readiness·실 상호운용 승인 전에는 fail-closed한다. feature gate만 내려도 기존 원장 signed GET 대사는 유지한다.
+- LAONPAY 등록카드 등록·결제는 hosted/API·원장·멱등·UNKNOWN 계약까지 구현됐으나 운영 additive schema·파트너 env·readiness·실 상호운용 승인 전에는 fail-closed한다. feature gate만 내려도 기존 원장 signed GET 대사는 유지한다.
 - 실 수기결제는 계약 키와 live switch 준비 전까지 일반 계정의 UI·서버에서 차단한다. 지정 심사 계정의 `manual_demo`는 고정 비유효 합성값과 카드사 코드만 사용하는 PG 미호출 시연으로 분리하며 격리 DB에서 검증한다.
 - 카드·카카오페이·네이버페이·실시간계좌이체는 현재 코드의 KSPAY 결제창 수단이다.
 - KSPAY result는 HMAC·PG `ordno`·금액·승인번호·거래번호를 검증한다. `reHash` 사전 결박 규격 전에는 테스트 MID만 승인하며 실 MID는 차단한다.

@@ -9,7 +9,12 @@ import { createKspayResultToken } from "@/lib/kspay/result-token";
 import { sanitizePgParam } from "@/lib/format";
 import { z } from "zod";
 import { requireShopUser } from "@/lib/auth";
-import { getDisabledBillingResult, MANUAL_PAYMENT_DISABLED_MESSAGE, ONECLICK_PAYMENT_DISABLED_MESSAGE } from "@/lib/billing";
+import {
+  createLaonpayBillingOrderCardName,
+  getDisabledBillingResult,
+  MANUAL_PAYMENT_DISABLED_MESSAGE,
+  ONECLICK_PAYMENT_DISABLED_MESSAGE,
+} from "@/lib/billing";
 import { createLaonpayBillingClient } from "@/lib/laonpay/billing-client";
 import {
   createManualPaymentDemoApproval,
@@ -39,7 +44,7 @@ import {
 
 const schema = z.object({
   // KSPAY 결제창 수단 — 가상계좌는 KSNET 미지원으로 제외.
-  // oneclick = LAONPAY hosted 등록카드 / manual = 수기결제(구인증) 카드정보 직접 입력.
+  // oneclick = LAONPAY hosted 등록카드(BILLING)의 내부 id / manual = 수기결제(구인증) 카드정보 직접 입력.
   method: z.enum(["card", "kakaopay", "naverpay", "bank", "oneclick", "manual", "manual_demo"]).default("card"),
   items: z
     .array(
@@ -652,7 +657,7 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
     if (d.method === "oneclick") {
       const { amount, requestBody } = buildBillingChargeRequest(user, order);
       if (amount !== order.totalAmount || amount !== inventory.total) {
-        throw new Error("원클릭 주문 금액 불일치");
+        throw new Error("등록카드 주문 금액 불일치");
       }
       await tx.shopBillingCharge.create({
         data: {
@@ -1061,7 +1066,9 @@ export async function createOrderAction(input: CheckoutInput): Promise<CheckoutR
             paidAt: new Date(),
             approvalNo: null,
             pgTrno: null,
-            cardName: `${chargePrepared.paymentMethod.cardName} (LAONPAY 원클릭)`,
+            cardName: createLaonpayBillingOrderCardName(
+              chargePrepared.paymentMethod.cardName,
+            ),
           },
         });
         return { ok: true as const, paid: true as const };

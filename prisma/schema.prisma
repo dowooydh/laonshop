@@ -40,7 +40,7 @@ enum ShopUserRole {
   ADMIN
 }
 
-// 과거 원클릭 mock 등록 레코드 — 신규 등록·결제에는 사용하지 않고 삭제만 허용한다.
+// 과거 등록카드 mock 레코드 — 신규 등록·결제에는 사용하지 않고 삭제만 허용한다.
 // 과거 provider token 컬럼은 애플리케이션 스키마에서 제거했다. 운영 물리 컬럼 정리는
 // 데이터 확인·백업 후 별도 승인된 cleanup으로만 수행한다.
 model ShopBillingCard {
@@ -90,7 +90,7 @@ enum ShopBillingCancelRequestStatus {
   UNKNOWN
 }
 
-// LAONPAY가 보관한 KSNET billingToken을 가리키는 불투명 결제수단 원장.
+// LAONPAY가 보관한 provider token을 가리키는 불투명 결제수단 원장.
 // 카드 원문·provider token·PG 인증정보는 이 저장소와 DB에 절대 저장하지 않는다.
 model ShopBillingPaymentMethod {
   id                        String                         @id @default(cuid())

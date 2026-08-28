@@ -5,6 +5,10 @@ import { Amount, Badge, buttonVariants } from "@/lib/ui";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireShopUser } from "@/lib/auth";
+import {
+  isLaonpayBillingOrderCardName,
+  normalizeLaonpayBillingOrderCardName,
+} from "@/lib/billing";
 import { ClearCartOnPaid } from "./clear-cart";
 import { CancelRequest } from "./cancel-request";
 import { RetryPayment } from "./retry-payment";
@@ -78,7 +82,7 @@ export default async function OrderResultPage({
     include: { items: true },
   });
   if (!order) notFound();
-  const isBillingPaidOrder = order.cardName?.includes("(LAONPAY 원클릭)") === true;
+  const isBillingPaidOrder = isLaonpayBillingOrderCardName(order.cardName);
   const isManualPaymentDemoOrder =
     order.cardName?.includes("(수기결제 시연)") === true;
   const billingCancelLedger = isBillingPaidOrder
@@ -301,9 +305,10 @@ export default async function OrderResultPage({
               <div className="flex flex-wrap items-start justify-between gap-x-[16px] gap-y-[8px]">
                 <dt className="shrink-0">결제수단</dt>
                 <dd className="min-w-[min(100%,7rem)] flex-1 text-right font-medium text-fg [overflow-wrap:anywhere]">
-                  {order.cardName?.includes("(LAONPAY 원클릭)") ||
-                  isManualPaymentDemoOrder
-                    ? order.cardName
+                  {isBillingPaidOrder || isManualPaymentDemoOrder
+                    ? isBillingPaidOrder && order.cardName
+                      ? normalizeLaonpayBillingOrderCardName(order.cardName)
+                      : order.cardName
                     : order.cardName
                       ? `${order.cardName} (KSPAY)`
                       : "신용카드·간편결제 (KSPAY)"}

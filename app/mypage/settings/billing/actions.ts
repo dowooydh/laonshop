@@ -282,7 +282,7 @@ export async function startBillingRegistrationAction(
   if (!isBillingReconciliationEnabled(user.email)) {
     return {
       error:
-        "간편결제 카드 등록 연동이 아직 준비되지 않았습니다. 일반 카드결제를 이용해 주세요.",
+        "LAONPAY 등록카드 연동이 아직 준비되지 않았습니다. 일반 카드결제를 이용해 주세요.",
     };
   }
 
@@ -338,7 +338,7 @@ export async function startBillingRegistrationAction(
     })
     .catch(() => null);
   if (!prepared) {
-    return { error: "간편결제 원장을 사용할 수 없어 카드 등록을 안전하게 차단했습니다." };
+    return { error: "등록카드 결제 원장을 사용할 수 없어 카드 등록을 안전하게 차단했습니다." };
   }
   if (!prepared.ok) return { error: prepared.error };
   if (
@@ -368,7 +368,7 @@ export async function startBillingRegistrationAction(
     }
 
     // ID를 알고 있어도 최초 POST 응답에서 hostedUrl을 잃을 수 있다. LAONPAY 계약상
-    // 같은 key+동일 body의 남은 reconciliation POST 1회는 새 등록/KSNET 호출을
+    // 같은 key+동일 body의 남은 reconciliation POST 1회는 새 등록/provider 호출을
     // 만들지 않고 기존 resource와 hostedUrl만 회수한다.
     const reconciled = await createLaonpayBillingClient().createRegistrationIntent(
       user.id,
@@ -495,7 +495,7 @@ export async function refreshBillingPaymentMethodsAction(
 ): Promise<BillingSettingsActionState> {
   const user = await requireShopUser();
   if (!isBillingReconciliationEnabled(user.email)) {
-    return { error: "간편결제 연동이 준비되지 않았습니다." };
+    return { error: "LAONPAY 등록카드 연동이 준비되지 않았습니다." };
   }
 
   const result = await createLaonpayBillingClient().listPaymentMethods(user.id);
@@ -574,7 +574,7 @@ export async function deregisterBillingPaymentMethodAction(
 ): Promise<BillingSettingsActionState> {
   const user = await requireShopUser();
   if (!isBillingIntegrationEnabled(user.email)) {
-    return { error: "간편결제 연동이 준비되지 않았습니다." };
+    return { error: "LAONPAY 등록카드 연동이 준비되지 않았습니다." };
   }
 
   const prepared = await prisma
@@ -631,7 +631,7 @@ export async function deregisterBillingPaymentMethodAction(
       return { ok: true as const, done: false as const, method: claimed };
     })
     .catch(() => null);
-  if (!prepared) return { error: "간편결제 원장을 확인하지 못해 카드 해지를 안전하게 차단했습니다." };
+  if (!prepared) return { error: "등록카드 결제 원장을 확인하지 못해 카드 해지를 안전하게 차단했습니다." };
   if (!prepared.ok) return { error: prepared.error };
   if (prepared.done) {
     return { ok: true, message: "이미 해지된 카드입니다." };

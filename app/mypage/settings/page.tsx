@@ -13,14 +13,14 @@ export const metadata = { title: "설정" };
 export const dynamic = "force-dynamic";
 
 const REGISTRATION_MESSAGES: Record<string, string> = {
-  succeeded: "카드 등록 상태를 LAONPAY에서 확인했습니다. 등록된 카드로 간편결제를 이용할 수 있습니다.",
+  succeeded: "카드 등록 상태를 LAONPAY에서 확인했습니다. 등록된 카드로 LAONPAY 등록카드 결제를 이용할 수 있습니다.",
   pending: "카드 등록 처리가 아직 진행 중입니다. 새 요청을 만들지 말고 잠시 후 상태 조회를 이용해 주세요.",
   processing: "카드 등록 정보를 확인하고 있습니다. 새 요청을 만들지 말고 잠시 후 상태 조회를 이용해 주세요.",
   declined: "카드 등록이 완료되지 않았습니다. 카드정보는 라온샵에 저장되지 않았습니다.",
   expired: "카드 등록 유효시간이 만료되었습니다. 필요하면 새로 등록해 주세요.",
   unknown: "카드 등록 결과를 확인하지 못했습니다. 중복 등록을 피하려면 고객센터에 문의해 주세요.",
   invalid: "현재 계정의 카드 등록 요청을 확인할 수 없습니다.",
-  unavailable: "간편결제 연동이 준비되지 않아 카드 등록 결과를 반영하지 않았습니다.",
+  unavailable: "LAONPAY 등록카드 연동이 준비되지 않아 카드 등록 결과를 반영하지 않았습니다.",
 };
 
 export default async function SettingsPage({
@@ -176,7 +176,7 @@ export default async function SettingsPage({
             tabIndex={-1}
             className="font-mono text-step--1 uppercase tracking-widest text-accent-cyan focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-cyan"
           >
-            간편결제 카드 관리
+            LAONPAY 등록카드 관리
           </h2>
           <p className="text-step--1 text-fg-subtle">
             등록된 결제수단의 상태를 확인하거나 안전하게 해지할 수 있습니다.

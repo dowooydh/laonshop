@@ -1,6 +1,6 @@
 # 라온샵 에이전트 현재 상태
 
-> 마지막 정리: 2026-07-22. 제품·결제 규칙은 `AGENTS.md`, 구현 사실은 현재 코드와 git 기록을 우선한다.
+> 마지막 용어 정렬: 2026-08-29. 제품·결제 규칙은 `AGENTS.md`, 구현 사실과 운영 상태는 현재 코드·환경·git 기록을 우선한다.
 
 ## 읽기 순서
 
@@ -14,15 +14,15 @@
 
 - 라온샵은 라온페이와 데이터·배포가 분리된 독립 Next.js 15 쇼핑몰이다. 라온페이 모노레포로 다시 합치지 않는다.
 - 운영 주소는 `laonshop.com`과 `www.laonshop.com`, Vercel 프로젝트는 `customorder/laonshop`이다. main 푸시는 자동 배포된다.
-- KSPAY 테스트 MID 인증결제창이 동작한다. 원클릭 빌링의 브라우저 전용 Mock은 제거하고, LAONPAY 호스팅 카드 등록과 서버 간 파트너 API를 사용하는 integration-ready 경로로 교체했다. `LAONPAY_BILLING_API_BASE`·`LAONPAY_PARTNER_KEY_ID`·`LAONPAY_PARTNER_PRIVATE_KEY`와 전용 빌링 DB 스키마가 모두 준비되지 않으면 서버에서 fail-closed다. `LAONPAY_BILLING_SCHEMA_READY=1`은 additive SQL과 read-only post-verify 뒤에만 열고, `LAONPAY_BILLING_FEATURE_ENABLED=1`은 상호운용·독립 QA까지 통과한 뒤 신규 등록·청구를 여는 kill switch다. feature를 내려도 schema와 파트너 설정은 유지해 기존 원장의 signed GET·동일 key/body 대사를 계속한다. 이 5종은 Vercel Production scope에만 설정하며, Preview·Development 외부 호출은 차단한다. 과거 mock 카드 레코드는 설정에서 삭제만 가능하다.
-- 2026-07-22 운영 Neon에 `ops/laonpay-billing/sql/001_additive.sql`을 forward-only로 적용했고 read-only post-verify를 통과했다. 적용 전 schema-only 백업을 확보했으며 사용자·주문·과거 mock 카드 수는 전후 동일하고 신규 빌링 원장 4종은 모두 0건이다. Vercel Production의 LAONPAY 파트너 env 3종과 readiness gate 2종은 아직 미설정이므로 등록카드 기능은 계속 fail-closed다.
-- 빌링 개발 시연 MID는 KSNET 공용 테스트 MID `2999199999`를 사용한다. 공식 개발계 문서 콘솔에서 등록→조회→결제→취소→해지 전 과정은 검증했지만, 이는 라온샵 계정·서버 연동 완료를 뜻하지 않는다. 공용 MID의 외부 사용 정책 확인은 개발 구현 blocker가 아니라 정식 출시 전 확인사항으로 관리한다.
-- 라온샵은 등록 시작·고객/주문 원장·결과 표시만 담당하고, 카드 입력·KSNET `billingToken` 암호화 vault·조회·결제·해지·취소 요청은 LAONPAY가 담당한다. 카드 원문·KSNET `billingToken`·`pgapi`는 라온샵 브라우저·서버·DB·로그를 통과하지 않으며, 라온샵에는 opaque `paymentMethodId`와 카드사·끝 4자리·안전 상태만 저장한다. 공식 문서의 샘플 인증 문자열은 코드·Vercel 환경변수에 사용하지 않는다.
+- KSPAY 테스트 MID 인증결제창이 동작한다. 등록카드(정기결제)의 브라우저 전용 Mock은 제거하고, LAONPAY 호스팅 카드 등록과 서버 간 파트너 API를 사용하는 integration-ready 경로로 교체했다. `LAONPAY_BILLING_API_BASE`·`LAONPAY_PARTNER_KEY_ID`·`LAONPAY_PARTNER_PRIVATE_KEY`와 전용 빌링 DB 스키마가 모두 준비되지 않으면 서버에서 fail-closed다. `LAONPAY_BILLING_SCHEMA_READY=1`은 additive SQL과 read-only post-verify 뒤에만 열고, `LAONPAY_BILLING_FEATURE_ENABLED=1`은 상호운용·독립 QA까지 통과한 뒤 신규 등록·청구를 여는 kill switch다. feature를 내려도 schema와 파트너 설정은 유지해 기존 원장의 signed GET·동일 key/body 대사를 계속한다. 이 5종은 Vercel Production scope에만 설정하며, Preview·Development 외부 호출은 차단한다. 과거 mock 카드 레코드는 설정에서 삭제만 가능하다.
+- 2026-07-22 운영 Neon에 `ops/laonpay-billing/sql/001_additive.sql`을 forward-only로 적용했고 read-only post-verify를 통과했다. 적용 전 schema-only 백업을 확보했으며 사용자·주문·과거 mock 카드 수는 전후 동일하고 신규 등록카드 결제 원장 4종은 모두 0건이다. 이 문서의 환경변수 상태는 당시 확인 기록이므로 현재 활성 여부는 배포 환경과 코드의 readiness 검사를 다시 확인한다.
+- 과거 KSNET 공식 개발계 문서 콘솔에서 공용 테스트 MID `2999199999`로 등록→조회→결제→취소→해지 전 과정을 검증한 기록은 upstream 개발계 참고 증거일 뿐, 현재 라온샵 계정·서버 연동의 provider나 완료 상태를 뜻하지 않는다. LAONSHOP의 등록카드 계약은 LAONPAY 파트너 API에 중립적으로 결박한다.
+- 라온샵은 등록 시작·고객/주문 원장·결과 표시만 담당하고, 카드 입력·provider token 암호화 vault·등록·조회·결제·해지·취소 요청은 LAONPAY가 담당한다. 카드 원문·provider token·upstream PG 자격정보는 라온샵 브라우저·서버·DB·로그를 통과하지 않으며, 라온샵에는 opaque `paymentMethodId`와 카드사·끝 4자리·안전 상태만 저장한다. LAONPAY 내부 GID·MID·RID·PG 키를 라온샵 API·DB·환경변수에 추가하지 않는다.
 - 호스팅 카드 등록 완료 고정 복귀 URL은 `https://laonshop.com/mypage/settings/billing/return`이다. 복귀 query는 힌트일 뿐이며, 시작 시 저장한 등록 ID와 대조한 뒤 Ed25519 서명된 LAONPAY 상태 조회 응답만 최종 근거로 사용한다.
 - 파트너 API와 hosted 등록 화면은 LAONPAY seller의 같은 고정 HTTPS origin을 사용한다. `hostedUrl`은 `LAONPAY_BILLING_API_BASE`와 `URL.origin`이 정확히 같을 때만 열고, 별도 hosted origin env나 응답 기반 동적 allowlist는 두지 않는다.
 - 파트너 서명 canonical은 `v1·METHOD·PATH_WITH_QUERY·TIMESTAMP·NONCE·IDEMPOTENCY_KEY_OR_EMPTY·SHA256_BODY` 7줄이다. POST 멱등키는 UUID 소문자로 header와 canonical에 동일하게 넣고, GET은 해당 줄을 비우며 멱등키 header를 보내지 않는다. 취소요청은 저장된 opaque 취소요청 ID의 signed GET을 최종 근거로 삼아 `REQUESTED/PROCESSING/DONE/REJECTED`를 대사하고, 외부 ID를 잃은 응답유실에서만 charge GET을 제한적으로 사용하되 `PAID`를 거절로 추론하지 않는다.
-- 등록 intent와 결제 생성 응답을 잃은 경우에는 같은 `Idempotency-Key`와 바이트상 동일한 요청 본문으로 reconciliation POST를 한 번 수행해 기존 ID·상태만 회수할 수 있다. LAONPAY는 새 resource나 새 KSNET 호출을 만들지 않아야 하며, 키가 같고 본문이 다르면 `IDEMPOTENCY_CONFLICT`로 거절한다. 계속 `UNKNOWN`이면 새 결제나 자동 재호출 없이 확인 대기로 고정한다.
-- 수기결제 WEBFEP 운영 호출은 `KSPAY_API_KEY`와 `KSPAY_REST_LIVE=1`이 모두 있어야 UI와 서버가 활성화된다. `KSPAY_REST_LIVE=1`은 운영 `pay.ksnet.co.kr`용이며 paydev 빌링 시연에는 사용하지 않는다. 별도로 지정 심사 계정에는 카드사와 고정 비유효 합성값을 브라우저에서 확인한 뒤 실제 PG 호출 없이 PAID 화면만 만드는 `manual_demo`가 열린다. 카드 원문은 Server Action에 전달하지 않고 카드사 코드만 보내며 `pgTrno`·영수증은 만들지 않는다. 시연 PAID·취소접수 주문은 운영 재고 예약에서 제외하고 실제 출고·매출 주문으로 취급하지 않는다. 일반 계정·직접 POST·실 WEBFEP는 기존 이중 가드로 계속 차단한다.
+- 등록 intent와 결제 생성 응답을 잃은 경우에는 같은 `Idempotency-Key`와 바이트상 동일한 요청 본문으로 reconciliation POST를 한 번 수행해 기존 ID·상태만 회수할 수 있다. LAONPAY는 새 resource나 새 provider 호출을 만들지 않아야 하며, 키가 같고 본문이 다르면 `IDEMPOTENCY_CONFLICT`로 거절한다. 계속 `UNKNOWN`이면 새 결제나 자동 재호출 없이 확인 대기로 고정한다.
+- 수기결제 WEBFEP 운영 호출은 `KSPAY_API_KEY`와 `KSPAY_REST_LIVE=1`이 모두 있어야 UI와 서버가 활성화된다. `KSPAY_REST_LIVE=1`은 현재 운영 `pay.ksnet.co.kr` 수기결제 경로 전용이며 LAONPAY 등록카드 경로에는 사용하지 않는다. 별도로 지정 심사 계정에는 카드사와 고정 비유효 합성값을 브라우저에서 확인한 뒤 실제 PG 호출 없이 PAID 화면만 만드는 `manual_demo`가 열린다. 카드 원문은 Server Action에 전달하지 않고 카드사 코드만 보내며 `pgTrno`·영수증은 만들지 않는다. 시연 PAID·취소접수 주문은 운영 재고 예약에서 제외하고 실제 출고·매출 주문으로 취급하지 않는다. 일반 계정·직접 POST·실 WEBFEP는 기존 이중 가드로 계속 차단한다.
 - KSPAY 최종 결과는 주문 ID·주문번호·금액에 결박한 HMAC 토큰과 PG 응답 `ordno`·금액·승인번호·거래번호를 모두 검증한 뒤 주문에 반영한다. 사용자 취소값이나 주문 ID만으로 상태를 바꾸지 않는다.
 - KSNET `reCommConId`/`reHash`를 주문에 서버에서 사전 결박하는 공식 규격을 받기 전에는 테스트 MID `2999199999`만 서버승인한다. 실 MID로 바꾸면 안전하게 승인 차단되며, 스펙 구현·회귀 후에만 이 가드를 변경한다.
 - `/admin`은 DB의 `ADMIN` 역할만 접근한다. 결제 결과가 불명확한 `PENDING + __KSPAY_PROCESSING__` 주문은 구매자가 재승인하지 않고, PG 자동 처리 보호 구간(5분)이 지난 뒤 운영자가 KSTA 대조 후 결제완료/실패를 확정하며 모든 변경을 감사 로그에 남긴다.
@@ -33,14 +33,14 @@
 
 ## 다음 결제 작업
 
-1. `[LAONPAY] DEV` 제품 계약은 구현·교차 정렬됐지만, LAONPAY 운영 migration·keyring·파트너 활성화·KSNET 빌링 권한·실 hosted 상호운용은 계속 HOLD다. 2026-07-22 현재 seller Vercel에는 `KSPAY_API_KEY` 변수명은 존재하지만 빌링 schema/keyring/partner readiness 변수는 없고, unsigned 파트너 API는 의도대로 HTTP 503 fail-closed다. 변수 존재만 확인했으며 값·유효 권한은 확인하지 않았다.
-2. LAONSHOP 운영 additive schema와 post-verify는 완료했다. 다음 단계는 LAONPAY가 파트너 공개키와 빌링 readiness를 먼저 준비한 뒤, 라온샵 Vercel Production에 파트너 env 3종과 readiness gate 2종을 feature `0`부터 설정하는 것이다. LAONSHOP에 MID·`pgapi`·KSNET token을 추가하지 않는다.
+1. `[LAONPAY] DEV` 제품 계약은 구현·교차 정렬됐다. 등록카드 기능 활성화 전에는 LAONPAY 운영 migration·keyring·파트너 활성화·내부 provider의 BILLING 권한·실 hosted 상호운용을 현재 배포 기준으로 다시 확인한다. LAONSHOP은 upstream provider나 자격정보를 직접 판별하지 않고 LAONPAY의 signed API와 readiness만 신뢰한다.
+2. LAONSHOP 운영 additive schema와 post-verify는 완료했다. 다음 단계는 LAONPAY가 파트너 공개키와 등록카드 readiness를 먼저 준비한 뒤, 라온샵 Vercel Production의 파트너 env 3종과 readiness gate 2종을 feature `0`부터 검증하는 것이다. LAONSHOP에 GID·MID·RID·provider token·PG 자격정보를 추가하지 않는다.
 3. env나 DB 스키마 중 하나라도 준비되지 않으면 integration-ready UI와 서버가 fail-closed한다. feature만 내려도 기존 원장 대사는 유지하며, 실제 PG 연결 완료로 표현하기 전에 LAONPAY readiness와 서명 계약을 다시 교차 확인한다.
 4. 두 제품 변경을 각각 QA 작업에 인계해 등록→조회→결제→취소 요청→해지, 중복 요청, timeout/5xx/`UNKNOWN`, 세션·소유권, Safari·Android 회귀까지 통과한 뒤 개발 시연을 연다.
 
 ## 결제·브라우저 검증 가드
 
-- KSPAY 승인과 실 수기결제처럼 거래나 카드 상태를 만드는 테스트는 사용자가 명시적으로 요청할 때만 한 번 수행한다. 비활성화된 빌링 등록·원클릭·실 수기결제는 실제 계약과 안전 연동 완료 전까지 테스트 명목으로도 다시 열지 않는다. 지정 심사 계정의 `manual_demo`는 실제 PG·카드 상태를 만들지 않는 별도 경로이며, QA에서는 격리 DB로만 주문 생명주기를 검증한다.
+- KSPAY 승인과 실 수기결제처럼 거래나 카드 상태를 만드는 테스트는 사용자가 명시적으로 요청할 때만 한 번 수행한다. 비활성화된 등록카드 등록·결제와 실 수기결제는 실제 계약과 안전 연동 완료 전까지 테스트 명목으로도 다시 열지 않는다. 지정 심사 계정의 `manual_demo`는 실제 PG·카드 상태를 만들지 않는 별도 경로이며, QA에서는 격리 DB로만 주문 생명주기를 검증한다.
 - 결제 테스트를 요청받아 수행하면 생성된 주문과 거래 상태를 확인하고, 정리 필요 여부를 사용자에게 보고한다.
 - Playwright 계열 브라우저 제어에서 React `type="button"`의 CDP 클릭이 전달되지 않는 경우가 있었다. 앱 버그로 단정하기 전에 실제 이벤트 발생 여부를 확인하고 필요하면 DOM `click()`으로 교차 검증한다.
 - 로그인·상품·장바구니·비결제 체크아웃 단계는 거래를 만들지 않는 범위에서 검증할 수 있다.

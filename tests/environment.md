@@ -49,7 +49,7 @@ pnpm start
 - 결제 왕복은 callback URL 때문에 로컬에서만 수행한다.
 - Vercel Preview 결제 플로우는 callback이 운영으로 갈 수 있어 금지한다.
 - 테스트 MID도 실제 카드 승인이 발생할 수 있으므로 명시적 승인 없이는 카드번호를 입력하거나 승인하지 않는다.
-- 원클릭 카드 등록·결제 코드는 LAONPAY hosted/API 계약에 맞춰 integration-ready 상태지만, additive schema·파트너 env·readiness gate·실 상호운용 승인 전에는 운영에서 fail-closed다.
+- LAONPAY 등록카드 등록·결제 코드는 hosted/API 계약에 맞춰 integration-ready 상태지만, additive schema·파트너 env·readiness gate·실 상호운용 승인 전에는 운영에서 fail-closed다.
 - loopback HTTP harness는 실제 LAONPAY·KSNET·운영 DB에 접속하지 않으며 등록→조회→청구→조회→전체취소요청→해지 계약만 검증한다.
 - 수기 실호출은 계약 키와 live switch가 모두 준비되기 전에는 금지한다.
 - QA는 기본적으로 주문 생성과 KSPAY 결제창 진입까지만 확인한다.

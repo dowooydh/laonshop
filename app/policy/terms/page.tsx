@@ -4,7 +4,7 @@ export const metadata = { title: "이용약관" };
 
 export default function TermsPage() {
   return (
-    <PolicyShell eyebrow="Terms" title="이용약관" effective="2026년 7월 1일">
+    <PolicyShell eyebrow="Terms" title="이용약관" effective="2026년 8월 29일">
       <section>
         <h2>제1조 (목적)</h2>
         <p>
@@ -37,9 +37,10 @@ export default function TermsPage() {
       <section>
         <h2>제5조 (구매 및 결제)</h2>
         <p>
-          회원은 상품을 선택하여 주문하고, 회사가 제공하는 결제수단(신용카드·간편결제 등, PG사 KSNET을 통한
-          결제)으로 대금을 지급합니다. 회원은 결제 전 주문 내용을 확인하는 절차를 거치며, 결제 승인 완료 시
-          계약이 성립합니다.
+          회원은 상품을 선택하여 주문하고, 화면에 제공되는 결제수단으로 대금을 지급합니다. 일반 카드·카카오페이·
+          네이버페이·실시간 계좌이체는 KSPAY(KSNET) 인증결제창을 이용하며, 등록카드 결제가 제공되는 경우에는
+          LAONPAY 등록카드 결제 경로를 이용합니다. 회원은 결제 전 주문 내용을 확인하는 절차를 거치며, 결제 승인
+          완료 시 계약이 성립합니다.
         </p>
       </section>
       <section>
