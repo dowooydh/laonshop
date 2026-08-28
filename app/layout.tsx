@@ -43,8 +43,8 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
         <SmoothScroll>
           <header className="sticky top-0 z-40 border-b border-line">
             <div className="glass">
-              <div className="mx-auto flex min-h-16 max-w-6xl flex-wrap items-center justify-between gap-1 px-2 py-1 min-[360px]:px-3 sm:flex-nowrap sm:px-6 sm:py-0">
-                <div className="flex shrink-0 items-center gap-6">
+              <div className="mx-auto flex min-h-16 max-w-6xl flex-wrap items-center justify-between gap-x-2 gap-y-1 px-2 py-1 min-[360px]:px-3 sm:px-6 sm:py-2">
+                <div className="flex max-w-full shrink-0 flex-wrap items-center gap-x-6 gap-y-1">
                   <Link
                     href="/"
                     className="flex min-h-11 shrink-0 items-center font-display text-lg font-bold tracking-tight text-fg transition-[text-shadow] duration-base hover:[text-shadow:0_0_22px_color-mix(in_oklab,var(--accent-cyan)_60%,transparent)] min-[360px]:text-xl"
@@ -72,10 +72,10 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
                     </Link>
                   </nav>
                 </div>
-                <nav className="ml-auto flex min-w-0 max-w-full flex-wrap items-center justify-end gap-1 text-step--1 sm:flex-nowrap sm:gap-2">
+                <nav className="ml-auto flex max-w-full shrink-0 flex-wrap items-center justify-end gap-1 text-step--1 sm:gap-2">
                   <Link
                     href="/cart"
-                    className="inline-flex min-h-11 min-w-11 items-center justify-center gap-1 whitespace-nowrap rounded-[var(--radius-sm)] px-2 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg sm:gap-1.5 sm:px-3"
+                    className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-[var(--radius-sm)] px-2 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg sm:gap-1.5 sm:px-3"
                   >
                     <span className="sm:hidden">카트</span><span className="hidden sm:inline">장바구니</span>
                     <CartBadge />
@@ -84,15 +84,15 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
                     <>
                       <Link
                         href={user.role === "ADMIN" ? "/admin" : "/mypage"}
-                        className="flex min-h-11 max-w-[7rem] items-center truncate whitespace-nowrap rounded-[var(--radius-sm)] px-2 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg sm:px-3"
+                        className="flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-[var(--radius-sm)] px-2 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg sm:px-3"
                       >
                         {user.role === "ADMIN" ? (
                           <span>관리</span>
                         ) : (
-                          <><span className="sm:hidden">마이</span><span className="hidden sm:inline">{user.name}님</span></>
+                          <><span className="sm:hidden">마이</span><span className="hidden sm:inline">마이페이지</span></>
                         )}
                       </Link>
-                      <form action={logoutAction}>
+                      <form action={logoutAction} className="shrink-0">
                         <button
                           type="submit"
                           className="min-h-11 whitespace-nowrap rounded-[var(--radius-sm)] px-2 text-fg-subtle transition-colors duration-fast hover:text-fg sm:px-3"
@@ -105,13 +105,13 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
                     <>
                       <Link
                         href="/login"
-                        className="flex min-h-11 items-center whitespace-nowrap rounded-[var(--radius-sm)] px-2 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg sm:px-3"
+                        className="flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-[var(--radius-sm)] px-2 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg sm:px-3"
                       >
                         로그인
                       </Link>
                       <Link
                         href="/register"
-                        className="flex min-h-11 items-center whitespace-nowrap rounded-[var(--radius-pill)] bg-accent-cyan px-3 font-medium text-void shadow-glow-cyan transition-[filter] duration-fast hover:brightness-110 sm:px-4"
+                        className="flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-[var(--radius-pill)] bg-accent-cyan px-3 font-medium text-void shadow-glow-cyan transition-[filter] duration-fast hover:brightness-110 sm:px-4"
                       >
                         <span className="sm:hidden">가입</span><span className="hidden sm:inline">회원가입</span>
                       </Link>
