@@ -54,19 +54,19 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
                   <nav className="hidden items-center gap-1 text-step--1 sm:flex">
                     <Link
                       href="/shop/men"
-                      className="rounded-[var(--radius-sm)] px-3 py-2 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg"
+                      className="inline-flex min-h-11 min-w-11 items-center justify-center whitespace-nowrap rounded-[var(--radius-sm)] px-3 py-2 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg"
                     >
                       남성의류
                     </Link>
                     <Link
                       href="/shop/women"
-                      className="rounded-[var(--radius-sm)] px-3 py-2 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg"
+                      className="inline-flex min-h-11 min-w-11 items-center justify-center whitespace-nowrap rounded-[var(--radius-sm)] px-3 py-2 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg"
                     >
                       여성의류
                     </Link>
                     <Link
                       href="/search"
-                      className="rounded-[var(--radius-sm)] px-3 py-2 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg"
+                      className="inline-flex min-h-11 min-w-11 items-center justify-center whitespace-nowrap rounded-[var(--radius-sm)] px-3 py-2 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg"
                     >
                       검색
                     </Link>
@@ -84,7 +84,7 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
                     <>
                       <Link
                         href={user.role === "ADMIN" ? "/admin" : "/mypage"}
-                        className="flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-[var(--radius-sm)] px-2 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg sm:px-3"
+                        className="flex min-h-11 min-w-11 shrink-0 items-center justify-center whitespace-nowrap rounded-[var(--radius-sm)] px-2 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg sm:px-3"
                       >
                         {user.role === "ADMIN" ? (
                           <span>관리</span>
@@ -123,19 +123,19 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
               <nav className="flex min-h-12 flex-wrap items-center justify-evenly gap-1 border-t border-line px-2 py-1 text-step--1 sm:hidden">
                 <Link
                   href="/shop/men"
-                  className="flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-[var(--radius-sm)] px-2 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg"
+                  className="flex min-h-11 min-w-11 shrink-0 items-center justify-center whitespace-nowrap rounded-[var(--radius-sm)] px-2 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg"
                 >
                   남성의류
                 </Link>
                 <Link
                   href="/shop/women"
-                  className="flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-[var(--radius-sm)] px-2 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg"
+                  className="flex min-h-11 min-w-11 shrink-0 items-center justify-center whitespace-nowrap rounded-[var(--radius-sm)] px-2 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg"
                 >
                   여성의류
                 </Link>
                 <Link
                   href="/search"
-                  className="flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-[var(--radius-sm)] px-2 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg"
+                  className="flex min-h-11 min-w-11 shrink-0 items-center justify-center whitespace-nowrap rounded-[var(--radius-sm)] px-2 text-fg-muted transition-colors duration-fast hover:bg-raised hover:text-fg"
                 >
                   검색
                 </Link>

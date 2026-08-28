@@ -15,4 +15,16 @@ test("전역 헤더는 큰 글자에서 행을 나누고 사용자 명령을 자
   assert.doesNotMatch(header, /sm:flex-nowrap/);
   assert.doesNotMatch(header, /max-w-\[7rem\]|\btruncate\b/);
   assert.match(header, />마이페이지<\/span>/);
+  assert.match(
+    header,
+    /href="\/shop\/men"[\s\S]*?inline-flex min-h-11 min-w-11/,
+  );
+  assert.match(
+    header,
+    /href=\{user\.role[\s\S]*?min-h-11 min-w-11/,
+  );
+  assert.match(
+    header,
+    /href="\/search"[\s\S]*?flex min-h-11 min-w-11/,
+  );
 });
