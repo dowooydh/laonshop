@@ -198,14 +198,20 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
                 <div className="flex flex-wrap gap-x-4 gap-y-1">
                   <span className="break-keep">
                     고객센터:{" "}
-                    <a href="tel:070-4044-7008" className="text-fg-muted hover:text-accent-cyan">
+                    <a
+                      href="tel:070-4044-7008"
+                      className="inline-flex min-h-11 min-w-11 max-w-full items-center align-middle rounded-[var(--radius-sm)] text-fg-muted hover:text-accent-cyan focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-cyan [overflow-wrap:anywhere]"
+                    >
                       070-4044-7008
                     </a>
                   </span>
                   <span className="break-keep">평일 09:00–18:00</span>
                   <span className="min-w-0">
                     이메일:{" "}
-                    <a href="mailto:custom_sales@customorder.co.kr" className="inline-block max-w-full text-fg-muted hover:text-accent-cyan [overflow-wrap:anywhere]">
+                    <a
+                      href="mailto:custom_sales@customorder.co.kr"
+                      className="inline-flex min-h-11 min-w-11 max-w-full items-center align-middle rounded-[var(--radius-sm)] text-fg-muted hover:text-accent-cyan focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-cyan [overflow-wrap:anywhere]"
+                    >
                       custom_sales@customorder.co.kr
                     </a>
                   </span>

@@ -577,15 +577,27 @@ export function CheckoutForm({
         onChange={(e) => setAgree(e.target.checked)}
       >
         [필수] 주문 상품·결제 정보를 확인하였으며,{" "}
-        <Link href="/policy/terms" target="_blank" className="text-fg underline underline-offset-2 hover:text-accent-cyan">
+        <Link
+          href="/policy/terms"
+          target="_blank"
+          className="inline-flex min-h-11 min-w-11 max-w-full items-center align-middle rounded-[var(--radius-sm)] text-fg underline underline-offset-2 hover:text-accent-cyan focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-cyan [overflow-wrap:anywhere]"
+        >
           이용약관
         </Link>
         ,{" "}
-        <Link href="/policy/privacy" target="_blank" className="text-fg underline underline-offset-2 hover:text-accent-cyan">
+        <Link
+          href="/policy/privacy"
+          target="_blank"
+          className="inline-flex min-h-11 min-w-11 max-w-full items-center align-middle rounded-[var(--radius-sm)] text-fg underline underline-offset-2 hover:text-accent-cyan focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-cyan [overflow-wrap:anywhere]"
+        >
           개인정보처리방침
         </Link>{" "}
         및{" "}
-        <Link href="/policy/refund" target="_blank" className="text-fg underline underline-offset-2 hover:text-accent-cyan">
+        <Link
+          href="/policy/refund"
+          target="_blank"
+          className="inline-flex min-h-11 min-w-11 max-w-full items-center align-middle rounded-[var(--radius-sm)] text-fg underline underline-offset-2 hover:text-accent-cyan focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-cyan [overflow-wrap:anywhere]"
+        >
           청약철회·환불 정책
         </Link>
         에 동의합니다.

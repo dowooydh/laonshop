@@ -11,7 +11,10 @@ const FAQS: { q: string; a: ReactNode }[] = [
       <>
         결제 확인 후 영업일 기준 2~3일 이내 출고되며, 출고 후 1~2일 내 받아보실 수 있습니다. 전 상품
         무료배송입니다. 자세한 내용은{" "}
-        <Link href="/policy/shipping" className="underline underline-offset-2 hover:text-fg">
+        <Link
+          href="/policy/shipping"
+          className="inline-flex min-h-11 min-w-11 max-w-full items-center align-middle rounded-[var(--radius-sm)] underline underline-offset-2 hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-cyan [overflow-wrap:anywhere]"
+        >
           배송 안내
         </Link>
         를 확인해 주세요.
@@ -24,7 +27,10 @@ const FAQS: { q: string; a: ReactNode }[] = [
       <>
         상품 수령 후 7일 이내에 마이페이지 → 주문 상세의 ‘취소·반품 신청’ 버튼 또는 고객센터로 신청할 수
         있습니다. 단순 변심 반품 배송비는 소비자 부담, 하자·오배송은 회사 부담입니다. 자세한 내용은{" "}
-        <Link href="/policy/refund" className="underline underline-offset-2 hover:text-fg">
+        <Link
+          href="/policy/refund"
+          className="inline-flex min-h-11 min-w-11 max-w-full items-center align-middle rounded-[var(--radius-sm)] underline underline-offset-2 hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-cyan [overflow-wrap:anywhere]"
+        >
           청약철회·교환·환불 안내
         </Link>
         를 확인해 주세요.
@@ -75,11 +81,17 @@ export default function SupportPage() {
         <h2 className="font-mono text-step--1 uppercase tracking-widest text-accent-cyan">고객센터</h2>
         <p className="mt-3 text-step--1 leading-relaxed text-fg-muted [overflow-wrap:anywhere]">
           전화{" "}
-          <a href="tel:070-4044-7008" className="text-fg hover:text-accent-cyan">
+          <a
+            href="tel:070-4044-7008"
+            className="inline-flex min-h-11 min-w-11 max-w-full items-center align-middle rounded-[var(--radius-sm)] text-fg hover:text-accent-cyan focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-cyan [overflow-wrap:anywhere]"
+          >
             070-4044-7008
           </a>{" "}
           (평일 09:00–18:00) · 이메일{" "}
-          <a href="mailto:custom_sales@customorder.co.kr" className="text-fg hover:text-accent-cyan">
+          <a
+            href="mailto:custom_sales@customorder.co.kr"
+            className="inline-flex min-h-11 min-w-11 max-w-full items-center align-middle rounded-[var(--radius-sm)] text-fg hover:text-accent-cyan focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-cyan [overflow-wrap:anywhere]"
+          >
             custom_sales@customorder.co.kr
           </a>{" "}
           ·{" "}
@@ -87,7 +99,7 @@ export default function SupportPage() {
             href="https://pf.kakao.com/_UhNxdn/chat"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-fg hover:text-accent-cyan"
+            className="inline-flex min-h-11 min-w-11 max-w-full items-center align-middle rounded-[var(--radius-sm)] text-fg hover:text-accent-cyan focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-cyan [overflow-wrap:anywhere]"
           >
             카카오톡 문의
           </a>
