@@ -2,62 +2,55 @@
 
 작성일: 2026-08-29
 
-검증 제품 SHA: `5a753a96e4a740f924448f97c84797484c63ca24`
+검증 제품 SHA: `bd10ae6407bac775bc7da6fbf5ba332b078909d8`
 
-비교 기준: `7212162aec318b589626df361158aaa64c4f726d`
+이전 QA 기준: `ec4375d30d91d52f3c45e2a5003cc1b587740dad`
 
-운영 배포: `dpl_9WPYGUyVdrn88hy1K5YdL73kDFXi` / `https://laonshop.com`
+운영 배포: `dpl_613qJehUc8N537ekMMifSYm32Vc7` / `https://laonshop.com`
 
-결과: **FAIL**
+결과: **PASS**
 
 ## 판정
 
-- 등록카드 문구 단순화: **PASS**
-- 과거/신규 주문 `(등록카드)` 정규화와 billing 취소 분기: **PASS**
-- 일반 KSPAY 4수단·`aria-pressed`: **PASS**
-- gate OFF/ON 외부 요청·운영 쓰기 0: **PASS**
-- 126개 반응형 조합의 document overflow·ancestor clipping: **PASS**
-- `QA-5A753-01` checkout·FAQ·고객센터·footer 링크 44px 미만: **P2 / OPEN**
-- 문구 변경 자체: **GO**
-- 현재 전체 접근성 gate: **NO-GO**
+- `QA-5A753-01` 인라인 링크 44px 미달: **FIXED / CLOSED**
+- 운영 support/footer 최소 실제 anchor: `49.25x44px`
+- 격리 checkout 최소 실제 anchor: `55.31x44px`
+- 네 경계 hit ownership: **560/560 PASS**
+- 링크 overlap·document overflow·clipping: **0건**
+- checkout 정책 링크 클릭과 checkbox 상태 독립성: **12/12 PASS**
+- 등록카드 문구·legacy 주문 호환·KSPAY 4수단: **PASS**
+- gate OFF/ON 외부 요청·DB 변화: **0건**
+- 신규 제품 결함: **0건**
+- 출시 판단: **GO**
+- 실제 LAONPAY 활성화: 외부 readiness 완료 전 **HOLD**
 
-상세 증거는 [`report.md`](../reports/2026-08-29-5a753a9-registration-card-copy-regression/report.md)에 정리했습니다.
+상세 증거는 [`report.md`](../reports/2026-08-29-bd10ae6-inline-link-target-regression/report.md)에 정리했습니다.
 
 ## 핵심 결과
 
 | 범위 | 결과 | 핵심 증거 |
 | --- | --- | --- |
-| 정적 검증 | PASS | focused 61/61, 전체 137/137, interop 2/2, skip 0, lint/typecheck/prisma/audit/build |
-| 배포 | PASS | READY/production/sin1, SHA·apex/www/fixed alias 일치, runtime error 0 |
-| 사용자 문구 | PASS | settings/checkout/order/support/terms/privacy/footer에서 긴 제품명·내부 표식·`원장` 노출 0 |
-| 주문 호환 | PASS | 신규/legacy DB 표식을 화면에서 모두 `QA 카드 (등록카드)`로 표시, `전체 주문 취소 요청` 유지 |
-| KSPAY | PASS | 카드·카카오·네이버·계좌이체 및 등록카드 선택의 `aria-pressed`, 선택 네트워크 0 |
-| gate OFF | PASS | hosted CTA·등록카드 결제 미노출, KSPAY 4수단 유지, provider/write 0 |
-| gate ON | PASS | masked method만 표시, 카드 원문/token/secret 0, non-GET/provider 0, DB 기준선 불변 |
-| 반응형 | PASS | 격리 84 + 운영 42 = 126조합, `320~1280px x 100%/200%`, overflow/clipping 0 |
-| 44px 타깃 | FAIL | support 전화·이메일·카카오 `16px`, FAQ `38px`, checkout 정책 `19px`, footer 전화 `16px`/이메일 `22px` |
-| Cleanup | PASS | 격리 DB·서버·임시 key/runner 삭제, 포트 3003/3004 listener 0 |
+| 정적 검증 | PASS | Node 22.23.1, focused 7/7, 전체 140/140, interop 2/2, skip 0, lint/typecheck/prisma/audit/preflight/build |
+| 배포 | PASS | READY/production/sin1, SHA·apex/www/fixed alias 일치, runtime error·deployment error/fatal 0 |
+| 운영 링크 | PASS | 14조합, anchor 98개, hit point 392개, 최소 `49.25x44px`, overlap/overflow/clipping 0 |
+| checkout 링크 | PASS | 14조합, anchor 42개, hit point 168개, 최소 `55.31x44px`, focus/Tab 실패 0 |
+| checkbox 독립성 | PASS | 꺼짐/켜짐에서 정책 3링크를 2개 viewport로 실제 클릭, 상태 변화 0/12 |
+| gate OFF | PASS | hosted CTA·등록카드 tile 미노출, KSPAY 4수단 유지, provider/write 0 |
+| gate ON | PASS | 3 viewport x 4화면, 기본 `등록카드`, 신규/legacy `(등록카드)` 정규화, billing 취소 분기 유지 |
+| 민감정보·외부 경계 | PASS | 카드 원문/token/secret 노출 0, non-GET/provider 0, DB 기준선 불변 |
+| Cleanup | PASS | 격리 DB·서버·합성 key/session/runner 삭제, 포트 3003/3004·temp 잔여 0 |
 
-## 결함
+## 수정 전후
 
-### QA-5A753-01 P2 — 인라인 링크 타깃 44px 미달
+`390px/100%`에서 직전 `16~38px` 높이였던 대상은 모두 `44px`가 됐습니다.
 
-`390px/100%`에서 다음을 재현했습니다.
+- FAQ 배송·환불: `38px` → `44px`
+- 고객센터 전화·이메일·카카오: `16px` → `44px`
+- footer 전화·이메일: `16~22px` → `44px`
+- checkout 정책 링크: `19px` → `44px`
 
-- support FAQ 링크: `349x38px`, `358x38px`
-- support 고객센터 전화·이메일·카카오: `98x16px`, `201x16px`, `73x16px`
-- checkout 동의문 개인정보·환불 링크: `111x19px`, `119x19px`
-- 공용 footer 전화·이메일: `98x16px`, `201x22px`
-
-관련 위치:
-
-- `app/checkout/checkout-form.tsx:580-591`
-- `app/support/page.tsx:14-29`
-- `app/support/page.tsx:77-94`
-- `app/layout.tsx:199-211`
-
-문구 diff가 새로 만든 회귀는 아니지만 이번 인계의 필수 44px gate를 실패시킵니다. 각 링크에 최소 44px 클릭 영역을 제공한 뒤 전 폭·200%·hit ownership·Tab/focus를 재검증해야 합니다.
+`320px/200%` 긴 이메일과 환불 정책명은 높이가 `88~129.47px`로 자연스럽게 줄바꿈됐으며 내부 scroll과 clipping이 없습니다.
 
 ## 개발 작업 전달
 
-`5a753a9`의 등록카드 문구·주문 호환·결제 경계는 추가 수정 없이 유지할 수 있습니다. `QA-5A753-01` 링크 타깃만 제품 코드에서 보강한 뒤 표적 QA를 다시 요청해 주세요. 실제 LAONPAY env/schema/key/PG 활성화는 이번 문구 PASS와 별개인 외부 HOLD입니다.
+제품 SHA `bd10ae6`은 이번 QA 범위에서 추가 수정 없이 출시 가능합니다. 실제 등록카드 결제 활성화는 LAONPAY partner env/key/readiness, 외부 hosted/API 상호운용과 실 PG 검증 전까지 별도 HOLD를 유지해야 합니다.
