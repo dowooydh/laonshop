@@ -12,6 +12,7 @@
 
 ## 현재 기준선
 
+- 2026-09-18 22시 후속: 첫 10분 등록 링크는 외부 발급 전 만료됐다. 동일 로그인에서 서명 GET으로 만료를 반영하고 새 링크를 열어 사용자가 카드 등록을 완료했다. LAONPAY BAUM REGISTER SUCCEEDED 1건·ACTIVE 카드 1개·암호화 token 존재·청구 0 및 라온샵 등록 완료/사용 가능 표시를 확인했다. 과거 UNKNOWN은 보존했다. 늦은 복귀의 만료 가능성과 재확인 방법, 성공 카드와 과거 요청의 구분 안내를 보완했다. 청구·취소·해지 검증은 별도다.
 - 2026-09-18 같은 계정의 과거 `UNKNOWN` 등록 때문에 카드 등록 화면을 열지 못하는 경로를 보완했다. 설정의 `새 카드 등록 요청`은 본인 원장·원격 UNKNOWN·카드 미존재·진행 중 요청 부재를 확인하고 LAONPAY의 정상 서명 API로 새 intent를 요청한다. 과거 UNKNOWN을 삭제하거나 성공/실패로 바꾸지 않고, LAONPAY의 provider별 중복 발급 차단도 유지한다. 현재 시험 계정만 허용된 운영 allowlist를 바꾸지 않는다. 관련 157개 검사·lint·격리 DB production build PASS이며 실제 카드 등록 성공 여부는 별도 검증한다. 근거: `tests/reports/2026-09-18-billing-same-account-registration.md`.
 - 라온샵은 라온페이와 데이터·배포가 분리된 독립 Next.js 15 쇼핑몰이다. 라온페이 모노레포로 다시 합치지 않는다.
 - 운영 주소는 `laonshop.com`과 `www.laonshop.com`, Vercel 프로젝트는 `customorder/laonshop`이다. main 푸시는 자동 배포된다.

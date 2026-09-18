@@ -253,7 +253,9 @@ export function BillingCards({
 
           {hasOpenRegistration ? (
             <p className="rounded-[var(--radius-md)] border border-warning/30 bg-warning/5 p-[12px] text-step--1 text-warning">
-              이전 카드 등록 결과를 확인해야 합니다. 기존 요청 상태를 이어서 확인할 수 있습니다.
+              {paymentMethods.some((method) => method.status === "ACTIVE")
+                ? "등록된 카드는 사용할 수 있습니다. 별도로 결과 확인이 필요한 이전 등록 요청이 남아 있습니다."
+                : "이전 카드 등록 결과를 확인해야 합니다. 기존 요청 상태를 이어서 확인할 수 있습니다."}
             </p>
           ) : null}
 

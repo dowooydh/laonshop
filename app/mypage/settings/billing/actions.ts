@@ -269,7 +269,9 @@ async function refreshKnownRegistration(input: {
   if (synchronized === "SUCCEEDED") return { ok: true, status: synchronized };
   if (synchronized === "DECLINED" || synchronized === "EXPIRED") {
     return {
-      error: "카드 등록이 완료되지 않았습니다. 필요하면 새 등록을 시작해 주세요.",
+      error: synchronized === "EXPIRED"
+        ? "카드 등록 유효시간이 만료되어 종료되었습니다. ‘카드 등록’ 또는 ‘새 카드 등록 요청’을 눌러 새 화면에서 진행해 주세요."
+        : "카드 등록이 완료되지 않았습니다. 필요하면 새 등록을 시작해 주세요.",
       status: synchronized,
     };
   }
