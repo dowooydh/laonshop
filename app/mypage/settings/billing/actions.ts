@@ -110,6 +110,7 @@ async function markRegistrationUnknown(input: {
   localRegistrationId: string;
   userId: string;
   rejected?: boolean;
+  creationDenied?: boolean;
 }): Promise<void> {
   await prisma
     .$transaction(async (tx) => {
@@ -119,7 +120,11 @@ async function markRegistrationUnknown(input: {
         where: { id: input.localRegistrationId, userId: input.userId },
       });
       if (!local) return;
-      const status = mergeRegistrationStatus(local.status, "UNKNOWN");
+      // 새 intent 생성 자체가 409로 거절된 경우에만 로컬 시작 요청을 종료한다.
+      // 외부 ID가 있거나 등록/청구 결과가 미상인 원장에는 적용하지 않는다.
+      const status = input.creationDenied && local.laonpayRegistrationId === null &&
+        (local.status === "REQUESTING" || local.status === "UNKNOWN")
+        ? "DECLINED" : mergeRegistrationStatus(local.status, "UNKNOWN");
       if (status === local.status && !input.rejected) return;
       await tx.shopBillingRegistration.update({
         where: { id: local.id },
@@ -276,6 +281,7 @@ async function refreshKnownRegistration(input: {
 
 export async function startBillingRegistrationAction(
   _previous: BillingSettingsActionState,
+  formData?: FormData,
 ): Promise<BillingSettingsActionState> {
   const user = await requireShopUser();
   const featureEnabled = isBillingIntegrationEnabled(user.email);
@@ -288,6 +294,34 @@ export async function startBillingRegistrationAction(
 
   const requestBody = { externalCustomerId: user.id, returnTargetCode: "settings" as const };
   const requestFingerprint = billingRequestFingerprint(requestBody);
+  // 새 등록은 고객이 별도 버튼으로 요청한 경우에만 허용한다. 이전 UNKNOWN은
+  // 그대로 보존하고, 실제 새 intent 허용 여부는 LAONPAY의 고객/provider guard가 판단한다.
+  const additionalAfter = formData?.get("newRegistrationAfter");
+  let reviewedUnknown: { id: string; providerId: string } | null = null;
+  if (additionalAfter !== undefined && additionalAfter !== null) {
+    if (!featureEnabled || typeof additionalAfter !== "string" ||
+      !/^[A-Za-z0-9_-]{8,128}$/.test(additionalAfter)) {
+      return { error: "새 카드 등록을 시작할 수 없습니다. 등록 상태를 다시 확인해 주세요." };
+    }
+    const previous = await prisma.shopBillingRegistration.findFirst({
+      where: {
+        id: additionalAfter,
+        userId: user.id,
+        status: "UNKNOWN",
+        paymentMethodId: null,
+        laonpayRegistrationId: { not: null },
+      },
+    });
+    if (!previous?.laonpayRegistrationId || previous.requestFingerprint !== requestFingerprint) {
+      return { error: "기존 등록 요청을 확인할 수 없습니다. 등록 상태를 다시 조회해 주세요." };
+    }
+    const remote = await createLaonpayBillingClient().getRegistrationIntent(previous.laonpayRegistrationId);
+    if (!remote.ok || remote.data.registrationId !== previous.laonpayRegistrationId ||
+      remote.data.status !== "UNKNOWN" || remote.data.paymentMethod !== null) {
+      return { error: "기존 등록 상태가 변경되었거나 확인되지 않습니다. 등록 상태를 먼저 조회해 주세요." };
+    }
+    reviewedUnknown = { id: previous.id, providerId: previous.laonpayRegistrationId };
+  }
   const prepared = await prisma
     .$transaction(async (tx) => {
       await acquireTransactionLock(tx, `billing-user-lifecycle:${user.id}`);
@@ -313,7 +347,26 @@ export async function startBillingRegistrationAction(
         },
         orderBy: { createdAt: "desc" },
       });
-      if (existing) {
+      if (reviewedUnknown) {
+        // 원격 조회 중 다른 탭이 새 요청을 만들었거나 상태가 변했으면 재시작하지 않는다.
+        const otherInFlight = await tx.shopBillingRegistration.findFirst({
+          where: {
+            userId: user.id,
+            OR: [
+              { status: { in: ["REQUESTING", "PENDING", "PROCESSING"] } },
+              { status: "SUCCEEDED", paymentMethodId: null },
+            ],
+          },
+          select: { id: true },
+        });
+        if (otherInFlight || !existing || existing.id !== reviewedUnknown.id ||
+          existing.status !== "UNKNOWN" || existing.paymentMethodId !== null ||
+          existing.laonpayRegistrationId !== reviewedUnknown.providerId ||
+          existing.requestFingerprint !== requestFingerprint) {
+          return { ok: false as const, error: "진행 중이거나 변경된 등록 요청이 있습니다. 같은 요청의 상태를 먼저 확인해 주세요." };
+        }
+      }
+      if (existing && !reviewedUnknown) {
         if (existing.requestFingerprint !== requestFingerprint) {
           return { ok: false as const, error: "진행 중인 카드 등록 요청을 확인해 주세요." };
         }
@@ -450,10 +503,14 @@ export async function startBillingRegistrationAction(
       userId: user.id,
       // 명시적 거절은 응답 유실이 아니므로 동일 POST 대사 대상이 아니다.
       rejected: result.outcome === "REJECTED",
+      creationDenied: result.outcome === "REJECTED" && result.httpStatus === 409 &&
+        result.errorCode === "REGISTRATION_UNRESOLVED",
     });
     return {
       error:
-        "카드 등록 요청 결과를 확인하지 못했습니다. 새로 요청하지 말고 고객센터에 문의해 주세요.",
+        result.errorCode === "REGISTRATION_UNRESOLVED"
+          ? "이전 카드 등록 결과를 먼저 확인해야 합니다. 결제 서비스에서 새 등록을 허용하지 않았습니다."
+          : "카드 등록 요청 결과를 확인하지 못했습니다. 새로 요청하지 말고 고객센터에 문의해 주세요.",
     };
   }
 

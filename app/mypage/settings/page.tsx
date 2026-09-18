@@ -42,6 +42,7 @@ export default async function SettingsPage({
   });
   let integrationStorageReady = false;
   let hasOpenRegistration = false;
+  let unknownRegistrationId: string | null = null;
   let paymentMethods: BillingPaymentMethodRow[] = [];
   let latestRegistration: {
     status: "REQUESTING" | "PENDING" | "PROCESSING" | "SUCCEEDED" | "DECLINED" | "UNKNOWN" | "EXPIRED";
@@ -70,7 +71,8 @@ export default async function SettingsPage({
               { status: "SUCCEEDED", paymentMethodId: null },
             ],
           },
-          select: { id: true },
+          orderBy: { createdAt: "desc" },
+          select: { id: true, status: true, laonpayRegistrationId: true, paymentMethodId: true },
         }),
         prisma.shopBillingRegistration.findFirst({
           where: { userId: user.id },
@@ -87,6 +89,9 @@ export default async function SettingsPage({
         dateLabel: method.providerRegisteredAt.toLocaleDateString("ko-KR"),
       }));
       hasOpenRegistration = Boolean(openRegistration);
+      unknownRegistrationId = openRegistration?.status === "UNKNOWN" &&
+        openRegistration.laonpayRegistrationId && openRegistration.paymentMethodId === null
+        ? openRegistration.id : null;
       latestRegistration = latest;
       integrationStorageReady = true;
     } catch {
@@ -188,6 +193,7 @@ export default async function SettingsPage({
           integrationFeatureEnabled={integrationFeatureEnabled}
           integrationStorageReady={integrationStorageReady}
           hasOpenRegistration={hasOpenRegistration}
+          unknownRegistrationId={unknownRegistrationId}
           registrationMessage={registrationMessage}
           paymentMethods={paymentMethods}
           legacyCards={legacyCards.map((card) => ({

@@ -12,6 +12,7 @@
 
 ## 현재 기준선
 
+- 2026-09-18 같은 계정의 과거 `UNKNOWN` 등록 때문에 카드 등록 화면을 열지 못하는 경로를 보완했다. 설정의 `새 카드 등록 요청`은 본인 원장·원격 UNKNOWN·카드 미존재·진행 중 요청 부재를 확인하고 LAONPAY의 정상 서명 API로 새 intent를 요청한다. 과거 UNKNOWN을 삭제하거나 성공/실패로 바꾸지 않고, LAONPAY의 provider별 중복 발급 차단도 유지한다. 현재 시험 계정만 허용된 운영 allowlist를 바꾸지 않는다. 관련 157개 검사·lint·격리 DB production build PASS이며 실제 카드 등록 성공 여부는 별도 검증한다. 근거: `tests/reports/2026-09-18-billing-same-account-registration.md`.
 - 라온샵은 라온페이와 데이터·배포가 분리된 독립 Next.js 15 쇼핑몰이다. 라온페이 모노레포로 다시 합치지 않는다.
 - 운영 주소는 `laonshop.com`과 `www.laonshop.com`, Vercel 프로젝트는 `customorder/laonshop`이다. main 푸시는 자동 배포된다.
 - KSPAY 테스트 MID 인증결제창이 동작한다. 등록카드(정기결제)의 브라우저 전용 Mock은 제거하고, LAONPAY 호스팅 카드 등록과 서버 간 파트너 API를 사용하는 integration-ready 경로로 교체했다. `LAONPAY_BILLING_API_BASE`·`LAONPAY_PARTNER_KEY_ID`·`LAONPAY_PARTNER_PRIVATE_KEY`와 전용 빌링 DB 스키마가 모두 준비되지 않으면 서버에서 fail-closed다. `LAONPAY_BILLING_SCHEMA_READY=1`은 additive SQL과 read-only post-verify 뒤에만 열고, `LAONPAY_BILLING_FEATURE_ENABLED=1`은 상호운용·독립 QA까지 통과한 뒤 신규 등록·청구를 여는 kill switch다. feature를 내려도 schema와 파트너 설정은 유지해 기존 원장의 signed GET·동일 key/body 대사를 계속한다. 이 5종은 Vercel Production scope에만 설정하며, Preview·Development 외부 호출은 차단한다. 과거 mock 카드 레코드는 설정에서 삭제만 가능하다.

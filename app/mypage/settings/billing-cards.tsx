@@ -30,6 +30,7 @@ type BillingCardsProps = {
   integrationFeatureEnabled: boolean;
   integrationStorageReady: boolean;
   hasOpenRegistration: boolean;
+  unknownRegistrationId?: string | null;
   registrationMessage: string | null;
 };
 
@@ -75,6 +76,7 @@ export function BillingCards({
   integrationFeatureEnabled,
   integrationStorageReady,
   hasOpenRegistration,
+  unknownRegistrationId,
   registrationMessage,
 }: BillingCardsProps) {
   const router = useRouter();
@@ -251,7 +253,7 @@ export function BillingCards({
 
           {hasOpenRegistration ? (
             <p className="rounded-[var(--radius-md)] border border-warning/30 bg-warning/5 p-[12px] text-step--1 text-warning">
-              확인 중인 카드 등록 요청이 있습니다. 새 요청을 만들지 않고 같은 요청 상태를 이어서 확인합니다.
+              이전 카드 등록 결과를 확인해야 합니다. 기존 요청 상태를 이어서 확인할 수 있습니다.
             </p>
           ) : null}
 
@@ -333,6 +335,32 @@ export function BillingCards({
               </Button>
             </form>
           </div>
+          {integrationFeatureEnabled && unknownRegistrationId ? (
+            <form
+              action={registrationAction}
+              onSubmit={(event) => {
+                if (billingUiLockedRef.current || billingActionPending) {
+                  event.preventDefault();
+                  return;
+                }
+                billingUiLockedRef.current = true;
+                setActiveAction("registration");
+                setMethodActionError(null);
+                setMethodActionMessage(null);
+              }}
+              className="space-y-2 border-t border-line pt-4"
+            >
+              <input type="hidden" name="newRegistrationAfter" value={unknownRegistrationId} />
+              <p id="additional-registration-help" className="text-step--1 leading-relaxed text-fg-subtle">
+                이전 요청은 그대로 보존합니다. 새 등록이 가능한지 확인한 후 카드 입력 화면을 엽니다.
+              </p>
+              <Button type="submit" variant="outline" disabled={billingActionPending}
+                aria-describedby="additional-registration-help"
+                className="h-auto min-h-[48px] w-full whitespace-normal py-3">
+                새 카드 등록 요청
+              </Button>
+            </form>
+          ) : null}
         </div>
       )}
 
