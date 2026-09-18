@@ -24,3 +24,17 @@
 - UTC 환경에서 결제일시가 22:27:48로 표시되고 15:30Z의 취소 접수일이 한국 다음날로 표시되는 경계 확인 PASS.
 - 운영 설정 없는 소스 snapshot과 자체 PostgreSQL의 production build PASS. 자체 DB 종료·삭제 완료.
 - 배포 및 실제 취소 후속 결과는 아래에 추가한다.
+
+## 운영 반영과 전체취소 검증 완료
+
+시각 표시 제품 커밋 `510e4d0` 자동배포 `dpl_4r6RiqWGHYH2aJSpFRooH64MC27E` READY 및 운영 두 도메인 적용을 확인했다. 실제 주문 화면 새로고침 후 한국 시간 PM 10:27:48로 표시됐다.
+
+2026-09-18 22:49 KST 사용자가 관리자 전체취소를 직접 실행했다.
+
+- BAUM CANCEL SUCCEEDED 1건, Payment/BillingCharge CANCELED, 취소 요청 DONE, ADMIN/PAYMENT_CANCEL 감사 1건.
+- 실제 FULL_CANCELED 통보 21,000원·0000 수신, commit 후 HTTP 200·COMMITTED·17ms, worker APPLIED/ALREADY_LEDGER_BOUND 확인.
+- 해당 셀러 당일 결제 21,000원·취소 21,000원·지급예정액 0원. 거래 시점 정산금 스냅샷은 보존.
+- 주문 화면에서 `취소 상태 조회`로 정상 서명 GET을 실행한 후 `주문이 취소되었습니다`와 등록카드 취소 완료 안내 확인.
+- 카드 ACTIVE/BAUM·암호화 저장 유지, 과거 UNKNOWN/operation digest 불변. 추가 청구·카드 해지 없음.
+
+이번 등록카드 1건의 등록·실승인·전체취소·승인/취소 실통보·쇼핑몰 동기화와 정산 상계를 완료했다. 모든 카드사·해지·예약 반복 청구 검증을 뜻하지 않는다. 상세 서버 증거는 LAONPAY 저장소 `tests/reports/2026-09-18-baum-billing-charge-cancel.md`에 기록했다.

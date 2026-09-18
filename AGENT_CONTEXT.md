@@ -12,6 +12,8 @@
 
 ## 현재 기준선
 
+- 2026-09-18 22:49 KST 전체취소 완료: 이번 21,000원 등록카드 결제를 사용자가 관리자에서 전체취소했고 LAONPAY CANCEL SUCCEEDED·두 원장 CANCELED·요청 DONE·관리자 감사·취소 실통보 APPLIED·지급예정액 0원과 라온샵 취소 완료 화면까지 확인했다. 카드 ACTIVE·과거 UNKNOWN은 보존했다. 시각 수정 `510e4d0` 운영 반영 및 실제 한국 시간 표시도 확인했다. 아래 최종 실행 대기는 이전 시점 기록이다. [최종 검증](tests/reports/2026-09-18-billing-charge-cancel.md).
+
 - 2026-09-18 등록카드 실승인: 사용자가 21,000원 결제를 직접 실행했고 LAONSHOP 완료 화면·LAONPAY BAUM CHARGE SUCCEEDED 1건·바움 실제 승인 통보 commit/ACK·거래조회 MATCHED와 원장 반영을 확인했다. 전체취소 요청은 접수됐으며 관리자 최종 실행 대기다. 완료 화면의 UTC 시각 표시는 한국 시간대로 수정하고 격리 build를 통과했다. [검증 보고서](tests/reports/2026-09-18-billing-charge-cancel.md).
 
 - 2026-09-18 22시 후속: 첫 10분 등록 링크는 외부 발급 전 만료됐다. 동일 로그인에서 서명 GET으로 만료를 반영하고 새 링크를 열어 사용자가 카드 등록을 완료했다. LAONPAY BAUM REGISTER SUCCEEDED 1건·ACTIVE 카드 1개·암호화 token 존재·청구 0 및 라온샵 등록 완료/사용 가능 표시를 확인했다. 과거 UNKNOWN은 보존했다. 늦은 복귀의 만료 가능성과 재확인 방법, 성공 카드와 과거 요청의 구분 안내를 보완했다. 청구·취소·해지 검증은 별도다.
