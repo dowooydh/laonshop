@@ -318,7 +318,7 @@ export default async function OrderResultPage({
                 <div className="flex flex-wrap items-start justify-between gap-x-[16px] gap-y-[8px]">
                   <dt className="shrink-0">결제일시</dt>
                   <dd className="min-w-[min(100%,7rem)] flex-1 text-right font-medium text-fg [overflow-wrap:anywhere]">
-                    {order.paidAt.toLocaleString("ko-KR")}
+                    {order.paidAt.toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}
                   </dd>
                 </div>
               )}
@@ -390,7 +390,7 @@ export default async function OrderResultPage({
       {order.status === "CANCEL_REQUESTED" && (
         <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius-md)] border border-line bg-raised px-4 py-3 text-step--1 text-fg-muted">
           <span className="min-w-[min(100%,15rem)] flex-1 break-keep">
-            {order.cancelRequestedAt?.toLocaleDateString("ko-KR")} 접수 — 확인 후 고객센터에서 연락드립니다.
+            {order.cancelRequestedAt?.toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul" })} 접수 — 확인 후 고객센터에서 연락드립니다.
           </span>
           <Badge variant="orange">취소 접수</Badge>
         </div>
