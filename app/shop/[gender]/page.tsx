@@ -2,12 +2,17 @@ import { prisma } from "@/lib/db";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { CategoryShop } from "@/components/category-shop";
+import { getPreparedProducts } from "@/lib/prepared-products";
 
 export const dynamic = "force-dynamic";
 
 const LABEL: Record<string, string> = { men: "남성의류", women: "여성의류" };
 
-export async function generateMetadata({ params }: { params: Promise<{ gender: string }> }): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ gender: string }>;
+}): Promise<Metadata> {
   const { gender } = await params;
   const label = LABEL[gender];
   if (!label) return {};
@@ -17,7 +22,11 @@ export async function generateMetadata({ params }: { params: Promise<{ gender: s
   };
 }
 
-export default async function ShopGenderPage({ params }: { params: Promise<{ gender: string }> }) {
+export default async function ShopGenderPage({
+  params,
+}: {
+  params: Promise<{ gender: string }>;
+}) {
   const { gender } = await params;
   if (gender !== "men" && gender !== "women") notFound();
 
@@ -36,5 +45,14 @@ export default async function ShopGenderPage({ params }: { params: Promise<{ gen
     createdAt: p.createdAt.toISOString(),
   }));
 
-  return <CategoryShop gender={gender} label={LABEL[gender]} products={cards} />;
+  return (
+    <CategoryShop
+      gender={gender}
+      label={LABEL[gender]}
+      products={[
+        ...getPreparedProducts().filter((product) => product.gender === gender),
+        ...cards,
+      ]}
+    />
+  );
 }

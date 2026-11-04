@@ -15,7 +15,7 @@
     "test": "tsx --test tests/**/*.test.ts && pnpm validate:images",
     "test:billing:interop": "tsx --test tests/integration/laonpay-billing-lifecycle-http.test.ts",
     "test:billing:schema": "node tests/integration/run-laonpay-billing-schema-postgres.mjs",
-    "validate:images": "node scripts/validate-detail-assets.mjs",
+    "validate:images": "node scripts/validate-detail-assets.mjs && node scripts/validate-new-product-assets.mjs",
     "typecheck": "tsc --noEmit",
     "billing:preflight": "tsx scripts/check-laonpay-billing-readiness.ts",
     "billing:schema:verify": "psql \"$DIRECT_URL\" --set=ON_ERROR_STOP=1 --file ops/laonpay-billing/sql/002_post_verify.sql",

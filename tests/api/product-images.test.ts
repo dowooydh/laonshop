@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import nextConfig from "../../next.config";
+import newProductImages from "../../data/new-product-images.json";
+import { PREPARED_PRODUCT_KEYS } from "../../lib/prepared-products";
 import { getProductDetailImages, productDetailSlug } from "../../lib/product-detail-images";
 import {
   hydrateMissingProductImages,
@@ -12,6 +14,17 @@ import {
 
 const PORTRAIT_REMOTE =
   "https://images.unsplash.com/photo-safe?w=1200&h=1500&q=85&auto=format&fit=crop&crop=faces%2Centropy";
+
+test("새 AI 상품 12종은 완성 명세의 이미지 경로만 허용한다", () => {
+  assert.deepEqual(newProductImages.products.map((image) => image.key).sort(), [...PREPARED_PRODUCT_KEYS].sort());
+  for (const image of newProductImages.products) {
+    assert.equal(safeProductImageUrl(image.path), image.path);
+    assert.equal(safeProductImageUrl(`${image.path}?unapproved=1`), null);
+    assert.equal(safeProductImageUrl(`${image.path}#fragment`), null);
+  }
+  assert.equal(safeProductImageUrl("/products/new/20261104/unknown.webp"), null);
+  assert.ok(nextConfig.images?.localPatterns?.some((pattern) => pattern.pathname === "/products/new/20261104/**" && pattern.search === ""));
+});
 
 test("상세컷 버전 URL은 Next 이미지 최적화 허용 목록과 일치한다", () => {
   assert.ok(

@@ -4,11 +4,22 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ProductCard } from "@/components/product-card";
 import { RecentProducts } from "@/components/recent-products";
+import { getProductClassification } from "@/lib/catalog-taxonomy";
+import { getPreparedProducts } from "@/lib/prepared-products";
 
 export const dynamic = "force-dynamic";
 
 // 시드 카탈로그 기준 실결과가 있는 검색어만 노출
-const SUGGESTED = ["셔츠", "니트", "데님", "원피스", "자켓", "가방", "스니커즈", "부츠"];
+const SUGGESTED = [
+  "셔츠",
+  "니트",
+  "데님",
+  "원피스",
+  "자켓",
+  "가방",
+  "스니커즈",
+  "부츠",
+];
 
 export async function generateMetadata({
   searchParams,
@@ -19,21 +30,32 @@ export async function generateMetadata({
   return { title: q?.trim() ? `"${q.trim()}" 검색 결과` : "상품 검색" };
 }
 
-export default async function SearchPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+export default async function SearchPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
   const { q } = await searchParams;
   const query = (q ?? "").trim().slice(0, 50);
 
   const products = query
-    ? await prisma.product.findMany({
-        where: {
-          active: true,
-          OR: [
-            { name: { contains: query, mode: "insensitive" } },
-            { description: { contains: query, mode: "insensitive" } },
-            { category: { contains: query } },
-          ],
-        },
-        orderBy: { sortOrder: "asc" },
+    ? [
+        ...getPreparedProducts(),
+        ...(
+          await prisma.product.findMany({
+            where: { active: true },
+            orderBy: { sortOrder: "asc" },
+          })
+        ).map((product) => ({
+          ...product,
+          prepared: false,
+          soldOut: product.stock <= 0,
+        })),
+      ].filter((product) => {
+        const classification = getProductClassification(product);
+        return `${product.name} ${"description" in product ? (product.description ?? "") : ""} ${product.category ?? ""} ${classification.category} ${classification.subcategory}`
+          .toLocaleLowerCase()
+          .includes(query.toLocaleLowerCase());
       })
     : [];
 
@@ -59,7 +81,12 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
       </header>
 
       <div className="max-w-xl space-y-4">
-        <form action="/search" method="get" role="search" className="flex items-center gap-2">
+        <form
+          action="/search"
+          method="get"
+          role="search"
+          className="flex items-center gap-2"
+        >
           <Input
             type="search"
             name="q"
@@ -68,7 +95,9 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
             aria-label="상품 검색"
             maxLength={50}
           />
-          <Button type="submit" size="lg" className="shrink-0">검색</Button>
+          <Button type="submit" size="lg" className="shrink-0">
+            검색
+          </Button>
         </form>
 
         {/* 추천 검색어 */}
@@ -110,8 +139,9 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
                   name={p.name}
                   price={p.price}
                   imageUrl={p.imageUrl}
-                  eyebrow={`${p.gender === "women" ? "여성" : "남성"} · ${p.category ?? "의류"}`}
-                  soldOut={p.stock <= 0}
+                  eyebrow={`${p.gender === "women" ? "여성" : "남성"} · ${getProductClassification(p).category}`}
+                  soldOut={p.soldOut}
+                  prepared={p.prepared}
                 />
               ))}
             </div>
@@ -133,7 +163,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
                   name={p.name}
                   price={p.price}
                   imageUrl={p.imageUrl}
-                  eyebrow={`${p.gender === "women" ? "여성" : "남성"} · ${p.category ?? "의류"}`}
+                  eyebrow={`${p.gender === "women" ? "여성" : "남성"} · ${getProductClassification(p).category}`}
                   soldOut={p.stock <= 0}
                   sizes="(min-width: 640px) 25vw, 50vw"
                 />

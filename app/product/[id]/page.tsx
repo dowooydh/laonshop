@@ -9,8 +9,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 import { ProductInfoSections } from "@/components/product-info";
+import { ProductSizeGuide } from "@/components/product-size-guide";
+import { getProductClassification } from "@/lib/catalog-taxonomy";
 import { ProductGallery } from "@/components/product-gallery";
 import { ProductReviews } from "@/components/product-reviews";
+import { ReviewExamples } from "@/components/review-examples";
+import { getReviewExamples, showReviewExamples } from "@/lib/review-examples";
 import { ProductCard } from "@/components/product-card";
 import { RecentProducts, RecordView } from "@/components/recent-products";
 import { AddToCart } from "./add-to-cart";
@@ -80,6 +84,7 @@ export default async function ProductPage({
     .filter(Boolean);
   const gender = product.gender === "women" ? "women" : "men";
   const soldOut = product.stock <= 0;
+  const classification = getProductClassification(product);
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Product",
@@ -126,7 +131,9 @@ export default async function ProductPage({
           {gender === "women" ? "여성의류" : "남성의류"}
         </Link>
         <span aria-hidden>/</span>
-        <span>{product.category}</span>
+        <span>
+          {classification.category} · {classification.subcategory}
+        </span>
       </nav>
       <div className="grid min-w-0 gap-7 md:grid-cols-2 md:gap-10">
         <ProductGallery
@@ -136,7 +143,7 @@ export default async function ProductPage({
         />
         <div className="min-w-0 md:sticky md:top-6 md:self-start">
           <p className="text-sm font-semibold text-fg-muted">
-            LAON SHOP · {product.category}
+            LAON SHOP · {classification.category}
           </p>
           <div className="mt-3 flex items-start justify-between gap-3">
             <h1 className="min-w-0 break-keep text-2xl font-bold leading-snug tracking-tight [overflow-wrap:anywhere] sm:text-3xl">
@@ -156,27 +163,38 @@ export default async function ProductPage({
           <p className="mt-5 text-3xl font-bold tracking-tight">
             {formatKrw(product.price)}
           </p>
-          <dl className="my-6 space-y-3 border-y border-line py-5 text-sm">
-            <div className="flex gap-6">
+          <dl
+            className="my-6 space-y-1 border-y border-line py-4 text-sm"
+            aria-label="구매 안내"
+          >
+            <div className="grid min-h-11 grid-cols-[4.5rem_minmax(0,1fr)] items-center gap-x-4">
               <dt className="w-16 shrink-0 text-fg-subtle">배송비</dt>
-              <dd className="font-semibold">무료배송</dd>
+              <dd className="min-w-0 font-semibold leading-6">무료배송</dd>
             </div>
-            <div className="flex gap-6">
+            <div className="grid min-h-11 grid-cols-[4.5rem_minmax(0,1fr)] items-center gap-x-4">
               <dt className="w-16 shrink-0 text-fg-subtle">출고 안내</dt>
-              <dd>결제 확인 후 영업일 2~3일 내 출고</dd>
+              <dd className="min-w-0 break-keep leading-6 [overflow-wrap:anywhere]">
+                결제 확인 후 영업일 2~3일 내 출고
+              </dd>
             </div>
-            <div className="flex gap-6">
+            <div className="grid min-h-11 grid-cols-[4.5rem_minmax(0,1fr)] items-center gap-x-4">
               <dt className="w-16 shrink-0 text-fg-subtle">교환·반품</dt>
-              <dd>
+              <dd className="min-w-0 leading-6">
                 <Link
                   href="/policy/refund"
-                  className="inline-flex min-h-11 items-center underline underline-offset-4"
+                  className="inline-flex min-h-11 min-w-11 max-w-full items-center break-keep leading-6 underline underline-offset-4 [overflow-wrap:anywhere]"
                 >
                   수령 후 7일 이내 신청 안내
                 </Link>
               </dd>
             </div>
           </dl>
+          <a
+            href="#size-guide"
+            className="mb-4 inline-flex min-h-11 items-center text-sm font-semibold underline underline-offset-4"
+          >
+            사이즈표·측정 방법 보기
+          </a>
           <AddToCart
             product={{
               id,
@@ -218,6 +236,12 @@ export default async function ProductPage({
         className="scroll-mt-60 space-y-6"
         aria-labelledby="details-title"
       >
+        <ProductSizeGuide
+          name={product.name}
+          category={product.category}
+          gender={product.gender}
+          sizes={sizes}
+        />
         <h2 id="details-title" className="text-xl font-bold">
           상품정보
         </h2>
@@ -252,6 +276,11 @@ export default async function ProductPage({
         }))}
         items={reviewable.items}
       />
+      {showReviewExamples() && (
+        <ReviewExamples
+          data={getReviewExamples(`${product.name}:${product.imageUrl ?? ""}`)}
+        />
+      )}
       <section
         id="shipping"
         className="scroll-mt-60"

@@ -3,6 +3,9 @@ import {
   isProductGalleryImagePath,
   productGalleryImagePath,
 } from "@/lib/product-gallery";
+import newProductImages from "@/data/new-product-images.json";
+
+const PREPARED_IMAGE_PATHS = new Set<string>(newProductImages.products.map((image: { path: string }) => image.path));
 
 const PRODUCT_DETAIL_IMAGE_PATH = /^\/products\/detail\/p-[a-z0-9]+\/0[1-4]\.webp$/;
 const PRODUCT_GALLERY_IMAGE_PATH = /^\/products\/gallery\/b\d{2}\/p-[a-z0-9]+\/0[1-5]\.webp$/;
@@ -31,6 +34,9 @@ function normalizeRemoteImageUrl(url: URL): string {
 }
 
 function normalizeLocalImageUrl(url: URL): string | null {
+  if (PREPARED_IMAGE_PATHS.has(url.pathname)) {
+    return url.search || url.hash ? null : url.pathname;
+  }
   if (PRODUCT_GALLERY_IMAGE_PATH.test(url.pathname)) {
     if (!isProductGalleryImagePath(url.pathname)) return null;
     url.search = "";

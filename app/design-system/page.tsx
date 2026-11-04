@@ -1,7 +1,6 @@
 "use client";
 
-// Phase 1 검증용 디자인 시스템 쇼케이스 (핸드오버 §5 "스토리 페이지 하나에 모든 컴포넌트 렌더 + 대비 체크").
-// 전역 셸은 Phase 2에서 다크 전환되므로, 이 페이지는 자체 다크 서피스(bg-void)로 감싸 토큰을 그대로 보여준다.
+// 공통 UI와 현재 라이트 토큰을 확인하는 내부 참조 화면.
 import { useState } from "react";
 import {
   Amount,
@@ -24,19 +23,19 @@ import {
 } from "@/lib/ui";
 
 const COLORS: { name: string; cls: string; hex: string; ring?: boolean }[] = [
-  { name: "bg-void", cls: "bg-void", hex: "#05060A", ring: true },
-  { name: "bg-base", cls: "bg-base", hex: "#0A0C12", ring: true },
-  { name: "bg-raised", cls: "bg-raised", hex: "#12151F", ring: true },
-  { name: "bg-overlay", cls: "bg-overlay", hex: "#1A1E2B", ring: true },
-  { name: "fg-primary", cls: "bg-fg", hex: "#F4F6FB" },
-  { name: "fg-muted", cls: "bg-fg-muted", hex: "#9AA3B2" },
-  { name: "fg-subtle", cls: "bg-fg-subtle", hex: "#5C6577" },
-  { name: "accent-cyan", cls: "bg-accent-cyan", hex: "#4FD1FF" },
-  { name: "accent-violet", cls: "bg-accent-violet", hex: "#8B5CFF" },
-  { name: "accent-lime", cls: "bg-accent-lime", hex: "#C6FF4F" },
-  { name: "success", cls: "bg-success", hex: "#3DDC97" },
-  { name: "warning", cls: "bg-warning", hex: "#FFB84F" },
-  { name: "danger", cls: "bg-danger", hex: "#FF5C7A" },
+  { name: "bg-void", cls: "bg-void", hex: "#FFFFFF", ring: true },
+  { name: "bg-base", cls: "bg-base", hex: "#FFFFFF", ring: true },
+  { name: "bg-raised", cls: "bg-raised", hex: "#F7F7F8", ring: true },
+  { name: "bg-overlay", cls: "bg-overlay", hex: "#EEEEEF", ring: true },
+  { name: "fg-primary", cls: "bg-fg", hex: "#161616" },
+  { name: "fg-muted", cls: "bg-fg-muted", hex: "#525252" },
+  { name: "fg-subtle", cls: "bg-fg-subtle", hex: "#666666" },
+  { name: "accent-cyan", cls: "bg-accent-cyan", hex: "#2458D3" },
+  { name: "accent-violet", cls: "bg-accent-violet", hex: "#5649BD" },
+  { name: "accent-lime", cls: "bg-accent-lime", hex: "#325E39" },
+  { name: "success", cls: "bg-success", hex: "#167447" },
+  { name: "warning", cls: "bg-warning", hex: "#945A00" },
+  { name: "danger", cls: "bg-danger", hex: "#B91C35" },
 ];
 
 const TYPE = [
@@ -64,7 +63,7 @@ export default function DesignSystemPage() {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="mesh-hero -mx-4 -my-6 min-h-dvh px-4 py-10 text-fg [color-scheme:dark] sm:px-8">
+    <div className="-mx-4 -my-6 min-h-dvh min-w-0 px-4 py-10 text-fg [color-scheme:light] [overflow-wrap:anywhere] sm:px-8">
       <div className="mx-auto max-w-5xl space-y-12">
         {/* 헤더 — 디스플레이 폰트 + 발광 */}
         <header className="space-y-4">
@@ -75,8 +74,7 @@ export default function DesignSystemPage() {
             입는 것을 <span className="text-glow-cyan">공간</span>에서.
           </h1>
           <p className="max-w-xl text-step-0 text-fg-muted">
-            Phase 1 — 다크 퍼스트 · 발광 악센트 · 글래스 · 필름 그레인. 모든 UI 컴포넌트와 §4 토큰의
-            단일 참조 화면입니다.
+            현재 라온샵의 글자 크기, 색상, 입력창과 버튼을 확인하는 공통 UI 참조 화면입니다.
           </p>
         </header>
 
@@ -104,7 +102,7 @@ export default function DesignSystemPage() {
             {TYPE.map((t) => (
               <div key={t.label} className="flex flex-wrap items-baseline gap-x-4 gap-y-1 border-b border-line pb-4">
                 <span className="w-16 shrink-0 font-mono text-step--1 text-fg-subtle">{t.label}</span>
-                <span className={`font-display font-semibold tracking-tight text-fg ${t.cls}`}>
+                <span className={`min-w-0 max-w-full font-display font-semibold tracking-tight text-fg [overflow-wrap:anywhere] ${t.cls}`}>
                   라온샵 Aa 24,000
                 </span>
               </div>
@@ -152,7 +150,7 @@ export default function DesignSystemPage() {
             </Button>
           </div>
           <div className="mt-4 max-w-xs">
-            <Button size="xl">xl 풀폭 결제 CTA</Button>
+            <Button size="xl" className="h-auto min-h-14 max-w-full whitespace-normal px-3 py-3 text-center">xl 풀폭 결제 CTA</Button>
           </div>
         </Section>
 
@@ -241,8 +239,8 @@ export default function DesignSystemPage() {
         <Section n="08" title="Accessibility">
           <ul className="space-y-1.5 text-step-0 text-fg-muted">
             <li>· 포커스 링: 발광 시안 2px 아웃라인 (Tab으로 확인).</li>
-            <li>· 대비: fg-primary(#F4F6FB) on bg-void(#05060A) ≈ 18:1 → AAA.</li>
-            <li>· fg-muted(#9AA3B2) on bg-void ≈ 8.8:1 → AA(본문) 충족.</li>
+            <li>· 본문은 흰 배경의 진한 글자색을 사용합니다.</li>
+            <li>· 작은 글자와 버튼 색상은 실제 배경과 함께 대비를 확인합니다.</li>
             <li>· <span className="font-mono text-fg">prefers-reduced-motion</span> 시 애니메이션 정지.</li>
           </ul>
         </Section>
