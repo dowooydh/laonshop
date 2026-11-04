@@ -1,0 +1,85 @@
+{
+  "checkedAt": "2026-11-04T11:19:11.289Z",
+  "target": "production",
+  "origin": "https://laonshop.com",
+  "checks": [
+    "public home exposes approved prepared collection",
+    "men separates selling 155 and prepared 16",
+    "women separates selling 174 and prepared 16",
+    "all 32 new product cards load real image files",
+    "prepared men-top-01 is public and cannot be purchased",
+    "prepared men-top-02 is public and cannot be purchased",
+    "prepared men-top-03 is public and cannot be purchased",
+    "prepared men-top-04 is public and cannot be purchased",
+    "prepared men-top-05 is public and cannot be purchased",
+    "prepared men-bottom-01 is public and cannot be purchased",
+    "prepared men-bottom-02 is public and cannot be purchased",
+    "prepared men-bottom-03 is public and cannot be purchased",
+    "prepared men-bottom-04 is public and cannot be purchased",
+    "prepared men-bottom-05 is public and cannot be purchased",
+    "prepared men-outer-01 is public and cannot be purchased",
+    "prepared men-outer-02 is public and cannot be purchased",
+    "prepared men-shoes-01 is public and cannot be purchased",
+    "prepared men-bag-01 is public and cannot be purchased",
+    "prepared men-hat-01 is public and cannot be purchased",
+    "prepared men-home-01 is public and cannot be purchased",
+    "prepared women-top-01 is public and cannot be purchased",
+    "prepared women-top-02 is public and cannot be purchased",
+    "prepared women-top-03 is public and cannot be purchased",
+    "prepared women-top-04 is public and cannot be purchased",
+    "prepared women-top-05 is public and cannot be purchased",
+    "prepared women-bottom-01 is public and cannot be purchased",
+    "prepared women-bottom-02 is public and cannot be purchased",
+    "prepared women-bottom-03 is public and cannot be purchased",
+    "prepared women-bottom-04 is public and cannot be purchased",
+    "prepared women-outer-01 is public and cannot be purchased",
+    "prepared women-dress-01 is public and cannot be purchased",
+    "prepared women-dress-02 is public and cannot be purchased",
+    "prepared women-skirt-01 is public and cannot be purchased",
+    "prepared women-jewelry-01 is public and cannot be purchased",
+    "prepared women-inner-01 is public and cannot be purchased",
+    "prepared women-home-01 is public and cannot be purchased",
+    "original product has aligned buying information and a reference size guide",
+    "prepared detail 320px 100% has no horizontal overflow",
+    "prepared detail 320px 200% has no horizontal overflow",
+    "prepared detail 390px 100% has no horizontal overflow",
+    "prepared detail 390px 200% has no horizontal overflow",
+    "prepared detail 1280px 100% has no horizontal overflow",
+    "prepared detail 1280px 200% has no horizontal overflow"
+  ],
+  "samples": [
+    {
+      "width": 320,
+      "scale": 1,
+      "overflow": 0
+    },
+    {
+      "width": 320,
+      "scale": 2,
+      "overflow": 0
+    },
+    {
+      "width": 390,
+      "scale": 1,
+      "overflow": 0
+    },
+    {
+      "width": 390,
+      "scale": 2,
+      "overflow": 0
+    },
+    {
+      "width": 1280,
+      "scale": 1,
+      "overflow": 0
+    },
+    {
+      "width": 1280,
+      "scale": 2,
+      "overflow": 0
+    }
+  ],
+  "errors": [],
+  "blockedWrites": [],
+  "status": "PASS"
+}

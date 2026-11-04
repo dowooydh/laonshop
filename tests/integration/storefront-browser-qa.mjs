@@ -11,7 +11,7 @@ const { chromium } = await import(process.env.QA_PLAYWRIGHT_MODULE);
 const browser = await chromium.launch({ executablePath: process.env.QA_CHROME_EXECUTABLE, headless: true, args: ["--no-sandbox"] });
 const base = `http://localhost:${state.appPort}`;
 const f = state.fixtures;
-const output = `${process.cwd()}/tests/reports/2026-11-04-shop-upgrade`;
+const output = process.env.QA_OUTPUT_DIR || `${process.cwd()}/tests/reports/2026-11-04-shop-upgrade`;
 const checks = [], consoleErrors = [], pageErrors = [], externalWrites = [], overlaps = [];
 async function check(name, fn) { await fn(); checks.push(name); }
 async function context(role) {
@@ -100,13 +100,21 @@ try {
     await go(buyerPage, `/product/${f.productId}`);
     const form = buyerPage.locator("form").filter({ has: buyerPage.locator('[name="orderItemId"]') });
     await form.locator('[name="orderItemId"]').selectOption(f.orders.browserReview.itemId);
-    await form.locator('[name="content"]').fill('상품 사이즈를 실제로 받아보니 편안합니다. <img src=x onerror="window.qaInjected=true">');
+    const reviewContent = `상품 사이즈를 실제로 받아보니 편안합니다. ${f.orders.browserReview.moid} <img src=x onerror="window.qaInjected=true">`;
+    await form.locator('[name="content"]').fill(reviewContent);
     buyerPage.on("request", req => { const h = req.headers(); if (req.method() === "POST" && h["next-action"]) reviewRequest = { url: req.url(), action: h["next-action"], contentType: h["content-type"], body: req.postDataBuffer() }; });
+    const reviewResponse = buyerPage.waitForResponse(response => response.request().method() === "POST" && Boolean(response.request().headers()["next-action"]));
     await form.getByRole("button", { name: "후기 등록", exact: true }).click();
-    await buyerPage.getByText("구매후기를 등록했습니다.", { exact: true }).waitFor();
+    const submitted = await reviewResponse;
+    assert.equal(submitted.status(), 200);
+    await submitted.finished();
+    // A revalidated RSC response may replace the transient action message.
+    // Assert the durable customer-visible result and the independently saved row.
+    await buyerPage.locator("#reviews article").filter({ hasText: reviewContent }).waitFor();
     assert.equal(await db.shopProductReview.count({ where: { orderItemId: f.orders.browserReview.itemId } }), 1);
     await buyerPage.reload({ waitUntil: "networkidle" });
     assert.equal(await buyerPage.evaluate(() => window.qaInjected === true), false);
+    assert.equal(await buyerPage.locator(`[name="orderItemId"] option[value="${f.orders.browserReview.itemId}"]`).count(), 0);
     assert.ok(await buyerPage.getByText(/상품 사이즈를 실제로 받아보니/).count()); assert.ok(reviewRequest);
   });
   await check("real review action refuses another customer and anonymous replay", async () => {

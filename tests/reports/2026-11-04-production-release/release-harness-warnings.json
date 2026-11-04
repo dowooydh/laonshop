@@ -1,0 +1,5 @@
+{
+  "status": "RESOLVED_TEST_ORACLE",
+  "initialChromium": "The app main wrapper was visible before streamed catalog heading/content arrived, so immediate main.innerText was empty. Added explicit main h1 visibility as DOM-ready condition; no product modification.",
+  "negativeSliceSetup": "After 288 completed display combinations, the initial empty checkout uses an h2 EmptyState, so the global h1-ready condition timed out before any negative POST. Fixed by setting forged cart on home before opening checkout. Display results retained; only negative slice rerun."
+}

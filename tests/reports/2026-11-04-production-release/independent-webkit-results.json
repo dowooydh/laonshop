@@ -1,0 +1,195 @@
+{
+  "status": "PASS",
+  "engine": "webkit",
+  "checks": 6,
+  "checkNames": [
+    "32 unique prepared records and 329 real products remain separate in the database",
+    "all real products retain option-correct reference guides and preview-only illustrative reviews",
+    "production catalog contains exactly 32 disclosed, AI labeled view-only product cards",
+    "production men-top-01 loads its independent image and cannot be purchased",
+    "production women-dress-01 loads its independent image and cannot be purchased",
+    "all display and forged purchase checks preserve real product and transaction ledgers"
+  ],
+  "layoutCombinations": 8,
+  "layouts": [
+    {
+      "runtime": "production",
+      "path": "/catalog-preview",
+      "width": 390,
+      "scale": 1,
+      "overflow": 0,
+      "clippedFields": [],
+      "exampleSections": 0
+    },
+    {
+      "runtime": "production",
+      "path": "/catalog-preview/men-top-01",
+      "width": 390,
+      "scale": 1,
+      "overflow": 0,
+      "clippedFields": [],
+      "exampleSections": 0
+    },
+    {
+      "runtime": "production",
+      "path": "/catalog-preview",
+      "width": 390,
+      "scale": 2,
+      "overflow": 0,
+      "clippedFields": [],
+      "exampleSections": 0
+    },
+    {
+      "runtime": "production",
+      "path": "/catalog-preview/men-top-01",
+      "width": 390,
+      "scale": 2,
+      "overflow": 0,
+      "clippedFields": [],
+      "exampleSections": 0
+    },
+    {
+      "runtime": "production",
+      "path": "/catalog-preview",
+      "width": 1280,
+      "scale": 1,
+      "overflow": 0,
+      "clippedFields": [],
+      "exampleSections": 0
+    },
+    {
+      "runtime": "production",
+      "path": "/catalog-preview/men-top-01",
+      "width": 1280,
+      "scale": 1,
+      "overflow": 0,
+      "clippedFields": [],
+      "exampleSections": 0
+    },
+    {
+      "runtime": "production",
+      "path": "/catalog-preview",
+      "width": 1280,
+      "scale": 2,
+      "overflow": 0,
+      "clippedFields": [],
+      "exampleSections": 0
+    },
+    {
+      "runtime": "production",
+      "path": "/catalog-preview/men-top-01",
+      "width": 1280,
+      "scale": 2,
+      "overflow": 0,
+      "clippedFields": [],
+      "exampleSections": 0
+    }
+  ],
+  "loadedImages": [
+    {
+      "mode": "production",
+      "key": "men-top-01",
+      "width": 640,
+      "height": 800,
+      "source": "/_next/image"
+    },
+    {
+      "mode": "production",
+      "key": "women-dress-01",
+      "width": 640,
+      "height": 800,
+      "source": "/_next/image"
+    }
+  ],
+  "transports": [
+    {
+      "runtime": "production",
+      "path": "/catalog-preview",
+      "status": 200,
+      "host": "localhost:3105",
+      "redirected": false
+    },
+    {
+      "runtime": "production",
+      "path": "/catalog-preview/men-top-01",
+      "status": 200,
+      "host": "localhost:3105",
+      "redirected": false
+    },
+    {
+      "runtime": "production",
+      "path": "/catalog-preview/women-dress-01",
+      "status": 200,
+      "host": "localhost:3105",
+      "redirected": false
+    },
+    {
+      "runtime": "production",
+      "path": "/catalog-preview",
+      "status": 200,
+      "host": "localhost:3105",
+      "redirected": false
+    },
+    {
+      "runtime": "production",
+      "path": "/catalog-preview/men-top-01",
+      "status": 200,
+      "host": "localhost:3105",
+      "redirected": false
+    },
+    {
+      "runtime": "production",
+      "path": "/catalog-preview",
+      "status": 200,
+      "host": "localhost:3105",
+      "redirected": false
+    },
+    {
+      "runtime": "production",
+      "path": "/catalog-preview/men-top-01",
+      "status": 200,
+      "host": "localhost:3105",
+      "redirected": false
+    },
+    {
+      "runtime": "production",
+      "path": "/catalog-preview",
+      "status": 200,
+      "host": "localhost:3105",
+      "redirected": false
+    },
+    {
+      "runtime": "production",
+      "path": "/catalog-preview/men-top-01",
+      "status": 200,
+      "host": "localhost:3105",
+      "redirected": false
+    },
+    {
+      "runtime": "production",
+      "path": "/catalog-preview",
+      "status": 200,
+      "host": "localhost:3105",
+      "redirected": false
+    },
+    {
+      "runtime": "production",
+      "path": "/catalog-preview/men-top-01",
+      "status": 200,
+      "host": "localhost:3105",
+      "redirected": false
+    }
+  ],
+  "negativeRequests": [],
+  "errors": [],
+  "failedImages": [],
+  "forbiddenRequests": [],
+  "ledger": {
+    "products": 329,
+    "orders": 15,
+    "reviews": 6,
+    "shipments": 14,
+    "events": 18
+  },
+  "productHash": "511189708a4a457d1f8ff6869ceb435c004930a70809519ffeb1b1c07c4ae5af"
+}

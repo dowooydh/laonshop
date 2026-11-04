@@ -1,0 +1,214 @@
+{
+  "status": "PASS",
+  "mode": "independent-public-get-only-fresh-context-per-page",
+  "browser": "147.0.7727.15",
+  "pages": [
+    {
+      "path": "/",
+      "pageErrors": [],
+      "consoleErrors": [],
+      "consoleWarnings": [],
+      "requestFailures": [
+        {
+          "path": "/shop/men",
+          "resourceType": "fetch",
+          "error": "net::ERR_ABORTED",
+          "at": "2026-11-04T11:19:28.799Z"
+        },
+        {
+          "path": "/policy/shipping",
+          "resourceType": "fetch",
+          "error": "net::ERR_ABORTED",
+          "at": "2026-11-04T11:19:28.954Z"
+        },
+        {
+          "path": "/policy/refund",
+          "resourceType": "fetch",
+          "error": "net::ERR_ABORTED",
+          "at": "2026-11-04T11:19:28.955Z"
+        },
+        {
+          "path": "/product/cmrdkh6e600007iy8qbef3ubn",
+          "resourceType": "fetch",
+          "error": "net::ERR_ABORTED",
+          "at": "2026-11-04T11:19:29.057Z"
+        }
+      ],
+      "startedAt": "2026-11-04T11:19:28.003Z",
+      "status": 200,
+      "finalUrl": "https://laonshop.com/",
+      "ssrSha256": "8848fd87eb736e64fd48be2f0f3a66016ed946924c377c0509d475636be80cbe",
+      "dom": {
+        "title": "LAON SHOP — 나다운 일상을 입다",
+        "heading": "나다운 옷,새로운 일상.",
+        "overflow": 0,
+        "preparedLinks": 8,
+        "exampleSections": 0,
+        "bodyHtmlLength": 147941,
+        "locale": "en-US",
+        "timezone": "Asia/Seoul"
+      },
+      "completedAt": "2026-11-04T11:19:30.728Z"
+    },
+    {
+      "path": "/shop/men",
+      "pageErrors": [],
+      "consoleErrors": [],
+      "consoleWarnings": [],
+      "requestFailures": [],
+      "startedAt": "2026-11-04T11:19:30.774Z",
+      "status": 200,
+      "finalUrl": "https://laonshop.com/shop/men",
+      "ssrSha256": "bb632eaae8cb74da56e22a06cc2d10426fcf48d94b71efb46745dfee6ec2e5e4",
+      "dom": {
+        "title": "남성의류 · LAON SHOP",
+        "heading": "남성의류",
+        "overflow": 0,
+        "preparedLinks": 16,
+        "exampleSections": 0,
+        "bodyHtmlLength": 588986,
+        "locale": "en-US",
+        "timezone": "Asia/Seoul"
+      },
+      "completedAt": "2026-11-04T11:19:33.541Z"
+    },
+    {
+      "path": "/shop/women",
+      "pageErrors": [],
+      "consoleErrors": [],
+      "consoleWarnings": [],
+      "requestFailures": [
+        {
+          "path": "/policy/shipping",
+          "resourceType": "fetch",
+          "error": "net::ERR_ABORTED",
+          "at": "2026-11-04T11:19:34.694Z"
+        }
+      ],
+      "startedAt": "2026-11-04T11:19:33.594Z",
+      "status": 200,
+      "finalUrl": "https://laonshop.com/shop/women",
+      "ssrSha256": "7dc71c16ea2beb863f470ce1092a2558f328f2cf73cc0f0dd79c1c4e12a9069d",
+      "dom": {
+        "title": "여성의류 · LAON SHOP",
+        "heading": "여성의류",
+        "overflow": 0,
+        "preparedLinks": 16,
+        "exampleSections": 0,
+        "bodyHtmlLength": 679861,
+        "locale": "en-US",
+        "timezone": "Asia/Seoul"
+      },
+      "completedAt": "2026-11-04T11:19:36.462Z"
+    },
+    {
+      "path": "/catalog-preview",
+      "pageErrors": [],
+      "consoleErrors": [],
+      "consoleWarnings": [],
+      "requestFailures": [
+        {
+          "path": "/register",
+          "resourceType": "fetch",
+          "error": "net::ERR_ABORTED",
+          "at": "2026-11-04T11:19:37.442Z"
+        },
+        {
+          "path": "/login",
+          "resourceType": "fetch",
+          "error": "net::ERR_ABORTED",
+          "at": "2026-11-04T11:19:37.452Z"
+        },
+        {
+          "path": "/catalog-preview/men-top-04",
+          "resourceType": "fetch",
+          "error": "net::ERR_ABORTED",
+          "at": "2026-11-04T11:19:37.696Z"
+        },
+        {
+          "path": "/catalog-preview/men-bottom-01",
+          "resourceType": "fetch",
+          "error": "net::ERR_ABORTED",
+          "at": "2026-11-04T11:19:37.701Z"
+        }
+      ],
+      "startedAt": "2026-11-04T11:19:36.514Z",
+      "status": 200,
+      "finalUrl": "https://laonshop.com/catalog-preview",
+      "ssrSha256": "5c48e61d08f6d834e752cd92cf72951dc07541f16f9a3b09b39ef86fd3c4bee5",
+      "dom": {
+        "title": "출시 준비 상품 · LAON SHOP",
+        "heading": "출시를 준비하는 새로운 셀렉션",
+        "overflow": 0,
+        "preparedLinks": 32,
+        "exampleSections": 0,
+        "bodyHtmlLength": 147765,
+        "locale": "en-US",
+        "timezone": "Asia/Seoul"
+      },
+      "completedAt": "2026-11-04T11:19:39.260Z"
+    },
+    {
+      "path": "/product/cmrdkh6ii00017iy8ayvhzuo1",
+      "pageErrors": [],
+      "consoleErrors": [],
+      "consoleWarnings": [],
+      "requestFailures": [],
+      "startedAt": "2026-11-04T11:19:39.308Z",
+      "status": 200,
+      "finalUrl": "https://laonshop.com/product/cmrdkh6ii00017iy8ayvhzuo1",
+      "ssrSha256": "fca3338b75af310801ad5e77269213dd5492600445d35cf823c41be2a21ffb60",
+      "dom": {
+        "title": "오버핏 반팔 티셔츠 · LAON SHOP",
+        "heading": "오버핏 반팔 티셔츠",
+        "overflow": 0,
+        "preparedLinks": 0,
+        "exampleSections": 0,
+        "bodyHtmlLength": 98779,
+        "locale": "en-US",
+        "timezone": "Asia/Seoul"
+      },
+      "completedAt": "2026-11-04T11:19:41.918Z"
+    },
+    {
+      "path": "/catalog-preview/women-dress-02",
+      "pageErrors": [],
+      "consoleErrors": [],
+      "consoleWarnings": [],
+      "requestFailures": [
+        {
+          "path": "/",
+          "resourceType": "fetch",
+          "error": "net::ERR_ABORTED",
+          "at": "2026-11-04T11:19:42.758Z"
+        },
+        {
+          "path": "/login",
+          "resourceType": "fetch",
+          "error": "net::ERR_ABORTED",
+          "at": "2026-11-04T11:19:42.896Z"
+        }
+      ],
+      "startedAt": "2026-11-04T11:19:41.964Z",
+      "status": 200,
+      "finalUrl": "https://laonshop.com/catalog-preview/women-dress-02",
+      "ssrSha256": "3661f79733246012b1ff10690e47fc436d6e7a9ccaaa3b2b8a6566521474bbbc",
+      "dom": {
+        "title": "출시 준비 상품 · LAON SHOP",
+        "heading": "스퀘어넥 니트 미디 원피스",
+        "overflow": 0,
+        "preparedLinks": 0,
+        "exampleSections": 0,
+        "bodyHtmlLength": 44786,
+        "locale": "en-US",
+        "timezone": "Asia/Seoul"
+      },
+      "completedAt": "2026-11-04T11:19:44.556Z"
+    }
+  ],
+  "blockedWrites": [],
+  "blockedProviders": [],
+  "scope": "Hydration/page-load probe only; aborted fetch events are preserved separately and are not a claim of zero network failures.",
+  "pageErrorCount": 0,
+  "requestFailureCount": 11
+}

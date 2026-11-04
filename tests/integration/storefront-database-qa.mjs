@@ -126,7 +126,7 @@ try {
     try { assert.equal((await getCommerceReadiness()).ready, false); assert.equal((await getProductReviews(f.productId)).available, false); }
     finally { await db.$executeRawUnsafe('ALTER TABLE "ShopShipmentEvent" ENABLE TRIGGER laonshop_shipment_event_immutable'); }
   });
-  const resultPath = `${process.cwd()}/tests/reports/2026-11-04-shop-upgrade/database-results.json`;
+  const resultPath = `${process.env.QA_OUTPUT_DIR || `${process.cwd()}/tests/reports/2026-11-04-shop-upgrade`}/database-results.json`;
   writeFileSync(resultPath, JSON.stringify({ status: "PASS", count: result.length, checks: result }, null, 2));
   console.log(JSON.stringify({ status: "PASS", count: result.length, resultPath }));
 } finally { await db.$disconnect(); await applicationDb.$disconnect(); }

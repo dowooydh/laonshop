@@ -1,0 +1,20 @@
+{
+  "status": "PASS",
+  "count": 10,
+  "checks": [
+    "search and category filters work",
+    "product quantity and add-to-cart retain selected option",
+    "anonymous protected routes redirect without private data",
+    "customer statement ownership and print title",
+    "verified buyer submits review through real Server Action",
+    "real review action refuses another customer and anonymous replay",
+    "admin corrects tracking through real Server Action",
+    "real shipping action refuses customer and demoted admin",
+    "admin delivery completion and order evidence show recorded result",
+    "schema protection absent keeps product/order readable and writes unavailable"
+  ],
+  "pageErrors": [],
+  "consoleErrors": [],
+  "externalWrites": [],
+  "anchorOverlaps": []
+}

@@ -1,0 +1,12 @@
+{
+  "checkedAt": "2026-11-04T11:14:32.858Z",
+  "target": "production",
+  "origin": "https://laonshop.com",
+  "checks": [],
+  "samples": [],
+  "errors": [],
+  "blockedWrites": [],
+  "status": "FAIL",
+  "failure": "The expression evaluated to a falsy value:\n\n  assert.ok(await page.locator('main a[href=\"/catalog-preview\"]').count())\n",
+  "diagnosis": "Initial DOM main wrapper was visible before streamed homepage content. Full production HTML has the collection link and the apex deployment resolves to d62fc44. Test readiness was tightened to wait for the route h1; no product code changed."
+}

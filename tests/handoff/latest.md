@@ -2,27 +2,30 @@
 
 검증일: 2026-11-04
 
-제품 SHA: `7b09a3cc21faab811cda3172f7e60c2f9ecfc318`
+제품 SHA: `d62fc447d762cce04132288e83a5a8d4dde3c7e3`
 
-비교 범위: `04fb280b0ac1b9d2fdbcb61820793a4645ef5867..7b09a3cc21faab811cda3172f7e60c2f9ecfc318`
+비교: `83ac36c9cd56e716a95b262a57b9dd58163a68f5..d62fc447d762cce04132288e83a5a8d4dde3c7e3`
 
 브랜치: `codex/shop-upgrade-20261104`
 
-판정: **UI·데이터 경계 코드 검증 GO / WebKit 자동화 경고 WARN**. 운영 반영·실판매 활성화·실기기 완료 판정은 별도입니다.
+판정: **독립 코드·격리 실행 검증 GO**. 실제 운영 배포 후 public 검증은 root 담당의 별도 결과로 확인합니다. 기존 WebKit 자동화 경고와 실기기 미실행 범위를 유지합니다.
 
 | 검증 축 | 결과 |
 |---|---|
-| DEV | 186/186, lint warning 0, typecheck/build PASS |
-| 독립 build | Node 22.23.1 / Next 15.5.24 PASS, 기존 Prisma 7 deprecation 유지 |
-| Chromium 전수 | 288개 검사. 초기 디자인 시스템 넘침 1건은 보완 후 최종 8조합 PASS; 나머지 상품·구매자·관리자 넘침/클리핑/메뉴겹침 0 |
-| WebKit | 핵심 64개 레이아웃 finding 0. 빠른 문서 교체의 RSC 메시지 5건은 WARN 보존. 안정된 실제 링크 2회·같은 RSC 요청 8개는 오류 없이 HTTP 200 |
-| 디자인 최종 delta | Chromium 8 + WebKit 8 PASS |
-| 색상·정렬 | 활성 CTA 148표본 최소 대비 6.16:1; 구매안내 단일행 113표본 최대 중심 오차 0px |
-| 카탈로그·예시·사이즈 | 원본329 전수 검증 5/5, 32초안 격리 CLI 6/6, 실제 표시 수 4/4, 미리보기/production 분리 18/18, 기존 대표사진 9/9 PASS |
-| 비교 화면 | 사용자와 같은 반팔 티셔츠의 배송/출고/교환 세 행 44px·글자 중심 오차0, 참고사이즈·신규그리드 crop 기록 |
+| DEV | 186/186 skip0, 이미지 게이트·lint warning0·typecheck·production build static19/19 PASS. 기존 Prisma deprecation 유지 |
+| 독립 서비스 | 격리37/37 PASS. 후기·배송 소유권/중복/관리자 권한·CHECK/불변 trigger·readiness·결제 상태/금액 불변 |
+| 실제 HTTP | 공개36 + 인증/실제 후기·송장·배송 액션10 = 46범위 PASS. 초기 QA 대기 실패는 별도 기록 |
+| Chromium | production228 + preview60 = 288조합 PASS. 320/390/1280px ×100/200%, 넘침·필드 잘림·페이지 오류·운영 예시 후기 노출0 |
+| 공개 준비상품 | 양 런타임32종 상세64회, 원본 사진32 HTTP200·WebP1200×1500·manifest SHA/고유성 PASS. 실제 판매329/준비32 분리 |
+| 위조 주문 | prepared ID·catalog-draft ID 조작 후 실제 로컬 POST2건 거절. 주문/후기/재고 원장 증분0 |
+| WebKit 신규 페이지 | 목록/대표상세 ×390/1280 ×100/200 = 8조합 PASS·targeted 오류0. broader probe RSC20→6 WARN 보존; 이전 RSC5와 합산하지 않음 |
 
-예시 평가는 36~82개로 다양하고 글 후기 10% 이상이며, 실제 후기 집계·원장에는 합산되지 않습니다. AI 준비상품 12개와 새 초안 32개는 실제 판매·재고로 취급하지 않습니다. 실제 활성329개와 미리보기341개를 구분했습니다.
+준비상품은 운영에서도 AI·예상 가격·판매 준비 중을 표시하며 구매할 수 없습니다. 전체361개(남성171/여성190)는 판매329개(155/174)와 준비32개(16/16)를 분리해 안내합니다. 구매 가능 필터는 준비상품을 제외합니다. preview 예시 후기는 실제 후기 원장에 합산하지 않고 production에서는 숨깁니다.
 
-초기 production 검사에서 canonical redirect를 따라간 검증방법 오류를 폐기하고, 별도 loopback production renderer·redirect 미발생·운영 요청 차단으로 재검증했습니다. WebKit 경고를 숨기거나 모든 엔진 오류0으로 바꾸지 않았습니다.
+운영 담당의 승인된 additive3테이블 적용·기존11테이블 불변·새원장0·readiness true는 독립 QA와 다른 실행 범위입니다. 독립 QA는 운영 DB·환경·PG를 변경하지 않았습니다. 운영 배포·공개 확인과 실판매 활성화를 같은 뜻으로 보고하지 않습니다.
 
-상세 범위·재현·검증방법 보완·증거·cleanup: [독립 QA 보고서](../reports/2026-11-04-layout-catalog-followup/report.md).
+세부 결과·경고·비교 화면·정리: [운영 공개 후속 독립 QA](../reports/2026-11-04-production-release/independent-report.md).
+
+기존 사이트 전수288조합·정렬·참고사이즈·카테고리 검증과 이전 RSC5 WARN: [직전 보고서](../reports/2026-11-04-layout-catalog-followup/report.md). 새 릴리스 수치와 중복 합산하지 않습니다.
+
+운영 담당 후속 확인(독립 격리 QA와 별도): 제품d62fc44 main배포 READY·실제apex/www 연결, public43검사 PASS·독립 fresh6페이지 오류0 확인. 최초 React#418 1건은 재현되지 않았지만 원인 미확정 WARN으로 보존하고 해결 완료로 판정하지 않습니다. 초기 스트리밍 대기 보완·fetch취소·Vercel 빌드 경고와 남은 외부 업무까지 [운영 출시 기록](../reports/2026-11-04-production-release/release-report.md)에 구분했습니다.

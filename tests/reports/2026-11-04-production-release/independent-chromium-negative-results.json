@@ -1,0 +1,70 @@
+{
+  "status": "PASS",
+  "engine": "chromium",
+  "checks": 5,
+  "checkNames": [
+    "32 unique prepared records and 329 real products remain separate in the database",
+    "all real products retain option-correct reference guides and preview-only illustrative reviews",
+    "forged cart prepared-men-top-01 is rejected by actual order Server Action without creating an order",
+    "forged cart catalog-draft-20261104-selection-01-men-top-01 is rejected by actual order Server Action without creating an order",
+    "all display and forged purchase checks preserve real product and transaction ledgers"
+  ],
+  "layoutCombinations": 0,
+  "layouts": [],
+  "loadedImages": [],
+  "transports": [
+    {
+      "runtime": "preview",
+      "path": "/",
+      "status": 200,
+      "host": "localhost:3104",
+      "redirected": false
+    },
+    {
+      "runtime": "preview",
+      "path": "/checkout",
+      "status": 200,
+      "host": "localhost:3104",
+      "redirected": false
+    },
+    {
+      "runtime": "preview",
+      "path": "/",
+      "status": 200,
+      "host": "localhost:3104",
+      "redirected": false
+    },
+    {
+      "runtime": "preview",
+      "path": "/checkout",
+      "status": 200,
+      "host": "localhost:3104",
+      "redirected": false
+    }
+  ],
+  "negativeRequests": [
+    {
+      "fakeId": "prepared-men-top-01",
+      "localServerAction": true,
+      "status": 200,
+      "orderDelta": 0
+    },
+    {
+      "fakeId": "catalog-draft-20261104-selection-01-men-top-01",
+      "localServerAction": true,
+      "status": 200,
+      "orderDelta": 0
+    }
+  ],
+  "errors": [],
+  "failedImages": [],
+  "forbiddenRequests": [],
+  "ledger": {
+    "products": 329,
+    "orders": 15,
+    "reviews": 6,
+    "shipments": 14,
+    "events": 18
+  },
+  "productHash": "511189708a4a457d1f8ff6869ceb435c004930a70809519ffeb1b1c07c4ae5af"
+}

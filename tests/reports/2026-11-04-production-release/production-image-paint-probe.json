@@ -1,0 +1,17 @@
+{
+  "status": "PASS",
+  "images": [
+    {
+      "loaded": true,
+      "width": 390,
+      "height": 487
+    },
+    {
+      "loaded": true,
+      "width": 78,
+      "height": 97
+    }
+  ],
+  "pageErrors": [],
+  "explanation": "Waited for main and thumbnail decode and two animation frames before final screenshot; initial screenshot had not waited for lazy thumbnail paint."
+}

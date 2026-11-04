@@ -1,0 +1,82 @@
+{
+  "checkedOn": "2026-11-04",
+  "projectId": "prj_W7jtLxTEaupbmNo5AJRuQx7VaEF2",
+  "teamId": "team_IMoJkeE1Tl2CFkKoPMGxfEmw",
+  "target": "production",
+  "status": "READY",
+  "id": "dpl_LpY3iVUugoqSY3XNAaPjuVvdiqJL",
+  "url": "laonshop-ewgtx84t0-customorder.vercel.app",
+  "aliases": [
+    "laonshop.com",
+    "www.laonshop.com",
+    "laonshop.vercel.app",
+    "laonshop-customorder.vercel.app",
+    "laonshop-git-main-customorder.vercel.app"
+  ],
+  "productSha": "d62fc447d762cce04132288e83a5a8d4dde3c7e3",
+  "buildLogSummary": [
+    {
+      "at": 1793790780264,
+      "text": "Deploying outputs..."
+    },
+    {
+      "at": 1793790780226,
+      "text": "Build Completed in /vercel/output [2m]"
+    },
+    {
+      "at": 1793790703524,
+      "text": ".../node_modules/@prisma/client postinstall: warn The configuration property `package.json#prisma` is deprecated and will be removed in Prisma 7. Please migrate to a Prisma config file (e.g., `prisma.config.ts`)."
+    },
+    {
+      "at": 1793790699878,
+      "text": ".../node_modules/@prisma/engines postinstall: Done"
+    },
+    {
+      "at": 1793790698999,
+      "text": ".../node_modules/@prisma/engines postinstall$ node scripts/postinstall.js"
+    },
+    {
+      "at": 1793790691547,
+      "text": "Lockfile is up to date, resolution step is skipped"
+    },
+    {
+      "at": 1793790691544,
+      "text": "✓ Lockfile passes supply-chain policies (485 entries in 5.4s)"
+    },
+    {
+      "at": 1793790686105,
+      "text": "? Verifying lockfile against supply-chain policies (485 entries)..."
+    },
+    {
+      "at": 1793790682721,
+      "text": "Warning: Due to \"engines\": { \"node\": \"22.x\" } in your `package.json` file, the Node.js Version defined in your Project Settings (\"24.x\") will not apply, Node.js Version \"22.x\" will be used instead. Learn More: https://vercel.link/node-version"
+    }
+  ],
+  "logDrains": {
+    "status": "UNVERIFIED",
+    "reason": "Vercel GET /v1/drains returned 404 not_found; no configuration changed"
+  },
+  "buildAndPublishDurationSeconds": 148,
+  "observability": {
+    "status": "NO_MATCHING_ERROR_GROUPS_RETURNED",
+    "deploymentId": "dpl_LpY3iVUugoqSY3XNAaPjuVvdiqJL",
+    "environment": "production",
+    "levels": [
+      "error",
+      "fatal"
+    ],
+    "window": "10m",
+    "scope": "Vercel runtime grouped by level; observation only"
+  },
+  "publicSmoke": {
+    "checks": 43,
+    "status": "PASS",
+    "pageErrors": 0,
+    "blockedWrites": 0
+  },
+  "initialPublicObservation": {
+    "status": "WARN",
+    "react418": 1,
+    "reason": "One initial browser hydration error; subsequent instrumented same-flow 43 checks and independent fresh-context 6 checks did not reproduce it. Cause unconfirmed."
+  }
+}

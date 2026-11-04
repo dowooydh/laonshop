@@ -1,0 +1,118 @@
+{
+  "status": "WARN",
+  "initialRawRscMessages": [
+    {
+      "runtime": "production",
+      "message": "/localhost:3105/login?_rsc=ErxEytlw9Ua1CkeM due to access control checks."
+    },
+    {
+      "runtime": "production",
+      "message": "/localhost:3105/register?_rsc=ErxEytlw9Ua1CkeM due to access control checks."
+    },
+    {
+      "runtime": "production",
+      "message": "/localhost:3105/catalog-preview/men-top-01?_rsc=ErxEytlw9Ua1CkeM due to access control checks."
+    },
+    {
+      "runtime": "production",
+      "message": "/localhost:3105/catalog-preview/men-top-02?_rsc=ErxEytlw9Ua1CkeM due to access control checks."
+    },
+    {
+      "runtime": "production",
+      "message": "/localhost:3105/catalog-preview/men-top-03?_rsc=ErxEytlw9Ua1CkeM due to access control checks."
+    },
+    {
+      "runtime": "production",
+      "message": "/localhost:3105/catalog-preview/men-top-04?_rsc=ErxEytlw9Ua1CkeM due to access control checks."
+    },
+    {
+      "runtime": "production",
+      "message": "/localhost:3105/catalog-preview/men-top-05?_rsc=ErxEytlw9Ua1CkeM due to access control checks."
+    },
+    {
+      "runtime": "production",
+      "message": "/localhost:3105/catalog-preview/men-bottom-01?_rsc=ErxEytlw9Ua1CkeM due to access control checks."
+    },
+    {
+      "runtime": "production",
+      "message": "/localhost:3105/product/cmw200ywq00027i2j2ffqzvqp?_rsc=rUGnxqNuJI1ZLq5- due to access control checks."
+    },
+    {
+      "runtime": "production",
+      "message": "/localhost:3105/product/cmw200ywq00037i2j6fuqi79t?_rsc=rUGnxqNuJI1ZLq5- due to access control checks."
+    },
+    {
+      "runtime": "production",
+      "message": "/localhost:3105/product/cmw200ywr00047i2j0v09py0s?_rsc=rUGnxqNuJI1ZLq5- due to access control checks."
+    },
+    {
+      "runtime": "production",
+      "message": "/localhost:3105/product/cmw200ywr00057i2j5wulu618?_rsc=rUGnxqNuJI1ZLq5- due to access control checks."
+    },
+    {
+      "runtime": "production",
+      "message": "/localhost:3105/product/cmw200ywr00067i2jw6bue8os?_rsc=rUGnxqNuJI1ZLq5- due to access control checks."
+    },
+    {
+      "runtime": "production",
+      "message": "/localhost:3105/product/cmw200yws00077i2ji8hf0g2m?_rsc=rUGnxqNuJI1ZLq5- due to access control checks."
+    },
+    {
+      "runtime": "production",
+      "message": "/localhost:3105/product/cmw200yy3004d7i2js1wufx87?_rsc=NT3CuTVhWnyhvKZ4 due to access control checks."
+    },
+    {
+      "runtime": "production",
+      "message": "/localhost:3105/product/cmw200yy3004e7i2jne6j2w7q?_rsc=NT3CuTVhWnyhvKZ4 due to access control checks."
+    },
+    {
+      "runtime": "production",
+      "message": "/localhost:3105/product/cmw200yy3004f7i2j7891thm1?_rsc=NT3CuTVhWnyhvKZ4 due to access control checks."
+    },
+    {
+      "runtime": "production",
+      "message": "/localhost:3105/product/cmw200yy3004g7i2jh5mg7peo?_rsc=NT3CuTVhWnyhvKZ4 due to access control checks."
+    },
+    {
+      "runtime": "production",
+      "message": "/localhost:3105/product/cmw200yy4004h7i2jm3ira2xj?_rsc=NT3CuTVhWnyhvKZ4 due to access control checks."
+    },
+    {
+      "runtime": "production",
+      "message": "/localhost:3105/product/cmw200yy4004i7i2jsstesaxx?_rsc=NT3CuTVhWnyhvKZ4 due to access control checks."
+    }
+  ],
+  "initialCount": 20,
+  "initialLayoutCombinations": 8,
+  "layoutFindings": [],
+  "explanation": "Initial direct document replacements did not wait for background Next RSC prefetch to settle; all access-control messages preserved here. Final stable navigation test uses bounded networkidle before replacing documents. Not combined with prior release warning5.",
+  "settledBroaderProbeMessages": [
+    {
+      "runtime": "production",
+      "message": "/localhost:3105/product/cmw200ywr00057i2j5wulu618?_rsc=rUGnxqNuJI1ZLq5- due to access control checks."
+    },
+    {
+      "runtime": "production",
+      "message": "/localhost:3105/product/cmw200ywr00067i2jw6bue8os?_rsc=rUGnxqNuJI1ZLq5- due to access control checks."
+    },
+    {
+      "runtime": "production",
+      "message": "/localhost:3105/product/cmw200yws00077i2ji8hf0g2m?_rsc=rUGnxqNuJI1ZLq5- due to access control checks."
+    },
+    {
+      "runtime": "production",
+      "message": "/localhost:3105/product/cmw200yy3004g7i2jh5mg7peo?_rsc=NT3CuTVhWnyhvKZ4 due to access control checks."
+    },
+    {
+      "runtime": "production",
+      "message": "/localhost:3105/product/cmw200yy4004h7i2jm3ira2xj?_rsc=NT3CuTVhWnyhvKZ4 due to access control checks."
+    },
+    {
+      "runtime": "production",
+      "message": "/localhost:3105/product/cmw200yy4004i7i2jsstesaxx?_rsc=NT3CuTVhWnyhvKZ4 due to access control checks."
+    }
+  ],
+  "settledBroaderProbeCount": 6,
+  "settledLayoutCombinations": 8,
+  "note": "Six remaining messages came from additional original-product gender-list prefetch during document replacement, outside the requested new-page 8 combinations. Final targeted run excludes unrelated gender-list visits; raw messages retained."
+}

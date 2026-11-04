@@ -1,0 +1,436 @@
+{
+  "checkedOn": "2026-11-04",
+  "database": {
+    "host": "ep-holy-firefly-aotzfm9n.c-2.ap-southeast-1.aws.neon.tech",
+    "name": "neondb",
+    "schema": "public"
+  },
+  "backup": {
+    "privateDirectory": "/Users/donghyuk/.codex/backups/laonshop/20261104-storefront-release",
+    "archiveReadable": true,
+    "files": [
+      {
+        "name": "before-storefront.dump",
+        "bytes": 62903,
+        "sha256": "87135efc53fe6c33bd5621a0e306d4e14ea3bbfb1d718468edb3a71695c35b67",
+        "mode": "0600"
+      },
+      {
+        "name": "before-storefront-schema.sql",
+        "bytes": 22437,
+        "sha256": "21f96871f259ccd0139fd6e6c407c62112adf7e23d2f7b310f3bd537252b0da5",
+        "mode": "0600"
+      }
+    ]
+  },
+  "before": [
+    {
+      "table": "Product",
+      "count": 329,
+      "digest": "76d7ba5526daedeecefb91e977494dd0"
+    },
+    {
+      "table": "ShopUser",
+      "count": 11,
+      "digest": "686152f88ad5a8042038db01e730a099"
+    },
+    {
+      "table": "ShopOrder",
+      "count": 18,
+      "digest": "2e8f31573c1868247910e58d62a40914"
+    },
+    {
+      "table": "ShopOrderItem",
+      "count": 22,
+      "digest": "a0b064eb3c6b0282bf8f5525ea45ab1d"
+    },
+    {
+      "table": "Wishlist",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "table": "ShopOrderAuditLog",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "table": "ShopBillingCard",
+      "count": 2,
+      "digest": "68401561c2b55f7b1f09e51b24efe651"
+    },
+    {
+      "table": "ShopBillingPaymentMethod",
+      "count": 1,
+      "digest": "888375cd6cbbdcf628a39a6aced13356"
+    },
+    {
+      "table": "ShopBillingRegistration",
+      "count": 4,
+      "digest": "b57467327930478424511b06fa4acaa0"
+    },
+    {
+      "table": "ShopBillingCharge",
+      "count": 1,
+      "digest": "652e7310ece63630fcbf8e8bb2e36879"
+    },
+    {
+      "table": "ShopBillingCancelRequest",
+      "count": 1,
+      "digest": "db058ffe4d9e2b708b72f19fa8fb0551"
+    }
+  ],
+  "migration": {
+    "sourceSha256": "ea61ad0c5715a8e118c1f233819f7137bed0dcbaba499e6f07d61345b148d9d6",
+    "approvedScope": "2026-11-04 user requested completing remaining work and production deployment",
+    "startedAt": "2026-11-04T10:50:39.786Z",
+    "completedAt": "2026-11-04T10:50:42.146Z",
+    "status": "APPLIED"
+  },
+  "after": [
+    {
+      "table": "Product",
+      "count": 329,
+      "digest": "76d7ba5526daedeecefb91e977494dd0"
+    },
+    {
+      "table": "ShopUser",
+      "count": 11,
+      "digest": "686152f88ad5a8042038db01e730a099"
+    },
+    {
+      "table": "ShopOrder",
+      "count": 18,
+      "digest": "2e8f31573c1868247910e58d62a40914"
+    },
+    {
+      "table": "ShopOrderItem",
+      "count": 22,
+      "digest": "a0b064eb3c6b0282bf8f5525ea45ab1d"
+    },
+    {
+      "table": "Wishlist",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "table": "ShopOrderAuditLog",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "table": "ShopBillingCard",
+      "count": 2,
+      "digest": "68401561c2b55f7b1f09e51b24efe651"
+    },
+    {
+      "table": "ShopBillingPaymentMethod",
+      "count": 1,
+      "digest": "888375cd6cbbdcf628a39a6aced13356"
+    },
+    {
+      "table": "ShopBillingRegistration",
+      "count": 4,
+      "digest": "b57467327930478424511b06fa4acaa0"
+    },
+    {
+      "table": "ShopBillingCharge",
+      "count": 1,
+      "digest": "652e7310ece63630fcbf8e8bb2e36879"
+    },
+    {
+      "table": "ShopBillingCancelRequest",
+      "count": 1,
+      "digest": "db058ffe4d9e2b708b72f19fa8fb0551"
+    }
+  ],
+  "existingTablesUnchanged": true,
+  "schema": {
+    "tables": [
+      {
+        "table_name": "ShopProductReview",
+        "columns": 8
+      },
+      {
+        "table_name": "ShopShipment",
+        "columns": 10
+      },
+      {
+        "table_name": "ShopShipmentEvent",
+        "columns": 8
+      }
+    ],
+    "constraints": [
+      {
+        "conname": "ShopProductReview_content_check",
+        "contype": "c",
+        "convalidated": true
+      },
+      {
+        "conname": "ShopProductReview_content_not_null",
+        "contype": "n",
+        "convalidated": true
+      },
+      {
+        "conname": "ShopProductReview_createdAt_not_null",
+        "contype": "n",
+        "convalidated": true
+      },
+      {
+        "conname": "ShopProductReview_id_not_null",
+        "contype": "n",
+        "convalidated": true
+      },
+      {
+        "conname": "ShopProductReview_orderId_not_null",
+        "contype": "n",
+        "convalidated": true
+      },
+      {
+        "conname": "ShopProductReview_orderId_userId_fkey",
+        "contype": "f",
+        "convalidated": true
+      },
+      {
+        "conname": "ShopProductReview_orderItemId_not_null",
+        "contype": "n",
+        "convalidated": true
+      },
+      {
+        "conname": "ShopProductReview_orderItemId_orderId_productId_fkey",
+        "contype": "f",
+        "convalidated": true
+      },
+      {
+        "conname": "ShopProductReview_pkey",
+        "contype": "p",
+        "convalidated": true
+      },
+      {
+        "conname": "ShopProductReview_productId_fkey",
+        "contype": "f",
+        "convalidated": true
+      },
+      {
+        "conname": "ShopProductReview_productId_not_null",
+        "contype": "n",
+        "convalidated": true
+      },
+      {
+        "conname": "ShopProductReview_rating_check",
+        "contype": "c",
+        "convalidated": true
+      },
+      {
+        "conname": "ShopProductReview_rating_not_null",
+        "contype": "n",
+        "convalidated": true
+      },
+      {
+        "conname": "ShopProductReview_userId_fkey",
+        "contype": "f",
+        "convalidated": true
+      },
+      {
+        "conname": "ShopProductReview_userId_not_null",
+        "contype": "n",
+        "convalidated": true
+      },
+      {
+        "conname": "ShopShipmentEvent_action_not_null",
+        "contype": "n",
+        "convalidated": true
+      },
+      {
+        "conname": "ShopShipmentEvent_actorUserId_fkey",
+        "contype": "f",
+        "convalidated": true
+      },
+      {
+        "conname": "ShopShipmentEvent_actorUserId_not_null",
+        "contype": "n",
+        "convalidated": true
+      },
+      {
+        "conname": "ShopShipmentEvent_carrier_not_null",
+        "contype": "n",
+        "convalidated": true
+      },
+      {
+        "conname": "ShopShipmentEvent_createdAt_not_null",
+        "contype": "n",
+        "convalidated": true
+      },
+      {
+        "conname": "ShopShipmentEvent_id_not_null",
+        "contype": "n",
+        "convalidated": true
+      },
+      {
+        "conname": "ShopShipmentEvent_pkey",
+        "contype": "p",
+        "convalidated": true
+      },
+      {
+        "conname": "ShopShipmentEvent_shipmentId_fkey",
+        "contype": "f",
+        "convalidated": true
+      },
+      {
+        "conname": "ShopShipmentEvent_shipmentId_not_null",
+        "contype": "n",
+        "convalidated": true
+      },
+      {
+        "conname": "ShopShipmentEvent_trackingNumber_not_null",
+        "contype": "n",
+        "convalidated": true
+      },
+      {
+        "conname": "ShopShipmentEvent_valid_check",
+        "contype": "c",
+        "convalidated": true
+      },
+      {
+        "conname": "ShopShipment_carrier_not_null",
+        "contype": "n",
+        "convalidated": true
+      },
+      {
+        "conname": "ShopShipment_createdAt_not_null",
+        "contype": "n",
+        "convalidated": true
+      },
+      {
+        "conname": "ShopShipment_id_not_null",
+        "contype": "n",
+        "convalidated": true
+      },
+      {
+        "conname": "ShopShipment_orderId_not_null",
+        "contype": "n",
+        "convalidated": true
+      },
+      {
+        "conname": "ShopShipment_orderId_userId_fkey",
+        "contype": "f",
+        "convalidated": true
+      },
+      {
+        "conname": "ShopShipment_pkey",
+        "contype": "p",
+        "convalidated": true
+      },
+      {
+        "conname": "ShopShipment_shippedAt_not_null",
+        "contype": "n",
+        "convalidated": true
+      },
+      {
+        "conname": "ShopShipment_status_not_null",
+        "contype": "n",
+        "convalidated": true
+      },
+      {
+        "conname": "ShopShipment_trackingNumber_not_null",
+        "contype": "n",
+        "convalidated": true
+      },
+      {
+        "conname": "ShopShipment_updatedAt_not_null",
+        "contype": "n",
+        "convalidated": true
+      },
+      {
+        "conname": "ShopShipment_userId_not_null",
+        "contype": "n",
+        "convalidated": true
+      },
+      {
+        "conname": "ShopShipment_valid_check",
+        "contype": "c",
+        "convalidated": true
+      }
+    ],
+    "trigger": [
+      {
+        "tgname": "laonshop_shipment_event_immutable",
+        "tgenabled": "O"
+      }
+    ],
+    "newRows": {
+      "reviews": 0,
+      "shipments": 0,
+      "events": 0
+    }
+  },
+  "postVerifyPassed": true,
+  "applicationReadiness": {
+    "ready": true,
+    "verification": "getCommerceReadiness from current application code, read-only"
+  },
+  "postDeployment": [
+    {
+      "table": "Product",
+      "count": 329,
+      "digest": "76d7ba5526daedeecefb91e977494dd0"
+    },
+    {
+      "table": "ShopUser",
+      "count": 11,
+      "digest": "686152f88ad5a8042038db01e730a099"
+    },
+    {
+      "table": "ShopOrder",
+      "count": 18,
+      "digest": "2e8f31573c1868247910e58d62a40914"
+    },
+    {
+      "table": "ShopOrderItem",
+      "count": 22,
+      "digest": "a0b064eb3c6b0282bf8f5525ea45ab1d"
+    },
+    {
+      "table": "Wishlist",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "table": "ShopOrderAuditLog",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "table": "ShopBillingCard",
+      "count": 2,
+      "digest": "68401561c2b55f7b1f09e51b24efe651"
+    },
+    {
+      "table": "ShopBillingPaymentMethod",
+      "count": 1,
+      "digest": "888375cd6cbbdcf628a39a6aced13356"
+    },
+    {
+      "table": "ShopBillingRegistration",
+      "count": 4,
+      "digest": "b57467327930478424511b06fa4acaa0"
+    },
+    {
+      "table": "ShopBillingCharge",
+      "count": 1,
+      "digest": "652e7310ece63630fcbf8e8bb2e36879"
+    },
+    {
+      "table": "ShopBillingCancelRequest",
+      "count": 1,
+      "digest": "db058ffe4d9e2b708b72f19fa8fb0551"
+    }
+  ],
+  "postDeploymentExistingTablesUnchanged": true,
+  "postDeploymentCheckedAt": "2026-11-04T11:21:05.069Z",
+  "postDeploymentNewRows": {
+    "reviews": 0,
+    "shipments": 0,
+    "events": 0
+  }
+}

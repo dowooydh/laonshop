@@ -1,0 +1,25 @@
+{
+  "status": "PASS",
+  "stoppedAppPorts": [
+    3104,
+    3105
+  ],
+  "stoppedDatabasePort": 52968,
+  "listenerCounts": {
+    "3104": 0,
+    "3105": 0,
+    "52968": 0
+  },
+  "temporaryClusterRemoved": true,
+  "privateSyntheticStateRemoved": true,
+  "temporaryDnsPreloadRemoved": true,
+  "temporaryDebugScriptRemoved": true,
+  "preserved": [
+    "shared browser profiles",
+    "user .codex-attachments",
+    "all other projects and DB volumes",
+    "product build .next",
+    "root-owned operational-schema-results.json and other DEV/schema/source review evidence"
+  ],
+  "intermediateFailures": "Summarized in http-harness-warnings.json, release-harness-warnings.json and webkit-lifecycle-warning.json before removal; completed layout data retained separately."
+}

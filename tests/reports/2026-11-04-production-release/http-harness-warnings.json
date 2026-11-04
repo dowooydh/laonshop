@@ -1,0 +1,18 @@
+{
+  "status": "RESOLVED_TEST_ORACLE",
+  "attempts": [
+    {
+      "stage": "initial",
+      "result": "timeout waiting for transient success message despite persisted row"
+    },
+    {
+      "stage": "durable article oracle first revision",
+      "result": "prior run article matched before current POST finished; premature DB count0"
+    },
+    {
+      "stage": "response-finished oracle revision",
+      "result": "repeated fixed body produced three matching articles; strict locator failed"
+    }
+  ],
+  "resolution": "Wait actual POST200 and full response, use per-order unique body, verify displayed article and exactly one corresponding DB row plus written-item option removal. Public36 slice retained independently; final authenticated10 slice rerun without repeating public slice."
+}
