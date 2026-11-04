@@ -1,0 +1,47 @@
+{
+  "status": "PASS",
+  "count": 3,
+  "checks": [
+    "hero description WCAG AA contrast",
+    "gallery images loaded and selectable with 44px targets",
+    "keyboard skip link moves focus to main"
+  ],
+  "hero": {
+    "color": "rgb(71, 85, 105)",
+    "background": "rgb(237, 240, 243)",
+    "fontSize": "16px",
+    "contrast": 6.624737781835715
+  },
+  "gallery": [
+    {
+      "buttonWidth": 65.1875,
+      "buttonHeight": 81.484375,
+      "naturalWidth": 77,
+      "naturalHeight": 97
+    },
+    {
+      "buttonWidth": 65.203125,
+      "buttonHeight": 81.5,
+      "naturalWidth": 77,
+      "naturalHeight": 97
+    },
+    {
+      "buttonWidth": 65.203125,
+      "buttonHeight": 81.5,
+      "naturalWidth": 77,
+      "naturalHeight": 97
+    },
+    {
+      "buttonWidth": 65.203125,
+      "buttonHeight": 81.5,
+      "naturalWidth": 77,
+      "naturalHeight": 97
+    },
+    {
+      "buttonWidth": 65.1875,
+      "buttonHeight": 81.484375,
+      "naturalWidth": 77,
+      "naturalHeight": 97
+    }
+  ]
+}

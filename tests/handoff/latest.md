@@ -1,56 +1,29 @@
 # QA 핸드오프 최신본
 
-작성일: 2026-08-29
+검증일: 2026-11-04
 
-검증 제품 SHA: `bd10ae6407bac775bc7da6fbf5ba332b078909d8`
+제품 SHA: `573c280472e1614f2ca4e3f25513107ee20f4378`
 
-이전 QA 기준: `ec4375d30d91d52f3c45e2a5003cc1b587740dad`
+비교 범위: `cb7cdd4b846172c2018aac09a6a8e119c1b184b9..573c280472e1614f2ca4e3f25513107ee20f4378`
 
-운영 배포: `dpl_613qJehUc8N537ekMMifSYm32Vc7` / `https://laonshop.com`
+브랜치: `codex/shop-upgrade-20261104`
 
-결과: **PASS**
+결과: **PASS / 코드 검증 GO**. 후기·배송 기능의 운영 DB 추가 스키마 적용·활성화는 **별도 승인 전 HOLD**입니다.
 
-## 판정
+| 범위 | 결과 |
+|---|---|
+| 독립 DB·서비스 | 37/37 PASS: 소유권·실구매·배송완료·별점/본문·동시 중복·관리자 권한·송장 이력·DB 제약·결제 불변 |
+| 독립 브라우저·실제 Server Action | 46/46 PASS: 공개 36조합·실제 후기/송장/완료·권한 재전송·문서 소유권·인쇄·준비 미완료 호환 |
+| 추가 시각·키보드 | 3/3 PASS: 히어로 설명 대비 6.62:1·사진 5개 선택/44px 타깃·본문 바로가기 |
+| 독립 production build | Node 22.23.1 / Next 15.5.24 / 정적 생성 19/19 PASS |
+| DEV 검증 | 전체 162/162 skip 0, lint/typecheck/build PASS; 독립 QA 결과와 구분 |
+| 경고 | 기존 Prisma `package.json#prisma` 설정의 Prisma 7 deprecation warning 유지 |
+| 배포·운영 스키마 | 본 QA에서 확인·변경하지 않음. 적용 가이드·별도 승인 필요 |
 
-- `QA-5A753-01` 인라인 링크 44px 미달: **FIXED / CLOSED**
-- 운영 support/footer 최소 실제 anchor: `49.25x44px`
-- 격리 checkout 최소 실제 anchor: `55.31x44px`
-- 네 경계 hit ownership: **560/560 PASS**
-- 링크 overlap·document overflow·clipping: **0건**
-- checkout 정책 링크 클릭과 checkbox 상태 독립성: **12/12 PASS**
-- 등록카드 문구·legacy 주문 호환·KSPAY 4수단: **PASS**
-- gate OFF/ON 외부 요청·DB 변화: **0건**
-- 신규 제품 결함: **0건**
-- 출시 판단: **GO**
-- 실제 LAONPAY 활성화: 외부 readiness 완료 전 **HOLD**
+320/390/1280px × 100/200%에서 가로 넘침 0, 후기 이동 6조합의 제목 가림 0, page/console error와 외부 non-GET 요청은 0입니다. 초기 320px·200%의 고정 헤더가 후기 제목을 가리는 P2는 제품 수정 후 종료했습니다.
 
-상세 증거는 [`report.md`](../reports/2026-08-29-bd10ae6-inline-link-target-regression/report.md)에 정리했습니다.
+신규 리뷰는 본인의 결제완료·배송완료 구매에만 허용합니다. 취소·시연·타인·미배송 주문은 거절하며, 기록한 송장·배송완료는 결제 상태를 바꾸지 않습니다. 새 테이블·보호 제약이 미준비일 때 기존 상품·주문 화면은 유지되고 신규 쓰기는 차단됩니다.
 
-## 핵심 결과
+상세 결과·증거·미실행 범위·cleanup: [독립 QA 보고서](../reports/2026-11-04-shop-upgrade/report.md).
 
-| 범위 | 결과 | 핵심 증거 |
-| --- | --- | --- |
-| 정적 검증 | PASS | Node 22.23.1, focused 7/7, 전체 140/140, interop 2/2, skip 0, lint/typecheck/prisma/audit/preflight/build |
-| 배포 | PASS | READY/production/sin1, SHA·apex/www/fixed alias 일치, runtime error·deployment error/fatal 0 |
-| 운영 링크 | PASS | 14조합, anchor 98개, hit point 392개, 최소 `49.25x44px`, overlap/overflow/clipping 0 |
-| checkout 링크 | PASS | 14조합, anchor 42개, hit point 168개, 최소 `55.31x44px`, focus/Tab 실패 0 |
-| checkbox 독립성 | PASS | 꺼짐/켜짐에서 정책 3링크를 2개 viewport로 실제 클릭, 상태 변화 0/12 |
-| gate OFF | PASS | hosted CTA·등록카드 tile 미노출, KSPAY 4수단 유지, provider/write 0 |
-| gate ON | PASS | 3 viewport x 4화면, 기본 `등록카드`, 신규/legacy `(등록카드)` 정규화, billing 취소 분기 유지 |
-| 민감정보·외부 경계 | PASS | 카드 원문/token/secret 노출 0, non-GET/provider 0, DB 기준선 불변 |
-| Cleanup | PASS | 격리 DB·서버·합성 key/session/runner 삭제, 포트 3003/3004·temp 잔여 0 |
-
-## 수정 전후
-
-`390px/100%`에서 직전 `16~38px` 높이였던 대상은 모두 `44px`가 됐습니다.
-
-- FAQ 배송·환불: `38px` → `44px`
-- 고객센터 전화·이메일·카카오: `16px` → `44px`
-- footer 전화·이메일: `16~22px` → `44px`
-- checkout 정책 링크: `19px` → `44px`
-
-`320px/200%` 긴 이메일과 환불 정책명은 높이가 `88~129.47px`로 자연스럽게 줄바꿈됐으며 내부 scroll과 clipping이 없습니다.
-
-## 개발 작업 전달
-
-제품 SHA `bd10ae6`은 이번 QA 범위에서 추가 수정 없이 출시 가능합니다. 실제 등록카드 결제 활성화는 LAONPAY partner env/key/readiness, 외부 hosted/API 상호운용과 실 PG 검증 전까지 별도 HOLD를 유지해야 합니다.
+실제 PG·운영 DB·환경변수·키·게이트·택배사 API와 실기기는 미실행입니다. 운영 schema 반영 전 완료로 보고하거나, 코드 검증 PASS를 실제 거래·배송·증빙 인정의 완료로 해석하지 않습니다.
