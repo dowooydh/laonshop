@@ -1,0 +1,20 @@
+{
+  "status": "PASS",
+  "count": 6,
+  "checks": [
+    "offline default makes plan without DB",
+    "READ ONLY check plan",
+    "32 inactive stock-zero image-empty drafts inserted",
+    "same confirmed plan rerun inserts no additional rows",
+    "all original product scalars and orders unchanged",
+    "review ledger unchanged"
+  ],
+  "originalProducts": 329,
+  "drafts": 32,
+  "originalProductHash": "8d6e190038f6978a7de03d812f6b7b8b3629955fc0aa3a7e4bee1cae3b39c208",
+  "preservedProductHash": "8d6e190038f6978a7de03d812f6b7b8b3629955fc0aa3a7e4bee1cae3b39c208",
+  "totalProducts": 361,
+  "activeProducts": 329,
+  "firstMode": "inactive-drafts-inserted",
+  "secondMode": "inactive-drafts-inserted"
+}

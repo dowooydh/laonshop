@@ -1,0 +1,61 @@
+{
+  "status": "PASS",
+  "count": 9,
+  "rows": [
+    {
+      "category": "상의",
+      "complete": true,
+      "naturalWidth": 390,
+      "naturalHeight": 487
+    },
+    {
+      "category": "아우터",
+      "complete": true,
+      "naturalWidth": 390,
+      "naturalHeight": 487
+    },
+    {
+      "category": "하의",
+      "complete": true,
+      "naturalWidth": 390,
+      "naturalHeight": 487
+    },
+    {
+      "category": "신발",
+      "complete": true,
+      "naturalWidth": 390,
+      "naturalHeight": 487
+    },
+    {
+      "category": "가방",
+      "complete": true,
+      "naturalWidth": 390,
+      "naturalHeight": 487
+    },
+    {
+      "category": "액세서리",
+      "complete": true,
+      "naturalWidth": 390,
+      "naturalHeight": 487
+    },
+    {
+      "category": "홈웨어",
+      "complete": true,
+      "naturalWidth": 390,
+      "naturalHeight": 487
+    },
+    {
+      "category": "스포츠",
+      "complete": true,
+      "naturalWidth": 390,
+      "naturalHeight": 487
+    },
+    {
+      "category": "원피스/스커트",
+      "complete": true,
+      "naturalWidth": 390,
+      "naturalHeight": 487
+    }
+  ],
+  "failures": []
+}

@@ -1,0 +1,120 @@
+{
+  "status": "PASS",
+  "count": 5,
+  "checks": [
+    "production and unspecified production runtimes hide examples",
+    "all 329 active products have stable 30+ illustrative evaluations and 10%+ text",
+    "size guides match every active product option and use explicit reference language",
+    "visible category counts are derived from real products and vary by merchandise",
+    "illustrative content never inserts actual review rows"
+  ],
+  "products": 329,
+  "exampleCountVariants": 47,
+  "actualReviewRows": 1,
+  "categoryDistribution": {
+    "men": [
+      {
+        "category": "상의",
+        "count": 30
+      },
+      {
+        "category": "하의",
+        "count": 28
+      },
+      {
+        "category": "아우터",
+        "count": 23
+      },
+      {
+        "category": "신발",
+        "count": 21
+      },
+      {
+        "category": "가방",
+        "count": 19
+      },
+      {
+        "category": "모자",
+        "count": 5
+      },
+      {
+        "category": "주얼리",
+        "count": 4
+      },
+      {
+        "category": "패션잡화",
+        "count": 15
+      },
+      {
+        "category": "홈웨어",
+        "count": 7
+      },
+      {
+        "category": "운동용품",
+        "count": 1
+      },
+      {
+        "category": "홈리빙",
+        "count": 2
+      }
+    ],
+    "women": [
+      {
+        "category": "상의",
+        "count": 26
+      },
+      {
+        "category": "하의",
+        "count": 25
+      },
+      {
+        "category": "아우터",
+        "count": 21
+      },
+      {
+        "category": "원피스",
+        "count": 12
+      },
+      {
+        "category": "스커트",
+        "count": 11
+      },
+      {
+        "category": "신발",
+        "count": 22
+      },
+      {
+        "category": "가방",
+        "count": 19
+      },
+      {
+        "category": "모자",
+        "count": 4
+      },
+      {
+        "category": "주얼리",
+        "count": 7
+      },
+      {
+        "category": "패션잡화",
+        "count": 13
+      },
+      {
+        "category": "홈웨어",
+        "count": 9
+      },
+      {
+        "category": "운동용품",
+        "count": 2
+      },
+      {
+        "category": "홈리빙",
+        "count": 2
+      },
+      {
+        "category": "이너웨어",
+        "count": 1
+      }
+    ]
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "status": "PASS",
+  "count": 4,
+  "measurements": [
+    {
+      "label": "배송비",
+      "centerDelta": 0,
+      "rowHeight": 44
+    },
+    {
+      "label": "출고 안내",
+      "centerDelta": 0,
+      "rowHeight": 44
+    },
+    {
+      "label": "교환·반품",
+      "centerDelta": 0,
+      "rowHeight": 44,
+      "linkHeight": 44
+    }
+  ],
+  "cta": {
+    "color": "rgb(255, 255, 255)",
+    "background": "rgb(36, 88, 211)"
+  },
+  "files": [
+    "purchase-info-alignment-1280.png",
+    "size-guide-1280.png",
+    "new-catalog-grid-1280.png"
+  ]
+}

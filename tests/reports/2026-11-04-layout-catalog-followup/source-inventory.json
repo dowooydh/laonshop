@@ -1,0 +1,95 @@
+{
+  "baseline": "04fb280",
+  "paths": [
+    {
+      "path": "lib/ui/input.tsx",
+      "definitionRows": 0,
+      "cnUses": 7
+    },
+    {
+      "path": "lib/ui/modal.tsx",
+      "definitionRows": 0,
+      "cnUses": 1
+    },
+    {
+      "path": "lib/ui/button.tsx",
+      "definitionRows": 0,
+      "cnUses": 1
+    },
+    {
+      "path": "lib/ui/misc.tsx",
+      "definitionRows": 0,
+      "cnUses": 3
+    },
+    {
+      "path": "lib/ui/table.tsx",
+      "definitionRows": 0,
+      "cnUses": 6
+    },
+    {
+      "path": "lib/ui/badge.tsx",
+      "definitionRows": 0,
+      "cnUses": 1
+    },
+    {
+      "path": "lib/ui/card.tsx",
+      "definitionRows": 0,
+      "cnUses": 7
+    },
+    {
+      "path": "components/order-statement.tsx",
+      "definitionRows": 11,
+      "cnUses": 0
+    },
+    {
+      "path": "components/shipment-info.tsx",
+      "definitionRows": 5,
+      "cnUses": 0
+    },
+    {
+      "path": "components/product-info.tsx",
+      "definitionRows": 1,
+      "cnUses": 0
+    },
+    {
+      "path": "app/order/[id]/page.tsx",
+      "definitionRows": 8,
+      "cnUses": 0
+    },
+    {
+      "path": "app/order/[id]/retry-payment.tsx",
+      "definitionRows": 0,
+      "cnUses": 1
+    },
+    {
+      "path": "app/admin/page.tsx",
+      "definitionRows": 5,
+      "cnUses": 0
+    },
+    {
+      "path": "app/checkout/checkout-form.tsx",
+      "definitionRows": 0,
+      "cnUses": 5
+    },
+    {
+      "path": "app/product/[id]/page.tsx",
+      "definitionRows": 3,
+      "cnUses": 0
+    },
+    {
+      "path": "app/product/[id]/wishlist-button.tsx",
+      "definitionRows": 0,
+      "cnUses": 1
+    },
+    {
+      "path": "app/product/[id]/add-to-cart.tsx",
+      "definitionRows": 0,
+      "cnUses": 1
+    },
+    {
+      "path": "app/cart/page.tsx",
+      "definitionRows": 0,
+      "cnUses": 1
+    }
+  ]
+}

@@ -1,0 +1,204 @@
+{
+  "status": "PASS",
+  "checks": [
+    "settled buyer checkout",
+    "actual buyer mypage link",
+    "actual buyer search link",
+    "settled statement",
+    "same prefetch requests direct HTTP"
+  ],
+  "errors": [],
+  "failures": [],
+  "responseStatuses": [
+    {
+      "phase": "startup",
+      "path": "/",
+      "status": 200
+    },
+    {
+      "phase": "startup",
+      "path": "/cart",
+      "status": 200
+    },
+    {
+      "phase": "startup",
+      "path": "/mypage",
+      "status": 200
+    },
+    {
+      "phase": "startup",
+      "path": "/shop/men",
+      "status": 200
+    },
+    {
+      "phase": "startup",
+      "path": "/shop/women",
+      "status": 200
+    },
+    {
+      "phase": "startup",
+      "path": "/search",
+      "status": 200
+    },
+    {
+      "phase": "startup",
+      "path": "/policy/terms",
+      "status": 200
+    },
+    {
+      "phase": "startup",
+      "path": "/policy/privacy",
+      "status": 200
+    },
+    {
+      "phase": "startup",
+      "path": "/policy/refund",
+      "status": 200
+    },
+    {
+      "phase": "startup",
+      "path": "/policy/shipping",
+      "status": 200
+    },
+    {
+      "phase": "startup",
+      "path": "/support",
+      "status": 200
+    },
+    {
+      "phase": "settled-mypage",
+      "path": "/mypage",
+      "status": 200
+    },
+    {
+      "phase": "settled-mypage",
+      "path": "/mypage/settings",
+      "status": 200
+    },
+    {
+      "phase": "settled-mypage",
+      "path": "/order/qa-20261104-demo",
+      "status": 200
+    },
+    {
+      "phase": "settled-mypage",
+      "path": "/order/qa-20261104-pending",
+      "status": 200
+    },
+    {
+      "phase": "settled-mypage",
+      "path": "/order/qa-20261104-canceled",
+      "status": 200
+    },
+    {
+      "phase": "settled-mypage",
+      "path": "/order/qa-20261104-delivered",
+      "status": 200
+    },
+    {
+      "phase": "settled-mypage",
+      "path": "/order/qa-20261104-shipped",
+      "status": 200
+    },
+    {
+      "phase": "settled-mypage",
+      "path": "/order/qa-20261104-unshipped",
+      "status": 200
+    },
+    {
+      "phase": "settled-search",
+      "path": "/search",
+      "status": 200
+    },
+    {
+      "phase": "settled-search",
+      "path": "/product/cmw1x5fp200007i451hhj9f2c",
+      "status": 200
+    },
+    {
+      "phase": "settled-search",
+      "path": "/product/cmw1x5fp400017i454ptyf7ps",
+      "status": 200
+    },
+    {
+      "phase": "settled-search",
+      "path": "/product/cmw1x5fp400027i45zr88p6wo",
+      "status": 200
+    },
+    {
+      "phase": "settled-search",
+      "path": "/product/cmw1x5fp500037i45du3wuf77",
+      "status": 200
+    },
+    {
+      "phase": "statement-navigation",
+      "path": "/",
+      "status": 200
+    },
+    {
+      "phase": "statement-navigation",
+      "path": "/cart",
+      "status": 200
+    },
+    {
+      "phase": "statement-navigation",
+      "path": "/mypage",
+      "status": 200
+    },
+    {
+      "phase": "statement-navigation",
+      "path": "/shop/men",
+      "status": 200
+    },
+    {
+      "phase": "statement-navigation",
+      "path": "/shop/women",
+      "status": 200
+    },
+    {
+      "phase": "statement-navigation",
+      "path": "/search",
+      "status": 200
+    },
+    {
+      "phase": "prefetch-replay",
+      "path": "/product/cmw1x5fp400027i45zr88p6wo",
+      "status": 200
+    },
+    {
+      "phase": "prefetch-replay",
+      "path": "/product/cmw1x5fp500037i45du3wuf77",
+      "status": 200
+    },
+    {
+      "phase": "prefetch-replay",
+      "path": "/",
+      "status": 200
+    },
+    {
+      "phase": "prefetch-replay",
+      "path": "/cart",
+      "status": 200
+    },
+    {
+      "phase": "prefetch-replay",
+      "path": "/mypage",
+      "status": 200
+    },
+    {
+      "phase": "prefetch-replay",
+      "path": "/shop/men",
+      "status": 200
+    },
+    {
+      "phase": "prefetch-replay",
+      "path": "/shop/women",
+      "status": 200
+    },
+    {
+      "phase": "prefetch-replay",
+      "path": "/search",
+      "status": 200
+    }
+  ]
+}

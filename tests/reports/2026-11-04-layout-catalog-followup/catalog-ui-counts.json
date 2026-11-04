@@ -1,0 +1,16 @@
+{
+  "status": "PASS",
+  "count": 4,
+  "counts": {
+    "men": {
+      "preview": 162,
+      "topsButton": "상의\n34",
+      "production": 155
+    },
+    "women": {
+      "preview": 179,
+      "topsButton": "상의\n28",
+      "production": 174
+    }
+  }
+}

@@ -1,0 +1,938 @@
+{
+  "status": "PASS",
+  "count": 8,
+  "checks": [
+    "guest /design-system 320px 100%",
+    "guest /design-system 320px 200%",
+    "guest /design-system 390px 100%",
+    "guest /design-system 390px 200%",
+    "guest /design-system 768px 100%",
+    "guest /design-system 768px 200%",
+    "guest /design-system 1280px 100%",
+    "guest /design-system 1280px 200%"
+  ],
+  "errors": [],
+  "externalWrites": [],
+  "imageFailures": [],
+  "findings": [],
+  "pages": [
+    {
+      "role": "guest",
+      "route": "/design-system",
+      "width": 320,
+      "scale": 1,
+      "overflow": 0,
+      "pairs": [],
+      "shortTargets": [],
+      "clippedFields": [],
+      "overlap": [],
+      "coloredButtons": []
+    },
+    {
+      "role": "guest",
+      "route": "/design-system",
+      "width": 320,
+      "scale": 2,
+      "overflow": 0,
+      "pairs": [],
+      "shortTargets": [],
+      "clippedFields": [],
+      "overlap": [],
+      "coloredButtons": [
+        {
+          "text": "발광 CTA",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "32px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "Violet",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(86, 73, 189)",
+          "fontSize": "32px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "Danger",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(185, 28, 53)",
+          "fontSize": "32px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "처리 중",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "32px",
+          "disabled": true,
+          "opacity": "0.5"
+        },
+        {
+          "text": "sm",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "26.56px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "md",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "32px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "lg",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "32px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "✦",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "32px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "xl 풀폭 결제 CTA",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "42.56px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "담기",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "26.56px",
+          "disabled": false,
+          "opacity": "1"
+        }
+      ]
+    },
+    {
+      "role": "guest",
+      "route": "/design-system",
+      "width": 390,
+      "scale": 1,
+      "overflow": 0,
+      "pairs": [],
+      "shortTargets": [
+        {
+          "text": "발광 CTA",
+          "tag": "BUTTON",
+          "width": 94.8,
+          "height": 40
+        },
+        {
+          "text": "Violet",
+          "tag": "BUTTON",
+          "width": 74.31,
+          "height": 40
+        },
+        {
+          "text": "Secondary",
+          "tag": "BUTTON",
+          "width": 113.58,
+          "height": 40
+        },
+        {
+          "text": "Outline",
+          "tag": "BUTTON",
+          "width": 86.66,
+          "height": 40
+        },
+        {
+          "text": "Ghost",
+          "tag": "BUTTON",
+          "width": 76.11,
+          "height": 40
+        },
+        {
+          "text": "Danger",
+          "tag": "BUTTON",
+          "width": 85.63,
+          "height": 40
+        },
+        {
+          "text": "Link →",
+          "tag": "BUTTON",
+          "width": 80.98,
+          "height": 40
+        },
+        {
+          "text": "처리 중",
+          "tag": "BUTTON",
+          "width": 101.88,
+          "height": 40
+        },
+        {
+          "text": "Disabled",
+          "tag": "BUTTON",
+          "width": 98.06,
+          "height": 40
+        },
+        {
+          "text": "sm",
+          "tag": "BUTTON",
+          "width": 42.2,
+          "height": 32
+        },
+        {
+          "text": "md",
+          "tag": "BUTTON",
+          "width": 55.41,
+          "height": 40
+        },
+        {
+          "text": "✦",
+          "tag": "BUTTON",
+          "width": 40,
+          "height": 40
+        },
+        {
+          "text": "담기",
+          "tag": "BUTTON",
+          "width": 47.14,
+          "height": 32
+        },
+        {
+          "text": "모달 열기",
+          "tag": "BUTTON",
+          "width": 93.86,
+          "height": 40
+        }
+      ],
+      "clippedFields": [],
+      "overlap": [],
+      "coloredButtons": [
+        {
+          "text": "발광 CTA",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "16.175px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "Violet",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(86, 73, 189)",
+          "fontSize": "16.175px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "Danger",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(185, 28, 53)",
+          "fontSize": "16.175px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "처리 중",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "16.175px",
+          "disabled": true,
+          "opacity": "0.5"
+        },
+        {
+          "text": "sm",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "13.385px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "md",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "16.175px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "lg",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "16.175px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "✦",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "16px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "xl 풀폭 결제 CTA",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "21.54px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "담기",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "13.385px",
+          "disabled": false,
+          "opacity": "1"
+        }
+      ]
+    },
+    {
+      "role": "guest",
+      "route": "/design-system",
+      "width": 390,
+      "scale": 2,
+      "overflow": 0,
+      "pairs": [],
+      "shortTargets": [],
+      "clippedFields": [],
+      "overlap": [],
+      "coloredButtons": [
+        {
+          "text": "발광 CTA",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "32px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "Violet",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(86, 73, 189)",
+          "fontSize": "32px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "Danger",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(185, 28, 53)",
+          "fontSize": "32px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "처리 중",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "32px",
+          "disabled": true,
+          "opacity": "0.5"
+        },
+        {
+          "text": "sm",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "26.56px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "md",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "32px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "lg",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "32px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "✦",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "32px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "xl 풀폭 결제 CTA",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "42.56px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "담기",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "26.56px",
+          "disabled": false,
+          "opacity": "1"
+        }
+      ]
+    },
+    {
+      "role": "guest",
+      "route": "/design-system",
+      "width": 768,
+      "scale": 1,
+      "overflow": 0,
+      "pairs": [],
+      "shortTargets": [
+        {
+          "text": "발광 CTA",
+          "tag": "BUTTON",
+          "width": 98.5,
+          "height": 40
+        },
+        {
+          "text": "Violet",
+          "tag": "BUTTON",
+          "width": 76.8,
+          "height": 40
+        },
+        {
+          "text": "Secondary",
+          "tag": "BUTTON",
+          "width": 118.25,
+          "height": 40
+        },
+        {
+          "text": "Outline",
+          "tag": "BUTTON",
+          "width": 89.75,
+          "height": 40
+        },
+        {
+          "text": "Ghost",
+          "tag": "BUTTON",
+          "width": 78.69,
+          "height": 40
+        },
+        {
+          "text": "Danger",
+          "tag": "BUTTON",
+          "width": 88.78,
+          "height": 40
+        },
+        {
+          "text": "Link →",
+          "tag": "BUTTON",
+          "width": 83.88,
+          "height": 40
+        },
+        {
+          "text": "처리 중",
+          "tag": "BUTTON",
+          "width": 104.58,
+          "height": 40
+        },
+        {
+          "text": "Disabled",
+          "tag": "BUTTON",
+          "width": 101.81,
+          "height": 40
+        },
+        {
+          "text": "sm",
+          "tag": "BUTTON",
+          "width": 42.97,
+          "height": 32
+        },
+        {
+          "text": "md",
+          "tag": "BUTTON",
+          "width": 56.78,
+          "height": 40
+        },
+        {
+          "text": "✦",
+          "tag": "BUTTON",
+          "width": 40,
+          "height": 40
+        },
+        {
+          "text": "담기",
+          "tag": "BUTTON",
+          "width": 48.13,
+          "height": 32
+        },
+        {
+          "text": "모달 열기",
+          "tag": "BUTTON",
+          "width": 97.38,
+          "height": 40
+        }
+      ],
+      "clippedFields": [],
+      "overlap": [],
+      "coloredButtons": [
+        {
+          "text": "발광 CTA",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "17.12px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "Violet",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(86, 73, 189)",
+          "fontSize": "17.12px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "Danger",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(185, 28, 53)",
+          "fontSize": "17.12px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "처리 중",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "17.12px",
+          "disabled": true,
+          "opacity": "0.5"
+        },
+        {
+          "text": "sm",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "13.952px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "md",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "17.12px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "lg",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "17.12px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "✦",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "16px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "xl 풀폭 결제 CTA",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "23.808px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "담기",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "13.952px",
+          "disabled": false,
+          "opacity": "1"
+        }
+      ]
+    },
+    {
+      "role": "guest",
+      "route": "/design-system",
+      "width": 768,
+      "scale": 2,
+      "overflow": 0,
+      "pairs": [],
+      "shortTargets": [],
+      "clippedFields": [],
+      "overlap": [],
+      "coloredButtons": [
+        {
+          "text": "발광 CTA",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "32.32px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "Violet",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(86, 73, 189)",
+          "fontSize": "32.32px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "Danger",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(185, 28, 53)",
+          "fontSize": "32.32px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "처리 중",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "32.32px",
+          "disabled": true,
+          "opacity": "0.5"
+        },
+        {
+          "text": "sm",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "26.752px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "md",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "32.32px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "lg",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "32.32px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "✦",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "32px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "xl 풀폭 결제 CTA",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "43.008px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "담기",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "26.752px",
+          "disabled": false,
+          "opacity": "1"
+        }
+      ]
+    },
+    {
+      "role": "guest",
+      "route": "/design-system",
+      "width": 1280,
+      "scale": 1,
+      "overflow": 0,
+      "pairs": [],
+      "shortTargets": [
+        {
+          "text": "발광 CTA",
+          "tag": "BUTTON",
+          "width": 101.91,
+          "height": 40
+        },
+        {
+          "text": "Violet",
+          "tag": "BUTTON",
+          "width": 79.09,
+          "height": 40
+        },
+        {
+          "text": "Secondary",
+          "tag": "BUTTON",
+          "width": 122.58,
+          "height": 40
+        },
+        {
+          "text": "Outline",
+          "tag": "BUTTON",
+          "width": 92.63,
+          "height": 40
+        },
+        {
+          "text": "Ghost",
+          "tag": "BUTTON",
+          "width": 81.09,
+          "height": 40
+        },
+        {
+          "text": "Danger",
+          "tag": "BUTTON",
+          "width": 91.69,
+          "height": 40
+        },
+        {
+          "text": "Link →",
+          "tag": "BUTTON",
+          "width": 86.53,
+          "height": 40
+        },
+        {
+          "text": "처리 중",
+          "tag": "BUTTON",
+          "width": 107.08,
+          "height": 40
+        },
+        {
+          "text": "Disabled",
+          "tag": "BUTTON",
+          "width": 105.3,
+          "height": 40
+        },
+        {
+          "text": "sm",
+          "tag": "BUTTON",
+          "width": 43.58,
+          "height": 32
+        },
+        {
+          "text": "md",
+          "tag": "BUTTON",
+          "width": 58.05,
+          "height": 40
+        },
+        {
+          "text": "✦",
+          "tag": "BUTTON",
+          "width": 40,
+          "height": 40
+        },
+        {
+          "text": "담기",
+          "tag": "BUTTON",
+          "width": 48.89,
+          "height": 32
+        },
+        {
+          "text": "모달 열기",
+          "tag": "BUTTON",
+          "width": 100.63,
+          "height": 40
+        }
+      ],
+      "clippedFields": [],
+      "overlap": [],
+      "coloredButtons": [
+        {
+          "text": "발광 CTA",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "18px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "Violet",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(86, 73, 189)",
+          "fontSize": "18px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "Danger",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(185, 28, 53)",
+          "fontSize": "18px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "처리 중",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "18px",
+          "disabled": true,
+          "opacity": "0.5"
+        },
+        {
+          "text": "sm",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "14.4px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "md",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "18px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "lg",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "18px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "✦",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "16px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "xl 풀폭 결제 CTA",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "25.6px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "담기",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "14.4px",
+          "disabled": false,
+          "opacity": "1"
+        }
+      ]
+    },
+    {
+      "role": "guest",
+      "route": "/design-system",
+      "width": 1280,
+      "scale": 2,
+      "overflow": 0,
+      "pairs": [],
+      "shortTargets": [],
+      "clippedFields": [],
+      "overlap": [],
+      "coloredButtons": [
+        {
+          "text": "발광 CTA",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "33.6px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "Violet",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(86, 73, 189)",
+          "fontSize": "33.6px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "Danger",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(185, 28, 53)",
+          "fontSize": "33.6px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "처리 중",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "33.6px",
+          "disabled": true,
+          "opacity": "0.5"
+        },
+        {
+          "text": "sm",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "27.52px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "md",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "33.6px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "lg",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "33.6px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "✦",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "32px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "xl 풀폭 결제 CTA",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "46.08px",
+          "disabled": false,
+          "opacity": "1"
+        },
+        {
+          "text": "담기",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(36, 88, 211)",
+          "fontSize": "27.52px",
+          "disabled": false,
+          "opacity": "1"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,101 @@
+{
+  "status": "PASS",
+  "count": 18,
+  "checks": [
+    "preview examples are visibly labeled and separate from actual review count",
+    "example pagination and text-only filter reveal their full declared counts",
+    "prepared catalog has exactly 12 image-backed detail links and 32 disclosed drafts",
+    "prepared detail men-top-01 is view-only with a reference size guide",
+    "prepared detail men-top-02 is view-only with a reference size guide",
+    "prepared detail men-top-03 is view-only with a reference size guide",
+    "prepared detail men-top-04 is view-only with a reference size guide",
+    "prepared detail men-bottom-01 is view-only with a reference size guide",
+    "prepared detail men-bottom-02 is view-only with a reference size guide",
+    "prepared detail men-bottom-03 is view-only with a reference size guide",
+    "prepared detail women-top-01 is view-only with a reference size guide",
+    "prepared detail women-top-02 is view-only with a reference size guide",
+    "prepared detail women-bottom-01 is view-only with a reference size guide",
+    "prepared detail women-bottom-02 is view-only with a reference size guide",
+    "prepared detail women-skirt-01 is view-only with a reference size guide",
+    "production public pages hide example reviews and all prepared links",
+    "production direct prepared URLs return NotFound without draft content",
+    "preview and production display checks never change real ledgers"
+  ],
+  "values": {
+    "productionTransport": [
+      {
+        "path": "/",
+        "status": 200,
+        "finalUrl": "http://localhost:3105/",
+        "redirected": false
+      },
+      {
+        "path": "/shop/men",
+        "status": 200,
+        "finalUrl": "http://localhost:3105/shop/men",
+        "redirected": false
+      },
+      {
+        "path": "/shop/women",
+        "status": 200,
+        "finalUrl": "http://localhost:3105/shop/women",
+        "redirected": false
+      },
+      {
+        "path": "/search?q=셔츠",
+        "status": 200,
+        "finalUrl": "http://localhost:3105/search?q=%EC%85%94%EC%B8%A0",
+        "redirected": false
+      },
+      {
+        "path": "/product/cmw1x5fp200007i451hhj9f2c",
+        "status": 200,
+        "finalUrl": "http://localhost:3105/product/cmw1x5fp200007i451hhj9f2c",
+        "redirected": false
+      },
+      {
+        "path": "/catalog-preview",
+        "status": 200,
+        "finalUrl": "http://localhost:3105/catalog-preview",
+        "redirected": false
+      },
+      {
+        "path": "/catalog-preview/men-top-01",
+        "status": 200,
+        "finalUrl": "http://localhost:3105/catalog-preview/men-top-01",
+        "redirected": false
+      }
+    ],
+    "exampleTotal": 43,
+    "exampleTextCount": 7,
+    "preparedLinks": [
+      "/catalog-preview/men-top-01",
+      "/catalog-preview/men-top-02",
+      "/catalog-preview/men-top-03",
+      "/catalog-preview/men-top-04",
+      "/catalog-preview/men-bottom-01",
+      "/catalog-preview/men-bottom-02",
+      "/catalog-preview/men-bottom-03",
+      "/catalog-preview/women-top-01",
+      "/catalog-preview/women-top-02",
+      "/catalog-preview/women-bottom-01",
+      "/catalog-preview/women-bottom-02",
+      "/catalog-preview/women-skirt-01"
+    ],
+    "ledgerBefore": {
+      "orders": 7,
+      "products": 361,
+      "reviews": 1,
+      "events": 5
+    },
+    "ledgerAfter": {
+      "orders": 7,
+      "products": 361,
+      "reviews": 1,
+      "events": 5
+    }
+  },
+  "pageErrors": [],
+  "externalWrites": [],
+  "operationalRequests": []
+}

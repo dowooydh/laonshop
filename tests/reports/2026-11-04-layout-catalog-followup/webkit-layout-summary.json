@@ -1,0 +1,31 @@
+{
+  "status": "WARN",
+  "layoutChecks": 64,
+  "layoutFindings": 0,
+  "rawPageErrors": [
+    {
+      "role": "buyer",
+      "message": "/localhost:3104/cart?_rsc=1p-R_iEY6bj0jY31 due to access control checks."
+    },
+    {
+      "role": "buyer",
+      "message": "/localhost:3104/mypage?_rsc=1p-R_iEY6bj0jY31 due to access control checks."
+    },
+    {
+      "role": "buyer",
+      "message": "/localhost:3104/shop/men?_rsc=1p-R_iEY6bj0jY31 due to access control checks."
+    },
+    {
+      "role": "buyer",
+      "message": "/localhost:3104/shop/women?_rsc=1p-R_iEY6bj0jY31 due to access control checks."
+    },
+    {
+      "role": "buyer",
+      "message": "/localhost:3104/search?_rsc=1p-R_iEY6bj0jY31 due to access control checks."
+    }
+  ],
+  "stableBuyerProbe": "PASS",
+  "stableProbeErrors": 0,
+  "stableProbeRequestFailures": 0,
+  "explanation": "Fast automation document replacement emitted Next RSC prefetch access-control messages in WebKit; these warnings remain recorded. Settled actual buyer clicks and direct replays succeeded. No filtering converted them to zero."
+}
