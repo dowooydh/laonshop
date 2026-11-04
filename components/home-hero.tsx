@@ -1,76 +1,35 @@
-"use client";
-
-// 홈 히어로 — 모델이 코디를 갈아입는 풀블리드 크로스페이드 + 키네틱 헤드라인 (핸드오버 §3, 쇼핑몰 정체성).
+import Image from "next/image";
 import Link from "next/link";
-import { motion, useReducedMotion } from "motion/react";
-import { ModelCrossfade } from "./model-crossfade";
-import { HERO_LOOKS } from "@/lib/models";
+import { safeProductImageUrl } from "@/lib/product-image";
 
-const HEAD = ["오늘의", "룩을", "입다."];
+type HeroProduct = { id: string; name: string; imageUrl: string | null };
 
-export function HomeHero() {
-  const reduce = useReducedMotion();
-
+export function HomeHero({ products = [] }: { products?: HeroProduct[] }) {
   return (
-    <section className="relative overflow-hidden rounded-[var(--radius-lg)] border border-line">
-      <ModelCrossfade images={HERO_LOOKS} interval={3800} className="absolute inset-0 h-full w-full" />
-      {/* 가독 스크림 */}
-      <div className="absolute inset-0 bg-gradient-to-t from-void via-void/55 to-void/25" />
-      <div className="absolute inset-0 bg-gradient-to-r from-void/70 to-transparent" />
-
-      <div className="relative z-10 flex min-h-[72svh] flex-col justify-end px-4 py-10 sm:min-h-[80vh] sm:px-12 sm:py-20">
-        <motion.p
-          initial={reduce ? false : { opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-          className="break-keep font-mono text-[0.72rem] uppercase tracking-[0.16em] text-fg-subtle sm:text-step--1 sm:tracking-[0.3em]"
-        >
-          ㈜커스텀오더 · New Season
-        </motion.p>
-
-        <h1 className="mt-3 max-w-full text-balance break-keep font-display text-[clamp(2rem,10vw,3rem)] font-bold leading-[0.96] tracking-[-0.04em] text-fg sm:text-hero">
-          {HEAD.map((w, i) => (
-            <motion.span
-              key={w}
-              initial={reduce ? false : { opacity: 0, y: 26, filter: "blur(8px)" }}
-              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-              transition={{ duration: 0.7, delay: 0.12 + i * 0.12, ease: [0.16, 1, 0.3, 1] }}
-              className="mr-[0.22em] inline-block last:mr-0"
-            >
-              {i === HEAD.length - 1 ? <span className="text-glow-cyan">{w}</span> : w}
-            </motion.span>
-          ))}
+    <section aria-labelledby="home-title" className="grid overflow-hidden rounded-[var(--radius-md)] bg-[#edf0f3] md:grid-cols-[0.9fr_1.1fr]">
+      <div className="flex flex-col items-start justify-center px-6 py-9 sm:px-10 md:py-12 lg:px-14">
+        <p className="text-sm font-semibold text-[#475569]">매일 입고 싶은 옷을 고르는 곳</p>
+        <h1 id="home-title" className="mt-3 break-keep text-3xl font-bold leading-tight tracking-[-0.04em] text-[#111827] sm:text-4xl lg:text-5xl">
+          나다운 옷,<br />새로운 일상.
         </h1>
-
-        <motion.p
-          initial={reduce ? false : { opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.8, delay: 0.55 }}
-          className="mt-4 max-w-xl break-keep text-sm leading-6 text-fg-muted min-[360px]:text-step-0 sm:mt-5 sm:text-step-1 sm:leading-relaxed"
-        >
-          <span className="block">남성 · 여성, 상의부터 신발까지.</span>
-          <span className="block">매일의 코디를 공간에서 완성하는 셀렉트샵.</span>
-        </motion.p>
-
-        <motion.div
-          initial={reduce ? false : { opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.7, ease: [0.16, 1, 0.3, 1] }}
-          className="mt-6 flex w-full max-w-sm flex-wrap gap-3 sm:mt-8"
-        >
-          <Link
-            href="/shop/men"
-            className="flex min-h-12 min-w-0 flex-1 basis-[min(100%,7rem)] items-center justify-center break-keep rounded-[var(--radius-pill)] bg-accent-cyan px-5 py-3 text-center font-medium text-void shadow-glow-cyan transition-[filter] duration-fast hover:brightness-110 sm:px-6"
-          >
-            남성의류
-          </Link>
-          <Link
-            href="/shop/women"
-            className="flex min-h-12 min-w-0 flex-1 basis-[min(100%,7rem)] items-center justify-center break-keep rounded-[var(--radius-pill)] border border-line bg-raised px-5 py-3 text-center font-medium text-fg transition-colors duration-fast hover:bg-overlay sm:px-6"
-          >
-            여성의류
-          </Link>
-        </motion.div>
+        <p className="mt-4 max-w-sm break-keep text-sm leading-6 text-[#475569] sm:text-[16px]">
+          편하게 손이 가는 기본부터 눈길이 가는 한 벌까지.<br className="hidden sm:block" /> 라온샵에서 오늘의 취향을 찾아보세요.
+        </p>
+        <div className="mt-6 flex w-full max-w-sm flex-wrap gap-2">
+          <Link href="/shop/women" className="inline-flex min-h-12 min-w-24 flex-1 items-center justify-center rounded-[var(--radius-sm)] bg-black px-5 py-3 text-sm font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-cyan focus-visible:ring-offset-2">여성의류 보기</Link>
+          <Link href="/shop/men" className="inline-flex min-h-12 min-w-24 flex-1 items-center justify-center rounded-[var(--radius-sm)] border border-[#cbd5e1] bg-white px-5 py-3 text-sm font-semibold text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-cyan focus-visible:ring-offset-2">남성의류 보기</Link>
+        </div>
+      </div>
+      <div className="grid min-h-64 grid-cols-2 gap-2 px-4 pb-4 sm:min-h-80 sm:gap-3 md:px-5 md:py-5">
+        {products.slice(0, 2).map((product, index) => {
+          const src = safeProductImageUrl(product.imageUrl);
+          return (
+            <Link href={`/product/${product.id}`} key={product.id} className={`relative block min-h-64 overflow-hidden rounded-[var(--radius-sm)] bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-cyan sm:min-h-80 ${index === 1 ? "mt-7" : "mb-7"}`}>
+              {src && <Image src={src} alt={product.name} fill priority sizes="(min-width: 768px) 30vw, 50vw" className="object-cover" />}
+              <span className="absolute inset-x-0 bottom-0 bg-white/95 px-3 py-2 text-xs font-medium text-[#111827] [overflow-wrap:anywhere]">{product.name}</span>
+            </Link>
+          );
+        })}
       </div>
     </section>
   );

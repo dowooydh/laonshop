@@ -4,30 +4,30 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── 디자인 토큰 (핸드오버 §4) — SSOT. Tailwind preset이 이 변수를 유틸에 매핑한다. ── */
+/* 상품 사진·가격·구매 정보가 먼저 보이는 라온샵 공통 디자인 토큰. */
 :root {
-  /* §4.1 배경(딥) */
-  --bg-void: #05060a;
-  --bg-base: #0a0c12;
-  --bg-raised: #12151f;
-  --bg-overlay: #1a1e2b;
+  /* 중립 배경 */
+  --bg-void: #ffffff;
+  --bg-base: #ffffff;
+  --bg-raised: #f7f7f8;
+  --bg-overlay: #eeeeef;
   /* 텍스트 */
-  --fg-primary: #f4f6fb;
-  --fg-muted: #9aa3b2;
-  --fg-subtle: #828c9e;
-  /* 발광 악센트 (좁게: 포커스·글로우·CTA에만) */
-  --accent-cyan: #4fd1ff;
-  --accent-violet: #8b5cff;
-  --accent-lime: #c6ff4f;
+  --fg-primary: #161616;
+  --fg-muted: #525252;
+  --fg-subtle: #666666;
+  /* 구매 동작·링크·포커스 강조 */
+  --accent-cyan: #2458d3;
+  --accent-violet: #5649bd;
+  --accent-lime: #325e39;
   /* 그라디언트 메시(히어로 배경 한정) */
-  --mesh-a: #4fd1ff;
-  --mesh-b: #8b5cff;
-  --mesh-c: #0a0c12;
-  --mesh-d: #1a1e2b;
+  --mesh-a: #2458d3;
+  --mesh-b: #5649bd;
+  --mesh-c: #ffffff;
+  --mesh-d: #eeeeef;
   /* 상태 */
-  --success: #3ddc97;
-  --warning: #ffb84f;
-  --danger: #ff5c7a;
+  --success: #167447;
+  --warning: #945a00;
+  --danger: #b91c35;
   /* 헤어라인 보더 */
   --line: color-mix(in oklab, var(--fg-primary) 10%, transparent);
 
@@ -40,16 +40,16 @@
   --step-hero: clamp(3.2rem, 2rem + 7vw, 9rem);
 
   /* §4.3 라운드 */
-  --radius-sm: 8px;
-  --radius-md: 14px;
-  --radius-lg: 22px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
   --radius-pill: 999px;
 
   /* §4.4 엘리베이션 & 글로우 */
-  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-2: 0 8px 30px rgba(0, 0, 0, 0.5);
-  --glow-cyan: 0 0 24px color-mix(in oklab, var(--accent-cyan) 55%, transparent);
-  --glow-violet: 0 0 32px color-mix(in oklab, var(--accent-violet) 50%, transparent);
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-2: 0 4px 18px rgba(0, 0, 0, 0.06);
+  --glow-cyan: 0 0 0 transparent;
+  --glow-violet: 0 0 0 transparent;
 
   /* §4.5 모션 */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
@@ -74,9 +74,9 @@
 }
 
 @layer base {
-  /* Phase 2: 전역 다크 셸. 모든 페이지가 이 페이즈에서 다크 토큰으로 이관됨. */
+  /* 폼과 기본 브라우저 컨트롤도 밝은 화면에 맞춘다. */
   :root {
-    color-scheme: dark;
+    color-scheme: light;
   }
   html {
     background: var(--bg-void);
@@ -138,4 +138,11 @@
     color: var(--accent-violet);
     text-shadow: 0 0 24px color-mix(in oklab, var(--accent-violet) 50%, transparent);
   }
+}
+
+@media print {
+  .no-print { display: none !important; }
+  body, main { background: white !important; color: black !important; }
+  main { max-width: none !important; padding: 0 !important; }
+  a { color: inherit !important; }
 }

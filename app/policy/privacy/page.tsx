@@ -4,10 +4,10 @@ export const metadata = { title: "개인정보처리방침" };
 
 export default function PrivacyPage() {
   return (
-    <PolicyShell eyebrow="Privacy" title="개인정보처리방침" effective="2026년 8월 29일">
+    <PolicyShell eyebrow="Privacy" title="개인정보처리방침" effective="2026년 11월 4일">
       <section>
         <h2>1. 수집하는 개인정보 항목</h2>
-        <p>회원가입 및 주문 처리를 위해 다음 정보를 수집합니다: 이름, 이메일, 휴대폰번호, 배송지 주소, 주문·결제 내역.</p>
+        <p>회원가입 및 주문 처리를 위해 다음 정보를 수집합니다: 이름, 이메일, 휴대폰번호, 배송지 주소, 주문·결제 내역. 배송 관리 시 택배사·송장번호·발송 및 배송완료 확인 내역을 기록합니다. 구매후기 작성 시 별점·내용·구매 상품 및 옵션을 저장합니다.</p>
       </section>
       <section>
         <h2>2. 개인정보의 수집 및 이용목적</h2>
@@ -54,6 +54,10 @@ export default function PrivacyPage() {
           <li>등록카드 정보는 LAONPAY 호스팅 등록 화면에서 처리되며 라온샵은 불투명 결제수단 ID와 마스킹 정보만 사용합니다.</li>
           <li>전 구간 HTTPS 암호화 통신, 개인정보 접근 권한 최소화.</li>
         </ul>
+      </section>
+      <section>
+        <h2>구매후기 공개 안내</h2>
+        <p>후기는 배송완료된 본인 구매 상품에 작성할 수 있습니다. 공개 화면에는 마스킹한 작성자명, 별점, 후기 내용, 구매 옵션, 작성일만 표시합니다. 주문번호·연락처·배송지는 공개하지 않습니다. 후기 내용에 개인정보를 포함하지 마세요. 본인 후기의 삭제 요청은 아래 고객센터로 접수할 수 있습니다.</p>
       </section>
       <section>
         <h2>8. 개인정보보호책임자</h2>

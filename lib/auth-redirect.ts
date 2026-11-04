@@ -14,6 +14,8 @@ export function safeLoginReturnTarget(value: unknown): string | null {
     return null;
   }
   if (!value.startsWith("/") || value.startsWith("//")) return null;
+  // 구매후기 로그인 복귀는 상품 ID와 고정 앵커만 허용한다. 기존 hosted 복귀 계약은 유지한다.
+  if (/^\/product\/[A-Za-z0-9_-]{1,100}#reviews$/.test(value)) return value;
   try {
     const url = new URL(value, "https://laonshop.com");
     if (

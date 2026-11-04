@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { EmptyState, Input } from "@/lib/ui";
+import { EmptyState, Input, Button } from "@/lib/ui";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ProductCard } from "@/components/product-card";
@@ -55,31 +55,31 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   return (
     <div className="space-y-8">
       <header className="space-y-1">
-        <p className="font-mono text-step--1 uppercase tracking-[0.3em] text-accent-cyan">Search</p>
-        <h1 className="font-display text-step-3 font-bold tracking-tight text-fg">상품 검색</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-fg">상품 검색</h1>
       </header>
 
       <div className="max-w-xl space-y-4">
-        <form action="/search" method="get" role="search">
+        <form action="/search" method="get" role="search" className="flex items-center gap-2">
           <Input
             type="search"
             name="q"
             defaultValue={query}
             placeholder="상품명·카테고리로 검색"
             aria-label="상품 검색"
-            autoFocus
+            maxLength={50}
           />
+          <Button type="submit" size="lg" className="shrink-0">검색</Button>
         </form>
 
         {/* 추천 검색어 */}
         <div className="flex flex-wrap items-center gap-2">
-          <span className="mr-1 font-mono text-step--1 uppercase tracking-widest text-fg-subtle">추천</span>
+          <span className="mr-1 text-sm text-fg-subtle">추천</span>
           {SUGGESTED.map((word) => (
             <Link
               key={word}
               href={`/search?q=${encodeURIComponent(word)}`}
               className={
-                "inline-flex min-h-11 items-center rounded-[var(--radius-pill)] border px-4 py-1.5 text-step--1 transition-colors duration-fast " +
+                "inline-flex min-h-11 items-center rounded-[var(--radius-sm)] border px-4 py-1.5 text-step--1 transition-colors duration-fast " +
                 (word === query
                   ? "border-accent-cyan bg-[color-mix(in_oklab,var(--accent-cyan)_12%,transparent)] text-accent-cyan"
                   : "border-line bg-raised text-fg-muted hover:bg-overlay hover:text-fg")
@@ -99,10 +99,10 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
           />
         ) : (
           <section className="space-y-5">
-            <p className="font-mono text-step--1 text-fg-subtle">
+            <p className="text-sm text-fg-subtle">
               &ldquo;{query}&rdquo; 검색 결과 {products.length}개
             </p>
-            <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,8rem),1fr))] gap-4 sm:grid-cols-3 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-x-3 gap-y-7 sm:grid-cols-3 sm:gap-x-5 lg:grid-cols-4">
               {products.map((p) => (
                 <ProductCard
                   key={p.id}
@@ -110,7 +110,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
                   name={p.name}
                   price={p.price}
                   imageUrl={p.imageUrl}
-                  eyebrow={`${p.gender === "women" ? "WOMEN" : "MEN"} · ${p.category}`}
+                  eyebrow={`${p.gender === "women" ? "여성" : "남성"} · ${p.category ?? "의류"}`}
                   soldOut={p.stock <= 0}
                 />
               ))}
@@ -122,10 +122,10 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
           {/* 검색 전 — 추천 상품 그리드 */}
           <section className="space-y-5 border-t border-line pt-8">
             <div className="flex items-end justify-between">
-              <h2 className="font-mono text-step--1 uppercase tracking-widest text-accent-cyan">추천 상품</h2>
-              <span className="font-mono text-step--1 text-fg-subtle">MEN · WOMEN</span>
+              <h2 className="text-sm text-accent-cyan">추천 상품</h2>
+              <span className="text-sm text-fg-subtle">남성 · 여성</span>
             </div>
-            <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,8rem),1fr))] gap-4 sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-x-3 gap-y-7 sm:grid-cols-4 sm:gap-x-5">
               {picks.map((p) => (
                 <ProductCard
                   key={p.id}
@@ -133,7 +133,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
                   name={p.name}
                   price={p.price}
                   imageUrl={p.imageUrl}
-                  eyebrow={`${p.gender === "women" ? "WOMEN" : "MEN"} · ${p.category}`}
+                  eyebrow={`${p.gender === "women" ? "여성" : "남성"} · ${p.category ?? "의류"}`}
                   soldOut={p.stock <= 0}
                   sizes="(min-width: 640px) 25vw, 50vw"
                 />

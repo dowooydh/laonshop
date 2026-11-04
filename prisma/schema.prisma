@@ -32,6 +32,8 @@ model ShopUser {
   billingCharges        ShopBillingCharge[]
   billingCancelRequests ShopBillingCancelRequest[]
   auditLogs             ShopOrderAuditLog[]        @relation("ShopOrderAuditActor")
+  productReviews        ShopProductReview[]
+  shipmentEvents        ShopShipmentEvent[]
   createdAt             DateTime                   @default(now())
 }
 
@@ -208,6 +210,7 @@ model Product {
   sortOrder   Int             @default(0)
   orderItems  ShopOrderItem[]
   wishedBy    Wishlist[]
+  reviews     ShopProductReview[]
   createdAt   DateTime        @default(now())
 }
 
@@ -244,6 +247,8 @@ model ShopOrder {
   items             ShopOrderItem[]
   auditLogs         ShopOrderAuditLog[]
   billingCharge     ShopBillingCharge?
+  shipment          ShopShipment?
+  reviews           ShopProductReview[]
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
 
@@ -262,8 +267,64 @@ model ShopOrderItem {
   price     Int // 주문 시점 단가
   qty       Int
   size      String? // 선택 사이즈
+  review    ShopProductReview?
 
   @@index([orderId])
+  @@unique([id, orderId, productId])
+}
+
+// 결제 상태와 별개인 배송 기록. 기존 주문 테이블의 scalar 컬럼은 변경하지 않는다.
+model ShopShipment {
+  id             String              @id @default(cuid())
+  orderId        String              @unique
+  userId         String
+  order          ShopOrder           @relation(fields: [orderId, userId], references: [id, userId], onDelete: Restrict)
+  carrier        String
+  trackingNumber String
+  status         String              @default("SHIPPED")
+  shippedAt      DateTime            @default(now())
+  deliveredAt    DateTime?
+  events         ShopShipmentEvent[]
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  @@unique([orderId, userId])
+}
+
+// 운영자가 기록한 배송 이력. 애플리케이션에 수정·삭제 액션을 제공하지 않는다.
+model ShopShipmentEvent {
+  id             String       @id @default(cuid())
+  shipmentId     String
+  shipment       ShopShipment @relation(fields: [shipmentId], references: [id], onDelete: Restrict)
+  actorUserId    String
+  actor          ShopUser     @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
+  action         String
+  carrier        String
+  trackingNumber String
+  note           String?
+  createdAt      DateTime     @default(now())
+
+  @@index([shipmentId, createdAt])
+}
+
+// 후기의 사용자·상품은 요청값이 아닌 본인의 배송완료 주문 항목에서 결정한다.
+model ShopProductReview {
+  id          String        @id @default(cuid())
+  orderItemId String        @unique
+  orderId     String
+  userId      String
+  productId   String
+  order       ShopOrder     @relation(fields: [orderId, userId], references: [id, userId], onDelete: Restrict)
+  orderItem   ShopOrderItem @relation(fields: [orderItemId, orderId, productId], references: [id, orderId, productId], onDelete: Restrict)
+  user        ShopUser      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  product     Product       @relation(fields: [productId], references: [id], onDelete: Restrict)
+  rating      Int
+  content     String
+  createdAt   DateTime      @default(now())
+
+  @@index([productId, createdAt])
+  @@index([userId, createdAt])
+  @@unique([orderItemId, orderId, productId])
 }
 
 // 결제 결과가 불명확한 주문을 운영자가 KSTA에서 대조해 확정한 이력.

@@ -10,6 +10,7 @@ import {
   normalizeLaonpayBillingOrderCardName,
 } from "@/lib/billing";
 import { ClearCartOnPaid } from "./clear-cart";
+import { ShipmentInfo } from "@/components/shipment-info";
 import { CancelRequest } from "./cancel-request";
 import { RetryPayment } from "./retry-payment";
 import { BillingStatusSubmit } from "./billing-status-submit";
@@ -369,6 +370,8 @@ export default async function OrderResultPage({
           ))}
         </ul>
       </div>
+
+      <ShipmentInfo orderId={order.id} paid={paid && !isManualPaymentDemoOrder} />
 
       {retryable && <RetryPayment orderId={order.id} amount={order.totalAmount} />}
 

@@ -12,6 +12,8 @@
 
 ## 현재 기준선
 
+- 2026-11-04 쇼핑몰 업그레이드 구현: 상품 중심의 밝은 홈·검색·카테고리·상세 갤러리, 배송완료 구매자의 후기, 관리자 주문·송장·배송완료 이력, 본인/관리자 전용 주문·배송 내역 인쇄 화면을 추가했다. 기존 결제 상태·금액·KSPAY/LAONPAY 계약은 유지한다. 후기·배송은 별도 3개 테이블과 CHECK·이력 보호 trigger가 모두 준비돼야 열리며, 운영 DB에는 아직 적용하지 않았다. 적용 SQL과 별도 승인 절차는 `ops/storefront/README.md`, 독립 QA 결과는 `tests/reports/2026-11-04-shop-upgrade/`를 확인한다. 화면 구현 완료를 운영 DB 적용·기능 활성화 완료로 해석하지 않는다.
+
 - 2026-09-18 22:49 KST 전체취소 완료: 이번 21,000원 등록카드 결제를 사용자가 관리자에서 전체취소했고 LAONPAY CANCEL SUCCEEDED·두 원장 CANCELED·요청 DONE·관리자 감사·취소 실통보 APPLIED·지급예정액 0원과 라온샵 취소 완료 화면까지 확인했다. 카드 ACTIVE·과거 UNKNOWN은 보존했다. 시각 수정 `510e4d0` 운영 반영 및 실제 한국 시간 표시도 확인했다. 아래 최종 실행 대기는 이전 시점 기록이다. [최종 검증](tests/reports/2026-09-18-billing-charge-cancel.md).
 
 - 2026-09-18 등록카드 실승인: 사용자가 21,000원 결제를 직접 실행했고 LAONSHOP 완료 화면·LAONPAY BAUM CHARGE SUCCEEDED 1건·바움 실제 승인 통보 commit/ACK·거래조회 MATCHED와 원장 반영을 확인했다. 전체취소 요청은 접수됐으며 관리자 최종 실행 대기다. 완료 화면의 UTC 시각 표시는 한국 시간대로 수정하고 격리 build를 통과했다. [검증 보고서](tests/reports/2026-09-18-billing-charge-cancel.md).

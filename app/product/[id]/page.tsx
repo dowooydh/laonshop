@@ -2,65 +2,84 @@ import { prisma } from "@/lib/db";
 import { formatKrw } from "@/lib/format";
 import { getShopUser } from "@/lib/auth";
 import { getProductDetailImages } from "@/lib/product-detail-images";
-import { safeProductImageUrl } from "@/lib/product-image";
-import { Amount } from "@/lib/ui";
+import { getProductReviews, getReviewableItems } from "@/lib/commerce/queries";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 import { ProductInfoSections } from "@/components/product-info";
+import { ProductGallery } from "@/components/product-gallery";
+import { ProductReviews } from "@/components/product-reviews";
+import { ProductCard } from "@/components/product-card";
 import { RecentProducts, RecordView } from "@/components/recent-products";
 import { AddToCart } from "./add-to-cart";
 import { WishlistButton } from "./wishlist-button";
 
 export const dynamic = "force-dynamic";
+const getProduct = cache((id: string) =>
+  prisma.product.findUnique({ where: { id } }),
+);
 
-// generateMetadata와 페이지 본문의 중복 조회 방지
-const getProduct = cache((id: string) => prisma.product.findUnique({ where: { id } }));
-
-export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
   const { id } = await params;
   const product = await getProduct(id);
-  if (!product || !product.active) return { title: "상품을 찾을 수 없습니다" };
+  if (!product?.active) return { title: "상품을 찾을 수 없습니다" };
   const description = `${product.name} — ${product.description ?? "LAON SHOP 셀렉트"} ${formatKrw(product.price)}`;
-  const galleryImages = getProductDetailImages(product);
   return {
     title: product.name,
     description,
     openGraph: {
       title: product.name,
       description,
-      images: galleryImages.map((image) => image.src),
+      images: getProductDetailImages(product).map((image) => image.src),
     },
   };
 }
 
-export default async function ProductPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ProductPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const { id } = await params;
   const product = await getProduct(id);
-  if (!product || !product.active) notFound();
-
-  const sizes = (product.sizes ?? "").split(",").map((s) => s.trim()).filter(Boolean);
-  const soldOut = product.stock <= 0;
-  const gender = product.gender === "women" ? "women" : "men";
-  const genderLabel = gender === "women" ? "여성의류" : "남성의류";
-
-  const related = await prisma.product.findMany({
-    where: { gender: product.gender, category: product.category, active: true, id: { not: product.id } },
-    orderBy: { sortOrder: "asc" },
-    take: 4,
-  });
-  const galleryImages = getProductDetailImages(product);
-
+  if (!product?.active) notFound();
   const user = await getShopUser();
-  const wished = user
-    ? !!(await prisma.wishlist.findUnique({
-        where: { userId_productId: { userId: user.id, productId: product.id } },
-      }))
-    : false;
-
-  // 검색 리치 스니펫 + '실제 커머스' 신호 (가격은 정수 원 그대로)
+  const [related, reviews, reviewable, wished] = await Promise.all([
+    prisma.product.findMany({
+      where: {
+        gender: product.gender,
+        category: product.category,
+        active: true,
+        id: { not: product.id },
+      },
+      orderBy: { sortOrder: "asc" },
+      take: 4,
+    }),
+    getProductReviews(id),
+    user
+      ? getReviewableItems(user.id, id)
+      : Promise.resolve({ available: true, items: [] }),
+    user
+      ? prisma.wishlist
+          .findUnique({
+            where: { userId_productId: { userId: user.id, productId: id } },
+          })
+          .then(Boolean)
+      : Promise.resolve(false),
+  ]);
+  const galleryImages = getProductDetailImages(product);
+  const sizes = (product.sizes ?? "")
+    .split(",")
+    .map((size) => size.trim())
+    .filter(Boolean);
+  const gender = product.gender === "women" ? "women" : "men";
+  const soldOut = product.stock <= 0;
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Product",
@@ -71,161 +90,194 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
       "@type": "Offer",
       price: product.price,
       priceCurrency: "KRW",
-      availability: soldOut ? "https://schema.org/OutOfStock" : "https://schema.org/InStock",
+      availability: soldOut
+        ? "https://schema.org/OutOfStock"
+        : "https://schema.org/InStock",
     },
   };
-
   return (
-    <div className="min-w-0 space-y-8">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <RecordView item={{ id: product.id, name: product.name, price: product.price, imageUrl: galleryImages[0]?.src ?? product.imageUrl }} />
-
-      <Link
-        href={`/shop/${gender}`}
-        className="group inline-flex min-h-11 items-center gap-2 font-mono text-step--1 uppercase tracking-widest text-fg-subtle transition-colors hover:text-fg-muted"
+    <div className="min-w-0 space-y-10">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
+        }}
+      />
+      <RecordView
+        item={{
+          id,
+          name: product.name,
+          price: product.price,
+          imageUrl: galleryImages[0]?.src ?? product.imageUrl,
+        }}
+      />
+      <nav
+        aria-label="현재 위치"
+        className="flex flex-wrap items-center gap-2 text-sm text-fg-subtle"
       >
-        <span className="transition-transform group-hover:-translate-x-0.5">←</span>
-        {genderLabel}
-      </Link>
-
-      <div className="grid min-w-0 gap-8 md:grid-cols-2 md:gap-12 lg:gap-16">
-        {/* 이미지 패널 */}
-        <div className="min-w-0 md:sticky md:top-24 md:self-start">
-          <div className="relative overflow-hidden rounded-[var(--radius-lg)] border border-line bg-raised p-3 shadow-elev2 md:p-4">
-            <div className="pointer-events-none absolute -inset-x-16 -top-24 h-56 bg-accent-cyan/10 blur-3xl" />
-            <div className="relative aspect-[4/5] overflow-hidden rounded-[var(--radius-md)] bg-overlay shadow-glow-cyan">
-              {galleryImages[0] && (
-                <Image
-                  src={galleryImages[0].src}
-                  alt={galleryImages[0].alt}
-                  fill
-                  priority
-                  sizes="(min-width: 768px) 50vw, 100vw"
-                  className="object-cover"
-                />
-              )}
-              {soldOut && (
-                <div className="absolute inset-0 flex items-center justify-center bg-void/60">
-                  <span className="whitespace-nowrap font-mono text-step-0 uppercase tracking-[0.3em] text-fg">Sold Out</span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* 상세 */}
-        <div className="min-w-0 flex flex-col md:py-2">
-          <div className="font-mono text-step--1 uppercase tracking-widest text-accent-cyan">
-            {product.category}
-          </div>
-          <div className="mt-3 flex min-w-0 items-start justify-between gap-3 sm:gap-4">
-            <h1 className="min-w-0 text-balance break-keep font-display text-step-2 font-bold leading-tight tracking-tight text-fg [overflow-wrap:anywhere] sm:text-step-3">
+        <Link href="/" className="inline-flex min-h-11 items-center">
+          홈
+        </Link>
+        <span aria-hidden>/</span>
+        <Link
+          href={`/shop/${gender}`}
+          className="inline-flex min-h-11 items-center"
+        >
+          {gender === "women" ? "여성의류" : "남성의류"}
+        </Link>
+        <span aria-hidden>/</span>
+        <span>{product.category}</span>
+      </nav>
+      <div className="grid min-w-0 gap-7 md:grid-cols-2 md:gap-10">
+        <ProductGallery
+          images={galleryImages}
+          name={product.name}
+          soldOut={soldOut}
+        />
+        <div className="min-w-0 md:sticky md:top-6 md:self-start">
+          <p className="text-sm font-semibold text-fg-muted">
+            LAON SHOP · {product.category}
+          </p>
+          <div className="mt-3 flex items-start justify-between gap-3">
+            <h1 className="min-w-0 break-keep text-2xl font-bold leading-snug tracking-tight [overflow-wrap:anywhere] sm:text-3xl">
               {product.name}
             </h1>
-            <WishlistButton productId={product.id} initialWished={wished} />
+            <WishlistButton productId={id} initialWished={wished} />
           </div>
-
-          <div className="mt-5 flex items-baseline gap-1">
-            <Amount value={product.price} className="text-step-2 text-fg" />
-          </div>
-
-          {/* 전상법 제13조 — 계약 전 배송비·소요기간 고지 (아코디언 외 상시 노출) */}
-          <p className="mt-2 break-keep font-mono text-step--1 text-fg-subtle [overflow-wrap:anywhere]">
-            무료배송 · 결제 확인 후 영업일 2~3일 내 출고
+          {reviews.available && reviews.total > 0 && (
+            <a
+              href="#reviews"
+              className="mt-2 inline-flex min-h-11 items-center gap-2 text-sm font-medium"
+            >
+              <span aria-hidden>★</span> {reviews.averageRating?.toFixed(1)}{" "}
+              <span className="text-fg-subtle">후기 {reviews.total}개</span>
+            </a>
+          )}
+          <p className="mt-5 text-3xl font-bold tracking-tight">
+            {formatKrw(product.price)}
           </p>
-
-          {product.description && (
-            <p className="mt-6 whitespace-pre-wrap text-step-0 leading-relaxed text-fg-muted [overflow-wrap:anywhere]">
-              {product.description}
-            </p>
-          )}
-
-          {/* 검수된 같은 상품 추가컷만 노출한다. */}
-          {galleryImages.length > 1 && (
-            <div className="mt-8 space-y-4 border-t border-line pt-8">
-              <div className="flex items-center justify-between gap-3">
-                <p className="font-mono text-step--1 uppercase tracking-widest text-fg-subtle">Detail</p>
-                <p className="font-mono text-[11px] uppercase tracking-widest text-fg-subtle">
-                  {galleryImages.length} photos
-                </p>
-              </div>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
-                {galleryImages.slice(1).map((image, index) => (
-                  <div
-                    key={`${image.src}-${index}`}
-                    className="relative aspect-[4/5] overflow-hidden rounded-[var(--radius-md)] border border-line bg-overlay"
-                  >
-                    <Image
-                      src={image.src}
-                      alt={image.alt}
-                      fill
-                      sizes="(min-width: 768px) 25vw, (min-width: 640px) 50vw, 100vw"
-                      className="object-cover"
-                    />
-                    <div className="pointer-events-none absolute left-2 top-2 rounded-full border border-line bg-void/55 px-2 py-1 font-mono text-[10px] uppercase tracking-widest text-fg-subtle backdrop-blur">
-                      {String(index + 2).padStart(2, "0")}
-                    </div>
-                  </div>
-                ))}
-              </div>
+          <dl className="my-6 space-y-3 border-y border-line py-5 text-sm">
+            <div className="flex gap-6">
+              <dt className="w-16 shrink-0 text-fg-subtle">배송비</dt>
+              <dd className="font-semibold">무료배송</dd>
             </div>
-          )}
-
-          <div className="mt-8 border-t border-line pt-8">
-            <AddToCart
-              product={{ id: product.id, name: product.name, price: product.price, imageUrl: galleryImages[0]?.src ?? product.imageUrl }}
-              sizes={sizes}
-              soldOut={soldOut}
-            />
-          </div>
-
-          <ProductInfoSections category={product.category} />
+            <div className="flex gap-6">
+              <dt className="w-16 shrink-0 text-fg-subtle">출고 안내</dt>
+              <dd>결제 확인 후 영업일 2~3일 내 출고</dd>
+            </div>
+            <div className="flex gap-6">
+              <dt className="w-16 shrink-0 text-fg-subtle">교환·반품</dt>
+              <dd>
+                <Link
+                  href="/policy/refund"
+                  className="inline-flex min-h-11 items-center underline underline-offset-4"
+                >
+                  수령 후 7일 이내 신청 안내
+                </Link>
+              </dd>
+            </div>
+          </dl>
+          <AddToCart
+            product={{
+              id,
+              name: product.name,
+              price: product.price,
+              imageUrl: galleryImages[0]?.src ?? product.imageUrl,
+            }}
+            sizes={sizes}
+            soldOut={soldOut}
+          />
+          <p className="mt-4 text-sm leading-relaxed text-fg-subtle">
+            주문내역에서 결제 상태와 배송 정보를 확인할 수 있습니다.
+          </p>
         </div>
       </div>
-
-      {/* 연관 상품 — 상세 dead-end 방지 (같은 젠더·카테고리) */}
+      <nav
+        aria-label="상품 상세 메뉴"
+        className="sticky top-0 z-20 grid grid-cols-3 border-y border-line bg-void"
+      >
+        {[
+          ["#details", "상품정보"],
+          [
+            "#reviews",
+            `구매후기${reviews.available ? ` (${reviews.total})` : ""}`,
+          ],
+          ["#shipping", "배송·교환·반품"],
+        ].map(([href, label]) => (
+          <a
+            key={href}
+            href={href}
+            className="flex min-h-14 min-w-0 items-center justify-center px-2 text-center text-sm font-semibold hover:bg-raised"
+          >
+            {label}
+          </a>
+        ))}
+      </nav>
+      <section
+        id="details"
+        className="scroll-mt-60 space-y-6"
+        aria-labelledby="details-title"
+      >
+        <h2 id="details-title" className="text-xl font-bold">
+          상품정보
+        </h2>
+        {product.description && (
+          <p className="max-w-3xl whitespace-pre-wrap leading-relaxed text-fg-muted [overflow-wrap:anywhere]">
+            {product.description}
+          </p>
+        )}
+        <div className="mx-auto max-w-3xl space-y-3">
+          {galleryImages.slice(1).map((image) => (
+            <div key={image.src} className="relative aspect-[4/5] bg-raised">
+              <Image
+                src={image.src}
+                alt={image.alt}
+                fill
+                sizes="(min-width: 768px) 768px, 100vw"
+                className="object-cover"
+              />
+            </div>
+          ))}
+        </div>
+      </section>
+      <ProductReviews
+        productId={id}
+        loggedIn={Boolean(user)}
+        available={reviews.available && reviewable.available}
+        total={reviews.total}
+        averageRating={reviews.averageRating}
+        reviews={reviews.reviews.map((review) => ({
+          ...review,
+          createdAt: review.createdAt.toISOString(),
+        }))}
+        items={reviewable.items}
+      />
+      <section
+        id="shipping"
+        className="scroll-mt-60"
+        aria-label="배송·교환·반품 안내"
+      >
+        <ProductInfoSections category={product.category} />
+      </section>
       {related.length > 0 && (
-        <section className="border-t border-line pt-8">
-          <div className="flex items-end justify-between">
-            <h2 className="font-display text-step-1 font-bold tracking-tight text-fg">함께 볼 만한</h2>
-            <Link
-              href={`/shop/${gender}`}
-              className="font-mono text-step--1 uppercase tracking-widest text-fg-subtle transition-colors hover:text-accent-cyan"
-            >
-              더 보기 →
-            </Link>
-          </div>
-          <div className="mt-5 grid grid-cols-[repeat(auto-fit,minmax(min(100%,8rem),1fr))] gap-4 sm:grid-cols-4">
-            {related.map((p) => {
-              const safeImageUrl = safeProductImageUrl(p.imageUrl);
-              return (
-                <Link
-                  key={p.id}
-                  href={`/product/${p.id}`}
-                  className="group relative block aspect-[4/5] overflow-hidden rounded-[var(--radius-lg)] border border-line bg-raised transition-[border-color,box-shadow] duration-base hover:border-accent-cyan hover:shadow-glow-cyan"
-                >
-                  {safeImageUrl && (
-                    <Image
-                      src={safeImageUrl}
-                      alt={p.name}
-                      fill
-                      sizes="(min-width: 640px) 25vw, 50vw"
-                      className="object-cover transition-transform duration-slow ease-out-expo group-hover:scale-[1.02]"
-                    />
-                  )}
-                  <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-void via-void/60 to-transparent" />
-                  <div className="absolute inset-x-0 bottom-0 p-4">
-                    <div className="truncate text-step--1 font-semibold text-fg">{p.name}</div>
-                    <div className="mt-0.5 font-mono text-step--1 font-bold text-fg">{formatKrw(p.price)}</div>
-                  </div>
-                </Link>
-              );
-            })}
+        <section className="space-y-5 border-t border-line pt-8">
+          <h2 className="text-xl font-bold">함께 둘러보세요</h2>
+          <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-4">
+            {related.map((p) => (
+              <ProductCard
+                key={p.id}
+                id={p.id}
+                name={p.name}
+                price={p.price}
+                imageUrl={p.imageUrl}
+                eyebrow={p.category ?? undefined}
+                soldOut={p.stock <= 0}
+              />
+            ))}
           </div>
         </section>
       )}
-
-      <RecentProducts excludeId={product.id} />
+      <RecentProducts excludeId={id} />
     </div>
   );
 }

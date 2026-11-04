@@ -1,10 +1,9 @@
-// 공용 상품 카드 — 검색·추천 그리드용 (서버 컴포넌트 호환, 모션 없는 버전).
-// 카테고리 뷰(category-shop.tsx)는 탭 전환 애니메이션 때문에 자체 카드 유지.
 import Image from "next/image";
 import Link from "next/link";
 import { formatKrw } from "@/lib/format";
 import { safeProductImageUrl } from "@/lib/product-image";
 
+/** 사진과 구매 정보를 분리해 작은 화면에서도 상품명과 가격을 읽을 수 있는 공용 카드. */
 export function ProductCard({
   id,
   name,
@@ -12,6 +11,7 @@ export function ProductCard({
   imageUrl,
   eyebrow,
   soldOut = false,
+  priority = false,
   sizes = "(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw",
 }: {
   id: string;
@@ -20,6 +20,7 @@ export function ProductCard({
   imageUrl: string | null;
   eyebrow?: string;
   soldOut?: boolean;
+  priority?: boolean;
   sizes?: string;
 }) {
   const safeImageUrl = safeProductImageUrl(imageUrl);
@@ -27,29 +28,30 @@ export function ProductCard({
   return (
     <Link
       href={`/product/${id}`}
-      className="group relative block aspect-[4/5] overflow-hidden rounded-[var(--radius-lg)] border border-line bg-raised transition-[border-color,box-shadow] duration-base hover:border-accent-cyan hover:shadow-glow-cyan"
+      className="group block min-w-0 rounded-[var(--radius-sm)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-cyan focus-visible:ring-offset-4"
     >
-      {safeImageUrl && (
-        <Image
-          src={safeImageUrl}
-          alt={name}
-          fill
-          sizes={sizes}
-          className="object-cover transition-transform duration-slow ease-out-expo group-hover:scale-[1.02]"
-        />
-      )}
-      <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-void via-void/60 to-transparent" />
-      {soldOut && (
-        <div className="absolute inset-0 flex items-center justify-center bg-void/60">
-          <span className="whitespace-nowrap font-mono text-step--1 uppercase tracking-[0.3em] text-fg">Sold Out</span>
-        </div>
-      )}
-      <div className="absolute inset-x-0 bottom-0 p-3 sm:p-4">
-        {eyebrow && (
-          <div className="truncate whitespace-nowrap font-mono text-[11px] uppercase tracking-widest text-fg-subtle">{eyebrow}</div>
+      <div className="relative aspect-[4/5] overflow-hidden rounded-[var(--radius-sm)] bg-overlay">
+        {safeImageUrl ? (
+          <Image
+            src={safeImageUrl}
+            alt={name}
+            fill
+            priority={priority}
+            sizes={sizes}
+            className="object-cover transition-transform duration-300 motion-safe:group-hover:scale-[1.025]"
+          />
+        ) : (
+          <div className="flex h-full items-center justify-center px-4 text-center text-sm text-fg-subtle">상품 이미지 준비 중</div>
         )}
-        <div className="truncate text-step-0 font-semibold text-fg">{name}</div>
-        <div className="mt-0.5 font-mono text-step--1 font-bold text-fg">{formatKrw(price)}</div>
+        {soldOut && (
+          <span className="absolute left-2 top-2 rounded-sm bg-black px-2.5 py-1.5 text-xs font-semibold text-white">품절</span>
+        )}
+      </div>
+      <div className="min-w-0 space-y-1 pt-3">
+        {eyebrow && <p className="break-words text-xs text-fg-muted">{eyebrow}</p>}
+        <p className="line-clamp-2 min-h-10 break-keep text-sm leading-5 text-fg [overflow-wrap:anywhere] group-hover:underline">{name}</p>
+        <p className="text-[16px] font-bold tracking-tight text-fg [overflow-wrap:anywhere]">{formatKrw(price)}</p>
+        <p className="text-xs text-fg-subtle">무료배송</p>
       </div>
     </Link>
   );

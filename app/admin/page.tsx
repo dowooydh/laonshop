@@ -72,6 +72,9 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Link href="/admin/orders" className={buttonVariants({ variant: "primary", size: "lg" })}>
+            주문·배송 관리
+          </Link>
           <Link href="/mypage/settings" className={buttonVariants({ variant: "outline", size: "lg" })}>
             계정 설정
           </Link>

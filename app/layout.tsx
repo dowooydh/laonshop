@@ -6,13 +6,11 @@ import { logoutAction } from "./(auth)/actions";
 import { fontDisplay, fontMono } from "./fonts";
 import { CartAuthSync } from "@/components/cart-auth-sync";
 import { CartBadge } from "@/components/cart-badge";
-import { GrainOverlay } from "@/components/grain-overlay";
-import { SmoothScroll } from "@/components/smooth-scroll";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://laonshop.com"),
-  title: { default: "LAON SHOP — 미래를 입다", template: "%s · LAON SHOP" },
-  description: "LAON SHOP — 상의·아우터·원피스부터 가방·액세서리까지, 공간에서 만나는 미래지향 셀렉트샵. 전 상품 무료배송.",
+  title: { default: "LAON SHOP — 나다운 일상을 입다", template: "%s · LAON SHOP" },
+  description: "LAON SHOP — 일상에 어울리는 남성·여성 의류와 잡화. 상품을 둘러보고 구매후기와 배송 정보를 확인하세요. 전 상품 무료배송.",
   openGraph: {
     siteName: "LAON SHOP",
     locale: "ko_KR",
@@ -40,16 +38,16 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
         >
           본문 바로가기
         </a>
-        <SmoothScroll>
-          <header className="sticky top-0 z-40 border-b border-line">
+        <div className="flex min-w-0 flex-1 flex-col">
+          <header className="no-print z-40 border-b border-line">
             <div className="glass">
               <div className="mx-auto flex min-h-16 max-w-6xl flex-wrap items-center justify-between gap-x-2 gap-y-1 px-2 py-1 min-[360px]:px-3 sm:px-6 sm:py-2">
                 <div className="flex max-w-full shrink-0 flex-wrap items-center gap-x-6 gap-y-1">
                   <Link
                     href="/"
-                    className="flex min-h-11 shrink-0 items-center font-display text-lg font-bold tracking-tight text-fg transition-[text-shadow] duration-base hover:[text-shadow:0_0_22px_color-mix(in_oklab,var(--accent-cyan)_60%,transparent)] min-[360px]:text-xl"
+                    className="flex min-h-11 shrink-0 items-center font-display text-lg font-bold tracking-tight text-fg transition-opacity hover:opacity-70 min-[360px]:text-xl"
                   >
-                    LAON<span className="text-accent-cyan">SHOP</span>
+                    LAON<span>SHOP</span>
                   </Link>
                   <nav className="hidden items-center gap-1 text-step--1 sm:flex">
                     <Link
@@ -119,6 +117,13 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
                   )}
                 </nav>
               </div>
+              <form action="/search" method="get" role="search" className="mx-auto max-w-6xl px-4 pb-3 sm:px-6">
+                <label htmlFor="store-search" className="sr-only">상품명 또는 카테고리 검색</label>
+                <div className="flex min-w-0 rounded-[var(--radius-sm)] border border-line bg-raised">
+                  <input id="store-search" name="q" type="search" maxLength={50} placeholder="오늘 찾는 옷은 무엇인가요?" className="h-11 min-w-0 flex-1 bg-transparent px-3 text-sm text-fg placeholder:text-fg-subtle" />
+                  <button type="submit" className="min-h-11 min-w-14 px-3 text-sm font-semibold">검색</button>
+                </div>
+              </form>
               {/* 모바일 — 젠더 카테고리 진입 경로 (데스크톱 nav가 hidden sm:flex라 뷰포트 절반에서 끊기는 동선 복원) */}
               <nav className="flex min-h-12 flex-wrap items-center justify-evenly gap-1 border-t border-line px-2 py-1 text-step--1 sm:hidden">
                 <Link
@@ -148,15 +153,15 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
           </main>
 
           {/* 카드사 심사 필수 — 사업자정보 + 정책 링크 */}
-          <footer className="border-t border-line bg-base">
+          <footer className="no-print border-t border-line bg-base">
             <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
               <div className="flex flex-col gap-8 sm:flex-row sm:items-start sm:justify-between">
                 <div className="max-w-sm">
                   <p className="font-display text-lg font-bold text-fg">
-                    LAON<span className="text-accent-cyan">SHOP</span>
+                    LAON<span>SHOP</span>
                   </p>
                   <p className="mt-3 text-step--1 leading-relaxed text-fg-muted">
-                    입는 것을 공간에서 만나는 ㈜커스텀오더의 미래지향 셀렉트샵.
+                    매일 입고 싶은 옷을 고르는 곳. ㈜커스텀오더가 운영하는 패션 셀렉트샵입니다.
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-x-6 gap-y-2 text-step--1">
@@ -220,9 +225,9 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
               </div>
             </div>
           </footer>
-        </SmoothScroll>
+        </div>
 
-        <GrainOverlay />
+
       </body>
     </html>
   );

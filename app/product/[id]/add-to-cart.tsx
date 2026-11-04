@@ -53,6 +53,7 @@ export function AddToCart({ product, sizes, soldOut = false }: Props) {
                 key={s}
                 type="button"
                 onClick={() => setSize(s)}
+                aria-pressed={size === s}
                 className={cn(
                   "h-[44px] min-w-[56px] rounded-[var(--radius-md)] border px-3 text-sm font-medium transition-colors",
                   size === s
