@@ -66,6 +66,7 @@ export function CategoryShop({
       );
     })
     .sort(SORTS[sort].fn);
+  const preparedCount = list.filter((product) => product.prepared).length;
   const reset = () => {
     setCat("전체");
     setSubcategory("전체");
@@ -92,8 +93,8 @@ export function CategoryShop({
       </header>
       {products.some((product) => product.prepared) && (
         <p className="rounded border border-dashed border-line bg-raised p-4 text-sm leading-6 text-fg-muted">
-          이 미리보기에는 AI 이미지로 구성한 준비상품이 포함돼 있습니다.
-          준비상품은 별도 표시하며 실제 구매할 수 없습니다.
+          판매 준비 상품은 AI 이미지로 새 스타일을 소개합니다.
+          별도로 표시된 준비 상품은 출시 전까지 구매할 수 없습니다.
         </p>
       )}
       <div className="space-y-3 border-b border-line pb-5">
@@ -142,8 +143,9 @@ export function CategoryShop({
           aria-atomic="true"
           className="text-sm text-fg-muted"
         >
-          상품 <strong className="font-semibold text-fg">{list.length}</strong>
-          개
+          전체 <strong className="font-semibold text-fg">{list.length}</strong>개
+          {" · "}판매 상품 {list.length - preparedCount}개
+          {preparedCount > 0 && <> · 판매 준비 {preparedCount}개</>}
         </p>
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm text-fg-muted">
@@ -153,7 +155,7 @@ export function CategoryShop({
               onChange={(event) => setInStockOnly(event.target.checked)}
               className="h-4 w-4 accent-black"
             />
-            품절 제외
+            구매 가능 상품만
           </label>
           <Select
             value={sort}
@@ -183,12 +185,12 @@ export function CategoryShop({
           {list.map((product, index) => (
             <ProductCard
               key={product.id}
-                id={product.id}
-                name={product.name}
-                price={product.price}
-                imageUrl={product.imageUrl}
-                soldOut={product.soldOut}
-                prepared={product.prepared}
+              id={product.id}
+              name={product.name}
+              price={product.price}
+              imageUrl={product.imageUrl}
+              soldOut={product.soldOut}
+              prepared={product.prepared}
               eyebrow={`${getProductClassification(product).category} · ${getProductClassification(product).subcategory}`}
               priority={index === 0}
             />
@@ -198,7 +200,7 @@ export function CategoryShop({
         <div className="space-y-3 pb-8 text-center">
           <EmptyState
             title="조건에 맞는 상품이 없습니다"
-            description="검색어나 카테고리, 품절 제외 조건을 바꿔보세요."
+            description="검색어나 카테고리, 구매 가능 상품 조건을 바꿔보세요."
           />
           <button
             type="button"

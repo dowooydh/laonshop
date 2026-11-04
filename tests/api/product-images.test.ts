@@ -15,7 +15,8 @@ import {
 const PORTRAIT_REMOTE =
   "https://images.unsplash.com/photo-safe?w=1200&h=1500&q=85&auto=format&fit=crop&crop=faces%2Centropy";
 
-test("새 AI 상품 12종은 완성 명세의 이미지 경로만 허용한다", () => {
+test("새 AI 상품 32종은 완성 명세의 이미지 경로만 허용한다", () => {
+  assert.equal(newProductImages.products.length, 32);
   assert.deepEqual(newProductImages.products.map((image) => image.key).sort(), [...PREPARED_PRODUCT_KEYS].sort());
   for (const image of newProductImages.products) {
     assert.equal(safeProductImageUrl(image.path), image.path);

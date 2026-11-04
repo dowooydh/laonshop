@@ -53,7 +53,7 @@ export function ProductCard({
         )}
         {prepared && (
           <span className="absolute left-2 top-2 rounded-sm bg-black px-2.5 py-1.5 text-xs font-semibold text-white">
-            AI 상품 시안
+            판매 준비 중
           </span>
         )}
         {soldOut && !prepared && (
@@ -70,11 +70,11 @@ export function ProductCard({
           {name}
         </p>
         <p className="text-[16px] font-bold tracking-tight text-fg [overflow-wrap:anywhere]">
-          {prepared ? "검토 가격 " : ""}
+          {prepared ? "예상 가격 " : ""}
           {formatKrw(price)}
         </p>
         <p className="text-xs text-fg-subtle">
-          {prepared ? "판매 준비 중" : "무료배송"}
+          {prepared ? "AI 이미지 · 출시 미정" : "무료배송"}
         </p>
       </div>
     </Link>

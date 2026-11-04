@@ -130,6 +130,10 @@ export default async function SearchPage({
           <section className="space-y-5">
             <p className="text-sm text-fg-subtle">
               &ldquo;{query}&rdquo; 검색 결과 {products.length}개
+              {" · "}판매 상품 {products.filter((product) => !product.prepared).length}개
+              {products.some((product) => product.prepared) && (
+                <> · 판매 준비 {products.filter((product) => product.prepared).length}개</>
+              )}
             </p>
             <div className="grid grid-cols-2 gap-x-3 gap-y-7 sm:grid-cols-3 sm:gap-x-5 lg:grid-cols-4">
               {products.map((p) => (

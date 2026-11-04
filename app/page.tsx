@@ -3,7 +3,6 @@ import { HomeHero } from "@/components/home-hero";
 import { ProductCard } from "@/components/product-card";
 import { RecentProducts } from "@/components/recent-products";
 import { prisma } from "@/lib/db";
-import { showReviewExamples } from "@/lib/review-examples";
 import { getProductClassification } from "@/lib/catalog-taxonomy";
 import { getPreparedProducts } from "@/lib/prepared-products";
 
@@ -69,13 +68,13 @@ export default async function HomePage() {
         ))}
       </nav>
 
-      {showReviewExamples() && (
+      {preparedProducts.length > 0 && (
         <Link
           href="/catalog-preview"
           className="flex min-h-14 flex-wrap items-center justify-between gap-3 rounded border border-dashed border-line bg-raised px-5 py-4 text-sm"
         >
-          <span className="font-semibold">새로운 AI 셀렉션 준비 목록</span>
-          <span className="text-fg-subtle">미리보기용 상품 시안 확인</span>
+          <span className="font-semibold">출시를 준비하는 새로운 셀렉션</span>
+          <span className="text-fg-subtle">판매 준비 상품 {preparedProducts.length}개 보기</span>
         </Link>
       )}
       {[
@@ -177,19 +176,19 @@ export default async function HomePage() {
         </div>
       </section>
       {preparedProducts.length > 0 && (
-        <section className="space-y-5" aria-label="AI 신규 상품 시안">
+        <section className="space-y-5" aria-label="출시 준비 상품">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
-              <h2 className="text-xl font-bold">AI로 준비한 새로운 셀렉션</h2>
+              <h2 className="text-xl font-bold">출시 준비 상품</h2>
               <p className="mt-2 text-sm text-fg-muted">
-                이미지와 가격은 검토용 시안이며 실제 구매할 수 없습니다.
+                AI 이미지로 소개하는 새 스타일입니다. 출시 전까지 구매할 수 없습니다.
               </p>
             </div>
             <Link
               href="/catalog-preview"
               className="inline-flex min-h-11 items-center text-sm font-semibold underline"
             >
-              전체 시안 보기
+              준비 상품 {preparedProducts.length}개 보기
             </Link>
           </div>
           <div className="grid grid-cols-2 gap-x-3 gap-y-7 sm:grid-cols-3 lg:grid-cols-4">

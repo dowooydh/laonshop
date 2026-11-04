@@ -8,12 +8,22 @@ const manifest = JSON.parse(
 if (manifest.version !== "20261104" || !Array.isArray(manifest.products))
   throw new Error("Invalid new product manifest");
 const folder = join(process.cwd(), "public/products/new/20261104");
+const expectedKeys = new Set([
+  ...Array.from({ length: 5 }, (_, index) => `men-top-0${index + 1}`),
+  ...Array.from({ length: 5 }, (_, index) => `men-bottom-0${index + 1}`),
+  "men-outer-01", "men-outer-02", "men-shoes-01", "men-bag-01", "men-hat-01", "men-home-01",
+  ...Array.from({ length: 5 }, (_, index) => `women-top-0${index + 1}`),
+  ...Array.from({ length: 4 }, (_, index) => `women-bottom-0${index + 1}`),
+  "women-outer-01", "women-dress-01", "women-dress-02", "women-skirt-01", "women-jewelry-01", "women-inner-01", "women-home-01",
+]);
+if (manifest.products.length !== expectedKeys.size)
+  throw new Error("Expected all 32 prepared product images");
 const keys = new Set();
 const hashes = new Set();
 const expectedFiles = [];
 for (const product of manifest.products) {
   if (
-    !/^(?:men|women)-(?:top|bottom|skirt)-\d{2}$/.test(product.key) ||
+    !expectedKeys.has(product.key) ||
     keys.has(product.key)
   )
     throw new Error("Duplicate/invalid prepared product key");
@@ -35,6 +45,7 @@ for (const product of manifest.products) {
   )
     throw new Error(`${product.key}: expected single frame 1200x1500 WebP`);
   const hash = createHash("sha256").update(bytes).digest("hex");
+  if (product.sha256 !== hash) throw new Error(`${product.key}: image hash mismatch`);
   if (hashes.has(hash)) throw new Error(`${product.key}: duplicate image`);
   hashes.add(hash);
   expectedFiles.push(basename(product.path));
