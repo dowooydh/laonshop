@@ -6,7 +6,7 @@ import { randomBytes } from "node:crypto";
 import fs from "node:fs";
 import net from "node:net";
 import path from "node:path";
-import { summarizeEvidence, validateEvidence } from "./isolated-evidence.mjs";
+import { summarizeEvidence, validateEvidence, summarizeWrappers, validateWrapperEvidence } from "./isolated-evidence.mjs";
 import { runIsolatedProcess, terminateOwnedGroup, stoppedProcessSucceeded } from "./isolated-process.mjs";
 
 const source = "/scratch/source", output = `${source}/tests/.generated/isolated`;
@@ -187,6 +187,18 @@ try {
     finally { if (fd !== undefined) fs.closeSync(fd); }
   }
   try { validateEvidence(result.evidence); } catch { if (result.status === "PASS") result.status = "FAIL"; result.evidenceError = "REQUIRED_EVIDENCE_INVALID"; }
+  result.wrapperEvidence = {};
+  for (const suite of ["commerce", "security"]) {
+    let fd;
+    try {
+      fd = fs.openSync(`${output}/${suite}-wrappers.json`, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
+      const stat = fs.fstatSync(fd);
+      if (!stat.isFile() || stat.nlink !== 1 || stat.size > 16384) throw new Error("WRAPPER_FILE_INVALID");
+      result.wrapperEvidence[suite] = summarizeWrappers(JSON.parse(fs.readFileSync(fd, "utf8")), suite);
+    } catch { result.wrapperEvidence[suite] = summarizeWrappers(null, suite); }
+    finally { if (fd !== undefined) fs.closeSync(fd); }
+  }
+  try { validateWrapperEvidence(result.wrapperEvidence); } catch { if (result.status === "PASS") result.status = "FAIL"; result.wrapperEvidenceError = "REQUIRED_WRAPPER_EVIDENCE_INVALID"; }
   fs.writeFileSync("/scratch/result.json", JSON.stringify(result, null, 2), { mode: 0o600 });
   console.log(JSON.stringify(result));
   process.exitCode = result.status === "PASS" ? 0 : result.status === "INTERRUPTED" ? 130 : 1;

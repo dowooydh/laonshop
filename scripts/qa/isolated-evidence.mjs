@@ -135,3 +135,25 @@ export function validateEvidence(evidence) {
   }
   return true;
 }
+
+const wrapperKinds = ["Browser", "BrowserContext", "Page", "Locator", "APIRequestContext", "APIResponse", "Response", "Request", "Route", "ElementHandle", "JSHandle", "ConsoleMessage"];
+const operationKinds = ["setup", "navigate", "action", "api", "native-fetch", "response", "fonts", "evaluate", "close"];
+const safeCount = value => Number.isSafeInteger(value) && value >= 0 ? value : 0;
+export function summarizeWrappers(value, suite) {
+  if (!["commerce", "security"].includes(suite)) throw new Error("WRAPPER_SUITE_INVALID");
+  return {
+    suite, status: value?.status === "PASS" ? "PASS" : "FAIL",
+    unknownConstructorCount: Number.isSafeInteger(value?.unknownConstructorCount) && value.unknownConstructorCount >= 0 ? value.unknownConstructorCount : -1,
+    normalizedAliasCount: Number.isSafeInteger(value?.normalizedAliasCount) && value.normalizedAliasCount >= 0 ? value.normalizedAliasCount : null,
+    wrappedKinds: Object.fromEntries(wrapperKinds.map(name => [name, safeCount(value?.wrappedKinds?.[name])])),
+    operationCounts: Object.fromEntries(operationKinds.map(name => [name, safeCount(value?.operationCounts?.[name])])),
+  };
+}
+
+export function validateWrapperEvidence(evidence) {
+  for (const suite of ["commerce", "security"]) {
+    const value = evidence?.[suite];
+    if (value?.suite !== suite || value.status !== "PASS" || value.unknownConstructorCount !== 0 || ["Browser", "BrowserContext", "Page", "Locator"].some(name => !(Number.isSafeInteger(value.wrappedKinds?.[name]) && value.wrappedKinds[name] > 0)) || ["response", "close", "navigate"].some(name => !(Number.isSafeInteger(value.operationCounts?.[name]) && value.operationCounts[name] > 0))) throw new Error("REQUIRED_WRAPPER_EVIDENCE_INVALID");
+  }
+  return true;
+}

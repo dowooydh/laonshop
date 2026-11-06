@@ -8,7 +8,7 @@ import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { root, createOutput, saveJson } from "./runner-support.mjs";
-import { validateEvidence } from "./isolated-evidence.mjs";
+import { validateEvidence, validateWrapperEvidence } from "./isolated-evidence.mjs";
 import { normalizeFontFaceCss, validateExtractedFonts } from "./isolated-fonts.mjs";
 
 export const dockerContext = "colima-laonshop-security-20261106";
@@ -44,6 +44,7 @@ export function validateRuntimeReceipt(value, sourceRef, inspect) {
     const unit = value.stages.find(stage => stage.name === "unit-regression")?.counts;
     if (!(unit?.tests > 0 && unit.pass === unit.tests && unit.fail === 0 && unit.skipped === 0)) throw new Error("UNIT_COUNTS_INVALID");
     validateEvidence(value.evidence);
+    validateWrapperEvidence(value.wrapperEvidence);
   }
   return value;
 }

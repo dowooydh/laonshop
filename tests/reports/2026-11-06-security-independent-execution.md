@@ -1,6 +1,8 @@
-# 보안 보완 첫 독립 전체 QA 실행
+# 보안 보완 독립 전체 QA 실행과 후속 검토
 
-## 판정
+최신 실행은 P2 SHA `831ae7055f6c005a5a42db923eb95a4c3dcda879`의 **FAIL**입니다. SCA·DB/PG·정리는 통과했고, 제품 unit 1건·lint·브라우저 제한시간은 실패했습니다. 아래 첫 실행 기록을 보존하고 P2 결과와 원인·수정 소스 검토를 마지막 절에 구분합니다. 후속 후보의 전체 재검증은 아직 필요합니다.
+
+## 첫 실행 판정
 
 **전체 PASS가 아닙니다.** 후보 SHA `871ffefa0da6a6a86e064b2e942c40b84f61e6bf`의 첫 `qa:full`은 local-security 실패 후 격리 브라우저 단계가 장시간 반환하지 않아 **개발 담당의 판단으로 SIGINT 중단**했습니다. 사용자 중단 요청으로 보고하지 않습니다. 제어기의 기계적 결과는 `INTERRUPTED`, exit 130입니다.
 
@@ -114,7 +116,7 @@ local-security 실패와 실행기 보완 필요가 확인돼 전체 PASS가 불
 
 구현 담당이 보고한 이미지 준비, 실제 network-none 환경의 TERM 무시 자식/손자 회수·의도된 daemon 보존·zombie0 도구 probe 3/3 및 순수 하니스 수치는 DEV 증거입니다. 이 담당자의 새 전체 QA 실행으로 합산하지 않습니다. 첫 실행의 46개 commerce 기대치·미완료 기록은 당시 사실로 보존하며, 이후 47개 기대치로 소급 교체하지 않습니다.
 
-## 최종 DEV 도구 증거 회수와 독립 QA 대기
+## P2 실행 전 DEV 도구 증거 회수
 
 소스 고정 뒤 구현 담당에게서 다음 DEV 결과를 회수했습니다. 이 담당자가 실제 Chrome을 실행한 결과나 새 제품 SHA 전체 QA 결과로 합산하지 않습니다.
 
@@ -128,4 +130,70 @@ local-security 실패와 실행기 보완 필요가 확인돼 전체 PASS가 불
 
 준비 산출물은 `tests/.generated/2026-11-06T03-27-34.195Z-isolated-0DoHxq/summary.json`이며 rawOutputRetained false입니다. 이 최종 회수 과정에서 제품 애플리케이션·브라우저·DB·PG를 이 담당자가 실행하지 않았고 문서만 갱신했습니다.
 
-최종 독립 소스 검토는 고정하며 추가 차단 의견은 없습니다. **새 clean SHA의 독립 `qa:full`은 아직 미실행입니다.** 다음 실행에서 SCA·secret 양성 대조, 정확 제품 unit 수, DB37/commerce47/security16/PG5, lint·typecheck·production build, 실제 격리·프로세스·서비스·컨테이너/입력 정리를 함께 회수해야 합니다. 현재 상태를 운영 배포·실제 PG 활성화 또는 최종 전체 QA PASS로 보고하면 안 됩니다.
+이 시점의 독립 소스 검토를 고정했고 다음 clean SHA의 `qa:full`을 대기했습니다. 그 후 실제 실행 결과는 다음 P2 절로 갱신합니다. 이 DEV 증거를 운영 배포·실제 PG 활성화 또는 최종 전체 QA PASS로 보고하면 안 됩니다.
+
+## P2 독립 전체 실행 결과
+
+P2는 Node v22.23.1로 `node scripts/qa/full.mjs`를 직접 실행했습니다. 2026-11-06 03:31:37.045–03:40:37.207 UTC에 실행했으며 **FAIL·exit 1, interrupted false**로 종료됐습니다. 첫 실행처럼 개발 판단으로 중단한 것이 아니라 실패 receipt까지 정상 회수한 실행입니다.
+
+시작·종료 `sourceRef`는 모두 `831ae7055f6c005a5a42db923eb95a4c3dcda879`, `sourceVerified:true`, `sourceChanged:false`입니다. 실행 전·후 사용자 첨부 제외 dirty 0을 확인했고 실행 중 소스·Git·문서를 변경하지 않았습니다. 실제 사용 image ID는 `sha256:8681514fd83768b081f13ddc2165d5fb3a234bf9784053c40ff79b8717644bc8`, tag/fingerprint는 위 `7eb870a2ce4db588742c` 준비 증거와 일치합니다.
+
+| 검사 | P2 실제 결과 |
+|---|---|
+| pnpm / Trivy | **각 487개·취약점 0 PASS**, development/optional 포함. Trivy v0.74.0·DB 01:07:43 UTC, Trivy secret0. |
+| tracked text / 양성 대조 | secret pattern0 PASS. 별도 github-pat canary 양성 PASS(의도한 탐지 exit1). 운영 키나 실제 token을 사용한 시험이 아닙니다. |
+| full 안의 qa-harness | exit0. full metadata는 정확 TAP 수를 보존하지 않아 별도 독립 측정으로 보완했습니다. |
+| 제품 unit | **202개 중 pass201 / fail1 / skipped0**, TAP 실패 index90, 실제 command exit1. 이미지 검증은 이 test 명령의 `&&` 뒤에 있어 이 경로에서는 미수행이며 별도 PASS로 처리하지 않습니다. |
+| lint | **exit1**, WARNING_PRESENT. 실제 원인은 아래 JSON 부분 진단에서 확인했습니다. |
+| 타입 / production build | **각 exit0**. build 및 schema 단계의 PRISMA_DEPRECATION·WARNING_PRESENT enum을 보존합니다. warning0이라고 보고하지 않습니다. |
+| 서비스 DB / PG route | **37/37, 5/5 PASS**, exact checks·불변조건이 최종 runtime receipt에서 일치합니다. PG는 실제 함수+합성 DB+stub이며 실 PG가 아닙니다. |
+| commerce browser | **STAGE_DEADLINE·exit1·timedOut true**. partial 파일은 FAIL·완료41개였습니다. 최종 progress는 index42 / close입니다. 성공 파일이 없어 receipt의 성공 증거 상태는 NOT_RUN·0이며, 실제 suite 미실행을 뜻하는 것으로 해석하지 않습니다. |
+| security browser | **STAGE_DEADLINE·exit1·timedOut true**. 성공2개/기대16개, 최종 progress index3 / close, 실패 check index3·Error. 마지막 원장 불변 검사가 미완료라 불변 증명도 없습니다. 원장이 변경됐다는 결론으로 대체하지 않습니다. |
+| 폰트·console | 실제 폰트 성공을 포함한 commerce 전체 성공 증거가 없어 수용 완료로 처리하지 않습니다. 두 browser의 consoleErrorCount는 최종 성공 증거에서 회수하지 못한 null이며 오류0이라고 보고하지 않습니다. |
+| 프로세스·서비스 | 모든 단계 group cleanup PASS. commerce/security 관측 자손13/15·별도group13/15·remaining0, PostgreSQL stop exit0·pid 파일 부재 및 앱 group 정리 PASS. |
+| 격리 | init reaper, lo-only/network none·외부/관리 loopback 차단, UID1000, read-only root/input, socket·운영 자격정보 부재, scratch exec/nosuid/nodev/rw, 메모리·PID·CPU cgroup preflight PASS. |
+| 최종 정리 | container/input cleanup PASS. exact container `laonshop-qa-a77ffb95e5332cb8` 전체 목록의 빈 결과·exit0 및 전용 VM `/var/tmp/laonshop-qa-a77ffb95e5332cb8` 부재 test exit0을 별도로 재확인했습니다. |
+| 선택 감사 | optionalEvidenceRequested false, securityAuditStatus not-run, securityAuditComplete false. |
+
+실패 때문에 full의 isolated 성공 증명은 성립하지 않습니다. runtime 내부의 source/final SHA는 같았지만 `isolatedSourceVerified:false`를 성공으로 바꾸지 않습니다. raw target 로그·expected/actual·secret은 승격하지 않았습니다.
+
+### 별도 독립 제어기 수치 측정
+
+full 종료 후 같은 `831ae705…`·Node22·정제 환경으로 신뢰된 `node --test tests/qa/*.test.mjs`를 한 번 별도 실행하고 최종 TAP count만 파싱했습니다. 03:42:23.030–03:42:24.525 UTC, exit0, **tests88 / pass88 / fail0 / skipped0 / cancelled0 / todo0**입니다. 이 담당자의 독립 측정이며 이전 root의 DEV88을 합산한 수치가 아닙니다. 제품 애플리케이션의 호스트 실행은 하지 않았습니다.
+
+stdout는 20,566바이트·SHA-256 `a5cfaeffa3cfc4508dfe6541a9d486ece87e3a1e6def226c2636916f47baa52b`, stderr0이며 원문은 저장하지 않았습니다. 이 통과가 제품 unit·lint·브라우저 실패를 상쇄하지 않습니다.
+
+## P2 실패 원인과 수정 소스 검토
+
+P2 정리 이후 root/실행기 담당이 동일 clean SHA에서 수행한 unit·ESLint JSON 전용 진단을 metadata-only summary로 읽었습니다. `PARTIAL_DIAGNOSTIC`, `overallQaPassed:false`, unit202/201/1/skip0, 서비스·컨테이너·입력 정리 PASS입니다. 이것은 DEV 부분 진단이며 독립 전체 QA가 아닙니다.
+
+- unit index90은 `tests/api/kspay-result-security.test.ts:57`의 ERR_ASSERTION입니다. 기본 인자가 `process.env.KSPAY_STORE_ID`인 함수를 undefined로 호출하면서 환경을 제거하지 않고 false를 기대한 기존 시험의 격리 누락이었습니다. 수정은 해당 test에서 환경 없음·심사 MID·실 MID를 분리하고 finally에서 원래 값을 복원합니다. 변경 diff와 `lib/kspay/approval-gate.ts`를 읽어 운영 guard의 변경·허용 범위 확대가 없음을 확인했습니다.
+- lint는 `scripts/qa/isolated-process.mjs:68:44`의 `@typescript-eslint/no-unused-expressions`, severity1입니다. max-warnings0 정책에서 실패한 것이며 무시 규칙을 추가하지 않고 같은 신호 전달을 하는 if/else로 바꿨습니다. 소스상 동등 동작을 확인했습니다.
+- 두 browser의 공통 원인 후보였던 실제 Playwright 별칭을 이 담당자도 실행 중인 이미지의 공개 `playwright-core/lib/coreBundle.js`에서 읽었습니다. named class `_Browser`, `_BrowserContext2`, `_Page2`, `_Locator`, `_APIRequestContext`, `_Request2`, `_Response` 등은 기존 exact whitelist와 맞지 않습니다. 실제 객체가 wrap 없이 반환돼 일부 response/close 상한이 적용되지 않는 QA helper 결함입니다. mock class 시험 통과만으로 실제 pinned PW 객체의 wrapping을 증명할 수 없었으며, 앞선 소스 검토의 의도된 상한 확인을 실제 동작 보장으로 사용하면 안 됩니다.
+
+unit·lint 수정에서 추가 차단 의견은 발견하지 못했습니다. Playwright alias와 실제 API 보완의 최종 소스·도구 증거는 다음 절에서 회수했습니다. 제품 호스트 실행이나 KSPAY 실 MID guard·계약·서명 변경은 이 검토에서 하지 않았습니다. 이후 새 clean SHA에서 전체 QA를 다시 회수해야 합니다.
+
+| P2 및 부분 진단 산출물 | SHA-256 |
+|---|---|
+| `tests/.generated/2026-11-06T03-31-37.001Z-full-UR8OKf/summary.json` | `db3141c5d1bcc17a785b6a03c375a45cd25b21fe95de3920424620cf2e6eb82f` |
+| `tests/.generated/2026-11-06T03-31-40.093Z-isolated-OIoNB3/summary.json` | `a250162fde168d3c6af681dd4cded28ed9e714facecf4a5a22815a5385e81ad1` |
+| `tests/.generated/2026-11-06T03-31-37-074Z-local-security-a18BIn/summary.json` | `8113034813579495d2949ffda44d0876c8f5687fc1a3efb5f7477c74dcf27563` |
+| `tests/.generated/2026-11-06-partial-diagnostic/summary.json` | `9fa7e85cf176f6cdc535480b6bdf759d23885b6257a852d4cd73ba1e49770508` |
+
+## P2 이후 alias 보완의 최종 독립 소스 검토
+
+고정된 `browser-qa-support.mjs`·순수 시험, `isolated-evidence.mjs`·runtime·parent wrapper gate를 읽었습니다. 다음 내용을 소스로 확인했으며 추가 차단 의견은 없습니다. **후속 후보의 독립 전체 QA PASS는 아직 아닙니다.**
+
+- 표준 PW kind의 이름만 optional leading underscore 1개·숫자 suffix로 정규화합니다. 임의 접두·다른 이름은 허용하지 않습니다. `prototype.constructor`를 기준으로 판별하고 proxy의 원 constructor·private `_` 필드·symbol은 유지하며 공개 method는 원 receiver로 호출합니다.
+- 알 수 없는 API object는 counter를 올리고 즉시 `QA_UNSUPPORTED_PLAYWRIGHT_OBJECT`로 실패합니다. 일반 직렬화 객체·명시된 native data 외의 unknown을 조용히 통과시키지 않으며 원 constructor 이름은 증거에 넣지 않습니다.
+- pinned 버전의 route 등록 반환값인 `DisposableStub`은 실제 vendor source와 도구 객체 확인 후 정확 set에 추가했습니다. unknown 전체를 통과시키는 예외가 아니며 dispose는 close 상한으로 처리합니다.
+- 양 suite는 원문 대신 kind·alias·operation 수를 별도 atomic wrapper metadata로 기록합니다. runtime은 정규 파일·nlink1·상한·O_NOFOLLOW를 확인해 고정 kind/operation 숫자만 요약합니다. runtime과 parent 양쪽 모두 commerce/security 증거가 PASS, unknown0, Browser/BrowserContext/Page/Locator 각>0, response/close/navigate 각>0이어야 통과합니다. 누락·unknown·미적용 counter를 거절하는 부정 시험을 확인했습니다.
+- 초기 이름 그대로인 정상 클래스는 alias 수0이어도 허용하지만 실제 wrapper 종류·operation은 생략할 수 없습니다. 새 alias 수와 시험 수를 P2의 독립88에 소급 합산하지 않습니다.
+
+`tests/.generated/2026-11-06T03-55-39-playwright-wrapper-probe/summary.json`을 metadata-only로 읽고 현재 helper의 SHA-256 `a06167aa9db9b9188cd982c4898ef5bd0a3e5aa33cf4c7f418de2b1af2ba4f16`과 일치를 확인했습니다. summary 자체의 SHA-256은 `295e51e8a88e60480a3fb878eb564464af60238f1f11063e030e0c084e88a300`입니다.
+
+이 산출물은 기존 `7eb870…` 격리 이미지에 새 helper를 복사해 수행한 **DEV의 실제 PW 도구 probe**이며, 제품 앱·DB·운영 자격정보를 사용하지 않습니다. 고정 `1.65.0-alpha-2026-10-30`의 실제 API 10종을 확인했고, alias10·unknown0·외부 요청0, response body를 보류한 실제 `Response.finished` 50ms 상한, `Browser.close` Promise를 의도적으로 정지시킨 50ms 상한을 확인했습니다. 원 close를 복구한 뒤 실제 browser/server 종료 및 container/input cleanup PASS가 기록돼 있습니다. 이 담당자는 probe를 직접 실행한 것이 아니라 준비 코드 hash와 결과 메타데이터를 대조했습니다.
+
+앞선 `tests/.generated/2026-11-06T03-52-43-playwright-wrapper-probe/summary.json`의 DisposableStub 미등록 FAIL은 보존하며 후속 PASS로 덮어쓰지 않습니다. 순수 시험 8개 통과는 구현 담당의 별도 DEV 결과입니다. 실제 PW 객체와 mock class 검증을 구분합니다.
+
+이 단계에서 두 독립 보고서를 고정합니다. 남은 수용 조건은 새 clean SHA의 전체 독립 실행에서 정확한 제어기·제품 unit/skip 수, 이미지 gate, SCA·secret 양성 대조, lint warning0·타입·빌드, DB37/commerce47/security16/PG5, 실제 wrapper·폰트·프로세스·서비스·컨테이너/입력 정리를 함께 회수하는 것입니다. P2 FAIL과 warning·console 결과 미회수는 그대로 유지하며, 배포·실 PG 활성화로 보고하지 않습니다.

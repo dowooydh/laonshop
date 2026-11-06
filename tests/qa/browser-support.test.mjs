@@ -3,7 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { browserLimits, createBrowserHarness, deadline, requestDisposition, validateFontProbe } from "../integration/browser-qa-support.mjs";
+import { browserLimits, canonicalPlaywrightKind, createBrowserHarness, deadline, requestDisposition, validateFontProbe } from "../integration/browser-qa-support.mjs";
 
 test("browser operations have explicit deadlines and preserve original rejection", async () => {
   await assert.rejects(deadline(() => new Promise(() => {}), 5), { code: "QA_OPERATION_TIMEOUT" });
@@ -72,5 +72,53 @@ test("wrappers keep Playwright receivers and apply API timeouts before any exter
     assert.equal(await wrapped.request.get("http://localhost:3104/owned"), "http://localhost:3104/owned");
     assert.throws(() => wrapped.request.get("https://outside.example.test/"));
     assert.equal(called, 1);
+  } finally { fs.rmSync(output, { recursive: true, force: true }); }
+});
+test("only standard Playwright names with one optional bundle prefix and numeric suffix normalize", () => {
+  for (const [name, kind] of [["_Browser", "Browser"], ["_BrowserContext2", "BrowserContext"], ["_Page2", "Page"], ["_Locator", "Locator"], ["_APIRequestContext", "APIRequestContext"], ["_Request2", "Request"], ["_Response", "Response"], ["_ConsoleMessage", "ConsoleMessage"], ["DisposableStub", "DisposableStub"], ["Browser", "Browser"]])
+    assert.equal(canonicalPlaywrightKind(name), kind);
+  for (const name of ["__Browser", "BrowserExtra", "_Page2Extra", "_Unknown2", "Page-2", "_Browser2_", null]) assert.equal(canonicalPlaywrightKind(name), null);
+});
+test("bundled API aliases are wrapped while constructor and Locator private receiver identities survive", async () => {
+  const output = fs.mkdtempSync(path.join(os.tmpdir(), "laonshop-browser-aliases-"));
+  class _Frame {}
+  const frame = new _Frame();
+  class _Locator {
+    constructor() { this._frame = frame; }
+    filter(options) { assert.equal(options.has._frame, this._frame); return this; }
+    click() { assert.ok(this instanceof _Locator); return new Promise(() => {}); }
+  }
+  class _Page2 {
+    locator() { return new _Locator(); }
+    evaluate() { assert.ok(this instanceof _Page2); return new Promise(() => {}); }
+  }
+  class _Response { finished() { assert.ok(this instanceof _Response); return new Promise(() => {}); } }
+  class _Browser { close() { assert.ok(this instanceof _Browser); return new Promise(() => {}); } }
+  try {
+    const limits = Object.fromEntries(Object.keys(browserLimits).map(phase => [phase, 5]));
+    const harness = createBrowserHarness({ suite: "commerce", output, limits });
+    const original = new _Page2(), page = harness.wrap(original);
+    assert.notEqual(page, original); assert.equal(harness.raw(page), original);
+    assert.equal(page.constructor, _Page2); assert.equal(page.constructor.name, "_Page2");
+    const locator = page.locator("synthetic"); assert.equal(locator._frame, frame);
+    assert.equal(locator.filter({ has: page.locator("other") }), locator);
+    await assert.rejects(() => locator.click(), { code: "QA_OPERATION_TIMEOUT" });
+    await assert.rejects(() => page.evaluate(() => null), { code: "QA_OPERATION_TIMEOUT" });
+    await assert.rejects(() => harness.wrap(new _Response()).finished(), { code: "QA_OPERATION_TIMEOUT" });
+    await assert.rejects(() => harness.wrap(new _Browser()).close(), { code: "QA_OPERATION_TIMEOUT" });
+    const evidence = harness.wrapperEvidence(); assert.equal(evidence.status, "PASS"); assert.equal(evidence.unknownConstructorCount, 0); assert.ok(evidence.normalizedAliasCount >= 4);
+    for (const phase of ["action", "evaluate", "response", "close"]) assert.equal(evidence.operationCounts[phase], 1);
+  } finally { fs.rmSync(output, { recursive: true, force: true }); }
+});
+test("unrecognized API constructors are counted and rejected without exposing their names", () => {
+  const output = fs.mkdtempSync(path.join(os.tmpdir(), "laonshop-browser-unknown-"));
+  class _UnreviewedSecretObject2 {}
+  class _Page2 { unfamiliar() { return new _UnreviewedSecretObject2(); } }
+  try {
+    const harness = createBrowserHarness({ suite: "security", output });
+    assert.throws(() => harness.wrap(new _Page2()).unfamiliar(), { code: "QA_UNSUPPORTED_PLAYWRIGHT_OBJECT" });
+    const evidence = harness.wrapperEvidence(); assert.equal(evidence.status, "FAIL"); assert.equal(evidence.unknownConstructorCount, 1);
+    assert.equal(JSON.stringify(evidence).includes("UnreviewedSecretObject"), false);
+    assert.deepEqual(JSON.parse(fs.readFileSync(path.join(output, "security-wrappers.json"))), evidence);
   } finally { fs.rmSync(output, { recursive: true, force: true }); }
 });

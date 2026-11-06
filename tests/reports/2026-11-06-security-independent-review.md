@@ -1,6 +1,8 @@
 # 보안 보완 독립 소스 검토
 
-후속 상태: 최초 후보 `871ffefa0da6a6a86e064b2e942c40b84f61e6bf`의 전체 실행은 실패·개발 판단 중단으로 끝났습니다. 아래 초기 소스 검토를 실행 PASS로 해석하면 안 됩니다. 실행 결과와 이후 실행기·SCA 보완 검토는 [독립 실행 보고서](2026-11-06-security-independent-execution.md)에 이어 기록합니다.
+후속 상태: 최초 후보 `871ffefa0da6a6a86e064b2e942c40b84f61e6bf`는 실패·개발 판단 중단, P2 후보 `831ae7055f6c005a5a42db923eb95a4c3dcda879`의 독립 전체 실행도 FAIL입니다. P2의 SCA·DB/PG·정리는 통과했지만 제품 unit 1건·lint·브라우저 제한시간 실패를 보존합니다. 아래 초기 소스 검토를 실행 PASS로 해석하면 안 됩니다. 실행 결과와 이후 원인·보완 검토는 [독립 실행 보고서](2026-11-06-security-independent-execution.md)에 이어 기록합니다.
+
+P2 이후 unit 시험 격리·lint 동등 표현·실제 PW alias/unknown 거절·양 suite wrapper gate의 소스 재검토는 완료했습니다. 실제 PW 도구 probe는 DEV 증거로 분리했고, 후속 clean SHA의 독립 전체 QA는 아직 필요합니다.
 
 ## 검토 대상과 판정 범위
 

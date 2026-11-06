@@ -4,7 +4,15 @@ import path from "node:path";
 
 export const browserLimits = Object.freeze({ setup: 15000, navigate: 20000, action: 15000, api: 15000, "native-fetch": 15000, response: 15000, fonts: 15000, evaluate: 15000, close: 10000 });
 const phases = new Set(["setup", "check-start", "check-complete", "navigate", "action", "api", "native-fetch", "response", "fonts", "evaluate", "close", "finish", "failed"]);
-const playwrightKinds = new Set(["Browser", "BrowserContext", "Page", "Locator", "APIRequestContext", "APIResponse", "Response", "Request", "Route", "ElementHandle", "JSHandle"]);
+// The pinned 1.65 alpha returns DisposableStub from Page/BrowserContext.route().
+// It is a reviewed registration disposable, not a generic unknown-object bypass.
+const playwrightKinds = new Set(["BrowserType", "Browser", "BrowserContext", "Page", "Locator", "Frame", "FrameLocator", "ConsoleMessage", "APIRequestContext", "APIResponse", "Response", "Request", "Route", "ElementHandle", "JSHandle", "DisposableStub"]);
+
+export function canonicalPlaywrightKind(name) {
+  if (typeof name !== "string" || name.length > 64) return null;
+  const match = /^_?([A-Za-z]+)(?:\d+)?$/.exec(name);
+  return match && playwrightKinds.has(match[1]) ? match[1] : null;
+}
 
 export async function deadline(operation, milliseconds) {
   let timer;
@@ -26,26 +34,46 @@ export function createBrowserHarness({ suite, output, limits = browserLimits }) 
   assert.ok(["commerce", "security"].includes(suite));
   const destination = path.join(output, `${suite}-progress.json`), temporary = `${destination}.tmp`;
   const wrappers = new WeakMap(), originals = new WeakMap();
-  let checkIndex = 0;
+  const wrappedKinds = new Map(), operationCounts = Object.fromEntries(Object.keys(limits).map(phase => [phase, 0]));
+  let checkIndex = 0, unknownConstructorCount = 0, normalizedAliasCount = 0;
+  const wrapperEvidence = () => ({ status: unknownConstructorCount === 0 && wrappedKinds.size > 0 ? "PASS" : "FAIL", unknownConstructorCount, normalizedAliasCount,
+    wrappedKinds: Object.fromEntries([...wrappedKinds].sort(([left], [right]) => left.localeCompare(right))), operationCounts: { ...operationCounts } });
   function progress(phase) {
     assert.ok(phases.has(phase));
     fs.writeFileSync(temporary, JSON.stringify({ suite, checkIndex, phase }), { mode: 0o600 });
     fs.renameSync(temporary, destination);
+    const wrappersFile = path.join(output, `${suite}-wrappers.json`);
+    fs.writeFileSync(`${wrappersFile}.tmp`, JSON.stringify(wrapperEvidence()), { mode: 0o600 });
+    fs.renameSync(`${wrappersFile}.tmp`, wrappersFile);
   }
   const operation = (phase, action, milliseconds = limits[phase]) => {
     assert.ok(Object.hasOwn(limits, phase));
+    operationCounts[phase] += 1;
     progress(phase);
     return deadline(action, milliseconds);
   };
   const raw = value => originals.get(value) ?? value;
   function wrap(value) {
     if (Array.isArray(value)) return value.map(wrap);
-    if (!value || !playwrightKinds.has(value.constructor?.name)) return value;
+    if (!value || typeof value !== "object" || originals.has(value)) return value;
     if (wrappers.has(value)) return wrappers.get(value);
-    const kind = value.constructor.name;
+    const prototype = Object.getPrototypeOf(value), name = prototype?.constructor?.name;
+    const kind = canonicalPlaywrightKind(name);
+    if (!kind) {
+      // Serialized values and explicitly known native data have no Playwright
+      // operations to bound. An unfamiliar API object must never pass silently.
+      if (prototype === Object.prototype || prototype === null || ArrayBuffer.isView(value) || value instanceof ArrayBuffer || value instanceof Date || value instanceof Error || value instanceof RegExp || value instanceof URL) return value;
+      unknownConstructorCount += 1; progress("failed");
+      throw Object.assign(new Error("QA_UNSUPPORTED_PLAYWRIGHT_OBJECT"), { code: "QA_UNSUPPORTED_PLAYWRIGHT_OBJECT" });
+    }
+    wrappedKinds.set(kind, (wrappedKinds.get(kind) ?? 0) + 1);
+    if (name !== kind) normalizedAliasCount += 1;
     const wrapped = new Proxy(value, {
       get(target, property) {
         const member = Reflect.get(target, property, target);
+        // Keep constructor identity/name and Locator's internal frame identity.
+        // Public methods are always invoked with their original receiver below.
+        if (property === "constructor" || typeof property === "symbol" || typeof property === "string" && property.startsWith("_")) return member;
         if (typeof member !== "function") return wrap(member);
         return (...args) => {
           const callbacks = ["route", "on", "once", "waitForResponse", "waitForRequest"].includes(property);
@@ -90,7 +118,7 @@ export function createBrowserHarness({ suite, output, limits = browserLimits }) 
     return operation("native-fetch", () => fetch(url, { ...options, signal: AbortSignal.timeout(limits["native-fetch"]) }));
   }
   progress("setup");
-  return { wrap, raw, progress, operation, configure, check, fontsReady, nativeFetch };
+  return { wrap, raw, progress, operation, configure, check, fontsReady, nativeFetch, wrapperEvidence };
 }
 
 export function validateFontProbe(probe, responses, origin) {

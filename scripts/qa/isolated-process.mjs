@@ -65,7 +65,13 @@ export function runIsolatedProcess(command, args, { cwd, env, timeoutMs = 600000
     }
     async function stop() {
       if (stopping) return stopping;
-      hardTimer = setTimeout(() => { try { preserveServiceChildren ? child.kill("SIGKILL") : signalGroup(child, "SIGKILL"); } catch { /* Final container teardown is independent. */ } void finish({ groupCleanup: { status: "FAIL", hardDeadlineReached: true } }); }, graceMs + 1500);
+      hardTimer = setTimeout(() => {
+        try {
+          if (preserveServiceChildren) child.kill("SIGKILL");
+          else signalGroup(child, "SIGKILL");
+        } catch { /* Final container teardown is independent. */ }
+        void finish({ groupCleanup: { status: "FAIL", hardDeadlineReached: true } });
+      }, graceMs + 1500);
       stopping = (async () => {
         if (preserveServiceChildren) {
           child.kill("SIGTERM"); await sleep(graceMs);

@@ -34,6 +34,8 @@ node scripts/qa/full.mjs
 
 Playwright가 Chromium을 별도 PGID로 실행하므로 유한 실행의 관측 자손도 PID/PPID/pgrp/starttime으로 추적·회수한다. 신호 직전 identity를 대조하며 외국/root·재사용 PID를 건드리지 않고, 관측·권한 오류 또는 생존 잔여는 실패다. Linux 지원·잔여0까지 필수 판정에 넣는다. 실제 도구 수명 정리를 위한 ordinary QA이며, poll 관측 전에 부모가 끝나는 임의 악성 탈출까지 완전 차단했다고 주장하지 않는다.
 
+고정 Playwright의 실제 `_Browser`/`_Page2` 등 별칭을 엄격히 정규화하고 원 constructor·private receiver를 보존한다. mock 클래스 시험과 실제 API 객체 도구 probe는 다른 증거다. 양 suite의 실제 Browser/Context/Page/Locator 래핑 및 response/close/navigate 적용 카운터 양수·불명 타입0을 child/parent gate에 묶으며, 파일 누락이나 래퍼 no-op는 PASS가 아니다.
+
 제품 실행은 uid1000, readonly root/input, 쓰기 가능 `/scratch` 2GiB, network none, CPU2·메모리3584MiB·PID256·20분 wall timeout을 적용한다. scratch는 CLI·Prisma native 실행을 위해 exec이며 nosuid/nodev를 유지한다. 관리 소켓·홈·운영 env 부재와 실제 격리를 검사한다. 실행 후 자기 컨테이너·VM 임시 입력 삭제를 확인한 뒤에만 정리 PASS를 기록한다. 프로필·다른 컨테이너·운영 데이터는 삭제하지 않는다. 원시 테스트 출력·합성 비밀번호·쿠키·DB URL을 증거로 승격하지 않고 검사 이름·건수·해시·상태만 보관한다.
 
 ## 선택 추가 감사

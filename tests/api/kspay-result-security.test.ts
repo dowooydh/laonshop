@@ -54,5 +54,17 @@ test("result route는 주문 상태를 표시하기 전에 HMAC 토큰을 검증
 test("reHash 주문 결박 규격 전에는 카드사 심사용 테스트 MID만 서버승인한다", () => {
   assert.equal(isKspayResultApprovalEnabled(KSPAY_REVIEW_STORE_ID), true);
   assert.equal(isKspayResultApprovalEnabled("real-mid-not-enabled"), false);
-  assert.equal(isKspayResultApprovalEnabled(undefined), false);
+  const previous = process.env.KSPAY_STORE_ID;
+  try {
+    delete process.env.KSPAY_STORE_ID;
+    assert.equal(isKspayResultApprovalEnabled(), false);
+    assert.equal(isKspayResultApprovalEnabled(undefined), false);
+    process.env.KSPAY_STORE_ID = KSPAY_REVIEW_STORE_ID;
+    assert.equal(isKspayResultApprovalEnabled(), true);
+    process.env.KSPAY_STORE_ID = "real-mid-not-enabled";
+    assert.equal(isKspayResultApprovalEnabled(), false);
+  } finally {
+    if (previous === undefined) delete process.env.KSPAY_STORE_ID;
+    else process.env.KSPAY_STORE_ID = previous;
+  }
 });

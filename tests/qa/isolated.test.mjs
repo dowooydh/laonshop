@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { expectedChecks, summarizeEvidence } from "../../scripts/qa/isolated-evidence.mjs";
+import { expectedChecks, summarizeEvidence, summarizeWrappers } from "../../scripts/qa/isolated-evidence.mjs";
 import { assertCleanSource, containerArgs, dockerContext, requiredStages, validateRuntimeReceipt, executionSucceeded } from "../../scripts/qa/isolated.mjs";
 const sourceRef = "a".repeat(40);
 const identity = { name: "laonshop-qa-1234567890abcdef", image: "laonshop-qa-sandbox:" + "b".repeat(20), sourceRef, vmInput: "/var/tmp/laonshop-qa-1234567890abcdef/input" };
 const inspect = () => ({ HostConfig: { Init: true, NetworkMode: "none", ReadonlyRootfs: true, Privileged: false, PidsLimit: 256, Memory: 3584 * 1024 * 1024, NanoCpus: 2000000000, CapDrop: ["ALL"], SecurityOpt: ["no-new-privileges"] }, Config: { User: "1000:1000" }, Mounts: [{ Type: "bind", Destination: "/input", RW: false }] });
-const receipt = () => ({ sourceRef, status: "PASS", servicesCleanup: { status: "PASS" }, isolation: { initReaper: true, status: "PASS", scratchMount: { exec: true, nosuid: true, nodev: true, writable: true } }, stages: requiredStages.map(name => ({ name, code: 0, commandExitCode: 0, processGroupCleanup: { status: "PASS", descendants: { status: "PASS", supported: true, remainingCount: 0 } }, ...(name === "unit-regression" ? { counts: { tests: 186, pass: 186, fail: 0, skipped: 0 } } : {}) })), evidence: Object.fromEntries(Object.entries(expectedChecks).map(([key, checks]) => [key, summarizeEvidence({ status: "PASS", count: checks.length, checks, pageErrors: [], consoleErrors: [], externalWrites: [], anchorOverlaps: [], deniedExternalWrites: [], deniedProviders: [], selfHostedFontsLoaded: true, ledgerCountsUnchanged: true, providerStubCalls: 4, unexpectedFetches: 0, realProviderCalls: 0, cleanup: { status: "PASS" } }, key)])) });
+const wrapperReceipt = suite => summarizeWrappers({ status: "PASS", unknownConstructorCount: 0, normalizedAliasCount: 0, wrappedKinds: { Browser: 1, BrowserContext: 1, Page: 1, Locator: 1 }, operationCounts: { response: 1, close: 1, navigate: 1 } }, suite);
+const receipt = () => ({ wrapperEvidence: { commerce: wrapperReceipt("commerce"), security: wrapperReceipt("security") }, sourceRef, status: "PASS", servicesCleanup: { status: "PASS" }, isolation: { initReaper: true, status: "PASS", scratchMount: { exec: true, nosuid: true, nodev: true, writable: true } }, stages: requiredStages.map(name => ({ name, code: 0, commandExitCode: 0, processGroupCleanup: { status: "PASS", descendants: { status: "PASS", supported: true, remainingCount: 0 } }, ...(name === "unit-regression" ? { counts: { tests: 186, pass: 186, fail: 0, skipped: 0 } } : {}) })), evidence: Object.fromEntries(Object.entries(expectedChecks).map(([key, checks]) => [key, summarizeEvidence({ status: "PASS", count: checks.length, checks, pageErrors: [], consoleErrors: [], externalWrites: [], anchorOverlaps: [], deniedExternalWrites: [], deniedProviders: [], selfHostedFontsLoaded: true, ledgerCountsUnchanged: true, providerStubCalls: 4, unexpectedFetches: 0, realProviderCalls: 0, cleanup: { status: "PASS" } }, key)])) });
 test("isolated runner refuses dirty and invalid source refs", () => {
   assert.throws(() => assertCleanSource(args => args.includes("status") ? " M lib/auth.ts\0" : sourceRef), /SOURCE_DIRTY/);
   assert.throws(() => assertCleanSource(args => args.includes("status") ? "" : "bad"), /SOURCE_REF_INVALID/);
@@ -75,4 +76,24 @@ test("finite Linux stages require observed detached-descendant cleanup evidence"
   for (const change of [{ status: "FAIL" }, { supported: false }, { remainingCount: 1 }]) {
     const value = receipt(); Object.assign(value.stages[0].processGroupCleanup.descendants, change); assert.throws(() => validateRuntimeReceipt(value, sourceRef, inspect()), /REQUIRED_STAGE/);
   }
+});
+
+test("browser stage exit zero cannot bypass missing unknown or unused wrapper evidence", () => {
+  for (const suite of ["commerce", "security"]) {
+    const missing = receipt(); delete missing.wrapperEvidence[suite]; assert.throws(() => validateRuntimeReceipt(missing, sourceRef, inspect()), /WRAPPER_EVIDENCE/);
+    for (const change of [{ status: "FAIL" }, { unknownConstructorCount: 1 }, { unknownConstructorCount: -1 }]) {
+      const value = receipt(); Object.assign(value.wrapperEvidence[suite], change); assert.throws(() => validateRuntimeReceipt(value, sourceRef, inspect()), /WRAPPER_EVIDENCE/);
+    }
+    for (const kind of ["Browser", "BrowserContext", "Page", "Locator"]) {
+      const value = receipt(); value.wrapperEvidence[suite].wrappedKinds[kind] = 0; assert.throws(() => validateRuntimeReceipt(value, sourceRef, inspect()), /WRAPPER_EVIDENCE/);
+    }
+    for (const operation of ["response", "close", "navigate"]) {
+      const value = receipt(); value.wrapperEvidence[suite].operationCounts[operation] = 0; assert.throws(() => validateRuntimeReceipt(value, sourceRef, inspect()), /WRAPPER_EVIDENCE/);
+    }
+  }
+});
+test("standard constructor names need no alias count and wrapper text is never promoted", () => {
+  const value = receipt(); value.wrapperEvidence.commerce.normalizedAliasCount = 0; assert.equal(validateRuntimeReceipt(value, sourceRef, inspect()).status, "PASS");
+  const result = summarizeWrappers({ status: "FAIL", unknownConstructorCount: "provider-token", normalizedAliasCount: "password", wrappedKinds: { Browser: "secret-value", "secret-value": 1 }, operationCounts: { navigate: "secret-value" }, raw: "secret-value" }, "commerce");
+  assert.equal(JSON.stringify(result).includes("secret-value"), false); assert.equal(result.unknownConstructorCount, -1); assert.equal(result.normalizedAliasCount, null);
 });
