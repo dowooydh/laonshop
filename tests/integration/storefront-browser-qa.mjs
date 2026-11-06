@@ -125,11 +125,20 @@ try {
     const reviewContent = `상품 사이즈를 실제로 받아보니 편안합니다. ${f.orders.browserReview.moid} <img src=x onerror="window.qaInjected=true">`;
     await form.locator('[name="content"]').fill(reviewContent);
     buyerPage.on("request", req => { const h = req.headers(); if (req.method() === "POST" && h["next-action"]) reviewRequest = { url: req.url(), action: h["next-action"], contentType: h["content-type"], body: req.postDataBuffer() }; });
+    const reviewDocumentOrigin = await buyerPage.evaluate(() => performance.timeOrigin);
+    const reviewNavigation = buyerPage.waitForResponse(response => response.request().isNavigationRequest() && response.request().method() === "GET" && new URL(response.url()).pathname === `/product/${f.productId}`);
     const reviewResponse = buyerPage.waitForResponse(response => response.request().method() === "POST" && Boolean(response.request().headers()["next-action"]));
     await form.getByRole("button", { name: "후기 등록", exact: true }).click();
     const submitted = await reviewResponse;
     assert.equal(submitted.status(), 200);
-    // The Server Action stream may stay open after its HTTP200 and committed result.
+    // Confirm the application's fresh GET before inspecting the new document.
+    const automaticReviewGet = await reviewNavigation;
+    assert.equal(automaticReviewGet.status(), 200);
+    assert.equal(automaticReviewGet.request().method(), "GET");
+    const refreshedReviewDocument = await buyerPage.waitForFunction(previous => performance.timeOrigin !== previous, reviewDocumentOrigin, { timeout: 15000 });
+    await refreshedReviewDocument.dispose();
+    await buyerPage.waitForLoadState("networkidle", { timeout: 15000 });
+    assert.notEqual(await buyerPage.evaluate(() => performance.timeOrigin), reviewDocumentOrigin);
     // A revalidated RSC response may replace the transient action message.
     // Assert the durable customer-visible result and the independently saved row.
     await buyerPage.locator("#reviews article").filter({ hasText: reviewContent }).waitFor();
@@ -145,7 +154,7 @@ try {
       return Boolean(button && !button.disabled && button.getAttribute("aria-busy") !== "true");
     }, undefined, { timeout: 15000 });
     await reviewReady.dispose();
-    await buyerPage.reload({ waitUntil: "networkidle" });
+    // Escaping and removed options are verified after the automatic GET above.
     assert.equal(await buyerPage.evaluate(() => window.qaInjected === true), false);
     assert.equal(await buyerPage.locator(`[name="orderItemId"] option[value="${f.orders.browserReview.itemId}"]`).count(), 0);
     assert.ok(await buyerPage.getByText(/상품 사이즈를 실제로 받아보니/).count()); assert.ok(reviewRequest);
@@ -168,6 +177,8 @@ try {
     await form.locator('[name="trackingNumber"]').fill("222233334444");
     await form.locator('[name="note"]').fill("격리 QA 송장 오입력 정정 확인");
     adminPage.on("request", req => { const h = req.headers(); if (req.method() === "POST" && h["next-action"]) shippingRequest = { url: req.url(), action: h["next-action"], contentType: h["content-type"], body: req.postDataBuffer() }; });
+    const shippingDocumentOrigin = await adminPage.evaluate(() => performance.timeOrigin);
+    const shippingNavigation = adminPage.waitForResponse(response => response.request().isNavigationRequest() && response.request().method() === "GET" && new URL(response.url()).pathname === "/admin/orders");
     const shippingResponse = adminPage.waitForResponse(response => response.request().method() === "POST" && Boolean(response.request().headers()["next-action"]));
     await form.getByRole("button", { name: "송장 수정", exact: true }).click();
     const submittedShipping = await shippingResponse;
@@ -194,7 +205,13 @@ try {
     assert.equal(corrected.carrier, shipmentBeforeCorrection.carrier);
     assert.equal(corrected.trackingNumber, "222233334444");
     assert.equal(corrected.note, "격리 QA 송장 오입력 정정 확인");
-    await adminPage.reload({ waitUntil: "networkidle" });
+    const automaticShippingGet = await shippingNavigation;
+    assert.equal(automaticShippingGet.status(), 200);
+    assert.equal(automaticShippingGet.request().method(), "GET");
+    const refreshedShippingDocument = await adminPage.waitForFunction(previous => performance.timeOrigin !== previous, shippingDocumentOrigin, { timeout: 15000 });
+    await refreshedShippingDocument.dispose();
+    await adminPage.waitForLoadState("networkidle", { timeout: 15000 });
+    assert.notEqual(await adminPage.evaluate(() => performance.timeOrigin), shippingDocumentOrigin);
     assert.equal(await adminPage.locator("article").filter({ hasText: f.orders.browserShipping.moid }).locator('[name="trackingNumber"]').inputValue(), "222233334444");
     assert.equal((await db.shopShipment.findUnique({ where: { orderId: f.orders.browserShipping.id } })).trackingNumber, "222233334444");
     assert.ok(shippingRequest);

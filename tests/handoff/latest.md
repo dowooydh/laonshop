@@ -1,31 +1,25 @@
 # QA 핸드오프 최신본
 
-검증일: 2026-11-04
+검증일: 2026-11-06. 제품 SHA: `fa2d1aa0b70d07bc2a7522ab9fd8e1fb2a08e060`.
+비교 기준: `de41c604602b3ffd75e1e1cddd42845ca93c42ef`. 브랜치: `codex/security-baseline-20261106`.
 
-제품 SHA: `d62fc447d762cce04132288e83a5a8d4dde3c7e3`
+판정: **독립 소스 검토·필수 격리 전체 QA GO, 콘솔 WARN 유지**. 배포 전 작성한 인계이며 실제 운영 배포·공개 확인은 후속 release receipt와 완료 보고를 대조합니다.
 
-비교: `83ac36c9cd56e716a95b262a57b9dd58163a68f5..d62fc447d762cce04132288e83a5a8d4dde3c7e3`
-
-브랜치: `codex/shop-upgrade-20261104`
-
-판정: **독립 코드·격리 실행 검증 GO**. 실제 운영 배포 후 public 검증은 root 담당의 별도 결과로 확인합니다. 기존 WebKit 자동화 경고와 실기기 미실행 범위를 유지합니다.
-
-| 검증 축 | 결과 |
+| 구분 | 결과 |
 |---|---|
-| DEV | 186/186 skip0, 이미지 게이트·lint warning0·typecheck·production build static19/19 PASS. 기존 Prisma deprecation 유지 |
-| 독립 서비스 | 격리37/37 PASS. 후기·배송 소유권/중복/관리자 권한·CHECK/불변 trigger·readiness·결제 상태/금액 불변 |
-| 실제 HTTP | 공개36 + 인증/실제 후기·송장·배송 액션10 = 46범위 PASS. 초기 QA 대기 실패는 별도 기록 |
-| Chromium | production228 + preview60 = 288조합 PASS. 320/390/1280px ×100/200%, 넘침·필드 잘림·페이지 오류·운영 예시 후기 노출0 |
-| 공개 준비상품 | 양 런타임32종 상세64회, 원본 사진32 HTTP200·WebP1200×1500·manifest SHA/고유성 PASS. 실제 판매329/준비32 분리 |
-| 위조 주문 | prepared ID·catalog-draft ID 조작 후 실제 로컬 POST2건 거절. 주문/후기/재고 원장 증분0 |
-| WebKit 신규 페이지 | 목록/대표상세 ×390/1280 ×100/200 = 8조합 PASS·targeted 오류0. broader probe RSC20→6 WARN 보존; 이전 RSC5와 합산하지 않음 |
+| 제품 동작 | 비밀번호 변경 시 이전 쿠키 거절·현재 쿠키 갱신, bcrypt UTF-8 경계, PG 입력/응답 크기·중복 필드·금액·O/X 검증 |
+| 후기·배송 | 저장 전환 뒤 새 GET으로 표시·버튼 대기 해제, 위치 복원. 서버 소유권·관리자 권한·이력 보존·중복 방지 유지 |
+| DEV | 저장 UI 인과 실험·실제 GET/POST/hash/storage helper probe 통과. 독립 제품 전체 결과와 구분 |
+| 독립 기본 QA | unit202/202 skip0·이미지 게이트·lint(max-warnings0)·typecheck·production build PASS |
+| 독립 통합 | 서비스37·쇼핑 브라우저47·보안 브라우저16·실제 PG result route/DB stub5 exact/invariant PASS |
+| SCA/격리 | pnpm/Trivy 각각487·취약점0·source secret0·양성 대조 PASS, source SHA 동일·외부 차단·자손/PG/컨테이너/임시 입력 정리 PASS |
+| 경고 | 쇼핑 console error616 미분류 WARN, 보안 console count 미수집. 페이지 오류0·겹침0·실제 자체 호스팅 폰트 PASS. Prisma deprecation 유지 |
+| 선택 감사·운영 부작용 | PentAGI/Cloudflare not-run/false. 실 PG·운영 DB/schema/env/key/gate 변경 없음 |
 
-준비상품은 운영에서도 AI·예상 가격·판매 준비 중을 표시하며 구매할 수 없습니다. 전체361개(남성171/여성190)는 판매329개(155/174)와 준비32개(16/16)를 분리해 안내합니다. 구매 가능 필터는 준비상품을 제외합니다. preview 예시 후기는 실제 후기 원장에 합산하지 않고 production에서는 숨깁니다.
+최종 QA 커밋은 제품 코드 변경 없이 후기·배송의 자동 navigation GET200·새 문서(timeOrigin 변경)를 확인하고 수동 reload를 제거합니다. 이 커밋에서도 필수 전체 QA와 production build 통과를 푸시 전 조건으로 유지합니다.
 
-운영 담당의 승인된 additive3테이블 적용·기존11테이블 불변·새원장0·readiness true는 독립 QA와 다른 실행 범위입니다. 독립 QA는 운영 DB·환경·PG를 변경하지 않았습니다. 운영 배포·공개 확인과 실판매 활성화를 같은 뜻으로 보고하지 않습니다.
+배포 후 기존 로그인은 한 번 재로그인이 필요합니다. 로그아웃 복사 쿠키의 전역 폐기·분산 로그인 속도 제한은 이번 범위에서 해결한 것으로 표시하지 않습니다. 실제 PG 활성화나 전체 소스 침투 감사 완료를 주장하지 않습니다.
 
-세부 결과·경고·비교 화면·정리: [운영 공개 후속 독립 QA](../reports/2026-11-04-production-release/independent-report.md).
+전체 근거·초기 FAIL/중단·남은 범위: [제품·DEV 기록](../reports/2026-11-06-security-remediation.md), [독립 실행](../reports/2026-11-06-security-independent-execution.md), [독립 소스 검토](../reports/2026-11-06-security-independent-review.md).
 
-기존 사이트 전수288조합·정렬·참고사이즈·카테고리 검증과 이전 RSC5 WARN: [직전 보고서](../reports/2026-11-04-layout-catalog-followup/report.md). 새 릴리스 수치와 중복 합산하지 않습니다.
-
-운영 담당 후속 확인(독립 격리 QA와 별도): 제품d62fc44 main배포 READY·실제apex/www 연결, public43검사 PASS·독립 fresh6페이지 오류0 확인. 최초 React#418 1건은 재현되지 않았지만 원인 미확정 WARN으로 보존하고 해결 완료로 판정하지 않습니다. 초기 스트리밍 대기 보완·fetch취소·Vercel 빌드 경고와 남은 외부 업무까지 [운영 출시 기록](../reports/2026-11-04-production-release/release-report.md)에 구분했습니다.
+11월4일 화면·카탈로그 배포와 독립 QA는 [기존 출시 기록](../reports/2026-11-04-production-release/release-report.md)에 보존합니다. 판매329·공개 준비32·참고 사이즈·AI 사진을 이번에 다시 추가하지 않았고, 준비상품은 실제 공급/가격/실측/재고 확인 전 주문 불가입니다. 예시 후기는 운영에서 숨기며 실제 후기 집계에 합산하지 않습니다. 기존 React#418 미재현 WARN·WebKit 경고·실기기 미실행도 이번 수정으로 소급 해결하지 않습니다.

@@ -2,6 +2,23 @@
 
 작성일: 2026-11-06. 기준선 `de41c604602b3ffd75e1e1cddd42845ca93c42ef`. 이 문서는 11월 4일 화면·카탈로그 배포 기록을 대체하지 않는다.
 
+
+## 최종 제품·독립 QA 상태
+
+최종 제품 SHA는 `fa2d1aa0b70d07bc2a7522ab9fd8e1fb2a08e060`입니다. 독립 담당의 필수 전체 QA는 2026-11-06 05:09:32~05:11:45 UTC에 **PASS/exit0**였으며 source/final/isolated SHA가 모두 일치했습니다. 배포는 이 검증 뒤 수행하는 별도 단계이며, 이 문서 작성 시 운영은 아직 `de41c60`입니다. 최종 QA 문서 커밋의 재검증과 실제 Vercel READY·도메인 확인은 별도 release receipt로 확인합니다.
+
+| 구분 | 확인 결과 |
+|---|---|
+| 독립 제품 회귀 | unit202/202 skip0·이미지 게이트, lint(max-warnings0)·타입·production build exit0 |
+| 독립 서비스·브라우저 | 서비스37·쇼핑47·보안16·PG result route/DB stub5, 정확한 필수 항목·원장/소유권/중복 방지 조건 PASS |
+| 격리·정리 | network none/non-root/읽기 전용 root·input, 프로세스 자손 remaining0·PG 종료·컨테이너/임시 입력 부재 PASS |
+| SCA | pnpm/Trivy 각각487개·취약점0, tracked secrets0, 별도 github-pat 양성 대조 PASS |
+| 경고·미실행 | 쇼핑 console error616건은 미분류 WARN, security console 집계는 미수집/null. 페이지 오류·앵커 겹침0. Prisma deprecation 유지. PentAGI/Cloudflare는 not-run/false |
+
+후속 QA 커밋에서는 후기·배송의 클릭 전에 navigation GET을 기다리고 HTTP200·performance.timeOrigin 변경·새 문서 로드를 확인합니다. 수동 reload를 제거해 자동 갱신 실패를 가리지 않으며, 제품 코드 차이0을 확인한 뒤 이 QA 커밋에서 전체 필수 검증을 재실행하고 통과 전에는 푸시하지 않습니다. 그 최종 실행 receipt는 `tests/.generated/`에 별도 보관합니다.
+
+위 필수 QA PASS를 콘솔 오류0·전체 침투 감사 완료·실 PG 연동 활성화로 해석하면 안 됩니다. 초기 실패와 중단은 아래 기록에 보존합니다. 독립 실행 증거: `tests/.generated/2026-11-06T05-09-32.781Z-full-RIvPHe/summary.json`, 격리 증거: `tests/.generated/2026-11-06T05-09-35.886Z-isolated-4DXWLy/summary.json`. 독립 보고서는 [실행 결과](2026-11-06-security-independent-execution.md)와 [소스 검토](2026-11-06-security-independent-review.md)를 확인합니다.
+
 ## 변경 범위·수용 조건
 
 | 확인한 문제 | 수정·수용 조건 |
@@ -58,6 +75,16 @@ Trivy는 빈 secret YAML의 EOF 오류를 합성 디렉터리로 재현했다. �
 브라우저는 고정된 실제 Playwright bundle이 `_Browser`, `_BrowserContext2`, `_Page2` 같은 이름을 사용해 기존 public-name exact whitelist가 적용되지 않은 실행기 결함이었다. 엄격한 별칭 정규화·원 constructor/private receiver 보존·불명 API 즉시 FAIL과 실제 종류/operation 양수 증거를 추가한다. 실제 API 객체 도구 probe에서 새 `DisposableStub` 반환형도 차단돼 실패를 보존하고, pinned primary source의 dispose 구현을 확인한 정확한 타입만 추가했다. mock 객체 하니스 통과를 실제 Playwright 수명 검증으로 대신하지 않는다.
 
 실제 고정 SDK의10종 API 객체에서 wrap/raw·constructor/private identity, body가 끝나지 않는 Response.finished50ms·정지시킨 Browser.close50ms 경계와 복구 후 자원 정리를 확인했다. unknown0·외부0·alias10, 컨테이너/임시 입력 정리 PASS이며 이는 DEV 도구 probe다. 두 suite의 wrapper 파일·핵심 종류·응답/종료/탐색 operation 양수까지 필수 gate로 추가해 래퍼 미적용이 성공으로 표시되지 않게 했다. DEV 제어기93/93 skip0·diff 검증 PASS. 새 clean SHA의 제품 전체 결과는 별도로 회수한다. 도구 증거: `tests/.generated/2026-11-06T03-55-39-playwright-wrapper-probe/summary.json`.
+
+### 세 번째 독립 전체 실행과 저장 화면 원인 확인: `3810744`
+
+`38107443e335d09d54e8e24ea6f28aa7bd14d124`의 전체 결과는 **FAIL**입니다. unit202·lint·타입·build·서비스37·PG5는 통과했지만 후기·배송·비밀번호 브라우저 흐름이 실패했습니다. wrapper 적용·대기 상한·cleanup은 정상이며 전체 성공으로 소급하지 않습니다. 증거: `tests/.generated/2026-11-06T04-02-09.441Z-full-gylOaa/summary.json`.
+
+DEV의 별도 snapshot 인과 실험에서는 HTTP200·DB 저장과 화면 갱신을 나눠 확인했습니다. 불필요한 Response.finished 대기는 제거하되 실제 내용·사용자/주문/항목 결박·pending 해제·동의 오류·현재 세션·옛 쿠키·CAS·감사 이력 검사는 유지하거나 강화했습니다. `/login?next=/mypage`는 기존 allowlist 밖이므로 정상 홈 복귀 후 보호 페이지 GET을 검사하며 제품 allowlist를 넓히지 않았습니다.
+
+상품·관리자 화면은 force-dynamic이고 기존 서버 revalidatePath와 useActionState 전환이 겹칠 때 저장 뒤 버튼이 대기 상태에 머물거나 후기 표시가 늦는 현상을 재현했습니다. 서버는 성공 상태만 반환하고 클라이언트가 pending 종료 후 성공 state당 한 번 새 문서 GET을 보냅니다. soft refresh 실험은 대기 해제만 통과하고 표시에는 실패했으며, 새 GET 실험은 자동 후기 표시·배송 UI·정확히1건 감사 증가를 통과했습니다. 이 DEV 인과 실험은 독립 전체 QA와 구분합니다. 증거: `/tmp/laonshop-browser-causal-v5-duNAhz/summary.json`.
+
+현재 URL의 hash를 제거한 location.replace는 GET/POST 응답 문서와 `#reviews`에서도 새 GET을 만들고 POST를 반복하지 않습니다. 검증된 상품 경로·관리자 주문 경로, 30초 TTL·숫자 scroll·고정 후기 anchor만 sessionStorage에 한 번 저장·소비해 위치를 복원합니다. query/cookie/token/입력값은 저장하지 않으며 storage가 차단돼도 GET은 수행합니다. 저장 차단 환경에서는 위치 복원만 보장하지 않습니다. 실제 helper 도구 probe에서 정상6·storage차단2·잘못된/만료/경로불일치/반복4의 요청·복원을 확인했습니다. 빈 fixture의 도구 probe이며 제품 전체 QA로 대신하지 않습니다. 증거: `tests/.generated/2026-11-06T05-11-20-document-refresh-helper-probe/summary.json`.
 
 ## 배포 시 영향·남는 범위
 

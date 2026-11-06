@@ -1,6 +1,8 @@
 # 보안 보완 독립 전체 QA 실행과 후속 검토
 
-최신 실행은 P2 SHA `831ae7055f6c005a5a42db923eb95a4c3dcda879`의 **FAIL**입니다. SCA·DB/PG·정리는 통과했고, 제품 unit 1건·lint·브라우저 제한시간은 실패했습니다. 아래 첫 실행 기록을 보존하고 P2 결과와 원인·수정 소스 검토를 마지막 절에 구분합니다. 후속 후보의 전체 재검증은 아직 필요합니다.
+최신 실행은 제품 P4 `fa2d1aa0b70d07bc2a7522ab9fd8e1fb2a08e060`의 **독립 필수 전체 QA PASS/exit0**입니다. 2026-11-06 05:09:32–05:11:45 UTC에 source/final/isolated SHA 일치, unit202/202·skip0, 이미지·lint·타입·build, DB37/상품47/보안16/PG5, SCA487·secret/양성 대조, 실제 wrapper·폰트·모든 정리를 확인했습니다. 제어기 별도 독립 측정은 같은 P4 SHA에서 **93/93·skip0**입니다.
+
+상품 브라우저 **consoleErrorCount616은 미분류 WARN**이며 콘솔 무오류가 아닙니다. schema/build의 Prisma deprecation과 일반 WARNING_PRESENT도 보존합니다. 선택 PentAGI·Cloudflare 감사는 not-run/complete false, 운영 배포·실 PG 활성화는 미검증입니다. 문서 커밋 Q의 추가 시험·root 최종 재검증은 이후의 별도 증거입니다. 아래 실패 기록과 DEV 도구·인과 실험을 삭제하거나 P4 통과에 합산하지 않습니다.
 
 ## 첫 실행 판정
 
@@ -197,3 +199,40 @@ unit·lint 수정에서 추가 차단 의견은 발견하지 못했습니다. Pl
 앞선 `tests/.generated/2026-11-06T03-52-43-playwright-wrapper-probe/summary.json`의 DisposableStub 미등록 FAIL은 보존하며 후속 PASS로 덮어쓰지 않습니다. 순수 시험 8개 통과는 구현 담당의 별도 DEV 결과입니다. 실제 PW 객체와 mock class 검증을 구분합니다.
 
 이 단계에서 두 독립 보고서를 고정합니다. 남은 수용 조건은 새 clean SHA의 전체 독립 실행에서 정확한 제어기·제품 unit/skip 수, 이미지 gate, SCA·secret 양성 대조, lint warning0·타입·빌드, DB37/commerce47/security16/PG5, 실제 wrapper·폰트·프로세스·서비스·컨테이너/입력 정리를 함께 회수하는 것입니다. P2 FAIL과 warning·console 결과 미회수는 그대로 유지하며, 배포·실 PG 활성화로 보고하지 않습니다.
+
+## 후속 P3 실패와 DEV 인과 실험
+
+P3 `38107443e335d09d54e8e24ea6f28aa7bd14d124` 독립 full은 04:02:09–04:04:40 UTC에 **FAIL/exit1**이었습니다. source 전후 일치, unit202·이미지 gate·lint·타입·build·SCA·DB37·PG5는 통과했지만 commerce progress44/close와 security progress3/close(2/16)에서 실패했습니다. 두 stage는 timedOut false여서 P2의 stage deadline과 구분합니다. 실제 wrapper unknown0·critical kind/operation 양수와 자손16/14 remaining0·서비스·컨테이너/input 정리는 통과했습니다. 별도 독립 제어기는 04:06:52–04:06:54 UTC에 93/93·skip0이었으며 제품 결과와 합산하지 않습니다. 증거: `tests/.generated/2026-11-06T04-02-09.441Z-full-gylOaa/summary.json`.
+
+그 후 DEV의 snapshot 진단에서 비결제 `Response.finished()` 대기를 제거하고 HTTP·영속 UI/DB·pending·감사·세션/CAS 검증을 강화했습니다. 로그인 `/mypage` 기대값은 기존 allowlist에 맞춰 `/` 도착 후 별도 보호 GET으로 정정했고 제품 allowlist는 넓히지 않았습니다. 원 제품은 후기 DB 저장 뒤 UI와 pending이 남고 명시 reload 뒤 표시되는 결함을 보였습니다. 서버 state-only/client soft refresh 실험은 pending만 개선했으며, 새 문서 GET 실험은 자동 후기·배송 표시와 정확 감사 증가를 확인했습니다. `productModified:true`인 DEV 부분 인과 실험은 원 `381…`의 전체 PASS가 아닙니다. 증거: `/tmp/laonshop-browser-causal-v5-duNAhz/summary.json`(PARTIAL_DIAGNOSTIC/overallQaPassed false).
+
+최종 제품은 검증된 상품·관리자 경로의 hash 제거 location.replace, pending 종료 후 성공 state별 1회 가드, 30초 TTL·consume-first·path 검증 위치 복원으로 정리됐습니다. query/cookie/token은 저장하지 않고 storage 실패에도 GET을 수행합니다. 실제 helper의 정상6·storage거부2·잘못된/만료/불일치/반복4 도구 조건 PASS는 **DEV 증거**입니다. 제품 전체 QA를 대신하지 않습니다. 증거: `tests/.generated/2026-11-06T05-11-20-document-refresh-helper-probe/summary.json`.
+
+## P4 최종 독립 실행
+
+절대 Node22 경로로 `scripts/qa/full.mjs`를 직접 실행했습니다. 05:09:32.827–05:11:45.503 UTC, **PASS/exit0**, interrupted false입니다. 시작·종료·isolated SHA는 모두 `fa2d1aa0b70d07bc2a7522ab9fd8e1fb2a08e060`, sourceVerified/isolatedSourceVerified true·sourceChanged false이며 실행 동안 소스·Git·보고서를 수정하지 않았습니다.
+
+| 수용 축 | P4 독립 회수 결과 |
+|---|---|
+| 제품 unit·이미지 | tests202/pass202/fail0/skipped0, test 명령의 후행 이미지 gate까지 exit0 |
+| lint·타입·build | 모두 command exit0. lint max-warnings0을 사용했지만 coarse WARNING_PRESENT enum은 보존하며, schema/build PRISMA_DEPRECATION도 WARN으로 남김 |
+| SCA·secret | pnpm/Trivy 각487·취약점0, Trivy secret0·tracked pattern0, 별도 github-pat 양성 대조 PASS. Trivy0.74.0·DB 01:07:43 UTC; 실제 조회 05:09:33–34 UTC |
+| 서비스·브라우저·PG | DB37/commerce47/security16/PG5 모두 exact count·필수 checks·불변조건 PASS. PG는 격리 DB와 stub이며 실 PG가 아님 |
+| 실제 UI·폰트 | 후기 자동 표시·배송 저장/표시·감사·pending, 현재 세션·이전 쿠키 거절·CAS·실제 로그인·동의 거절 수용 PASS. selfHostedFontsLoaded true, pageErrors0·외부 write0·anchor overlap0 |
+| 실제 wrapper | 양 suite PASS·unknown0. commerce Browser1/Context5/Page3/Locator95·response7/close14/navigate53, security Browser1/Context8/Page5/Locator18·response5/close18/navigate8 |
+| 격리·정리 | init, network none/lo-only·외부/관리 loopback 차단, UID1000·readonly root/input·scratch 제한·cgroup PASS. 모든 stage group/descendant PASS·remaining0, 브라우저 자손18/24 회수, PG stop0·pid 파일 부재·서비스·컨테이너/input cleanup PASS |
+| 선택 감사·운영 | optionalEvidenceRequested false, securityAuditStatus not-run, securityAuditComplete false. 운영 DB·환경·키·권한·실 PG·배포 변경/실행 없음 |
+
+실제 image는 `laonshop-qa-sandbox:5229900f75060d44b1c9`, ID `sha256:a41519b448c847b791ea361c6f0e7515db321b2c692160efd6b81f82b10c208a`입니다. 종료 후 exact container `laonshop-qa-801ba8b604c7bdfe` 전체 목록의 빈 결과·exit0과 전용 VM 동일 이름 입력 경로의 부재 test exit0을 재확인했습니다. 보고서 갱신 직전의 검증 종료 상태도 P4 HEAD·첨부 제외 dirty0이었습니다.
+
+**경고:** commerce consoleErrorCount는 **616**이며 원문을 반출하거나 개별 원인을 분류하지 않았습니다. 이 수치를 오류0·해결 완료로 바꾸지 않습니다. security consoleErrorCount null은 해당 수집 항목이 없다는 뜻이며 0이 아닙니다. lint의 WARNING_PRESENT는 명령의 `--max-warnings` 문구도 매치할 수 있는 거친 enum이므로 별도 분류 없이 특정 원인으로 확정하지 않습니다. 필수 gate PASS와 모든 콘솔/도구 경고 해소를 구분합니다.
+
+full의 qa-harness는 exit0이지만 원 TAP 수를 남기지 않아 동일 P4·Node22·정제 환경에서 신뢰된 제어기를 한 번 별도 측정했습니다. 05:13:05.807–05:13:07.284 UTC, **tests93/pass93/fail0/skipped0/cancelled0/todo0·exit0**입니다. stdout21,788바이트의 SHA-256은 `58b276938b4d5556173f816299eff04b67fd3d2cf1444bd25e06107b8754948b`, stderr0이며 원문은 저장하지 않았습니다. 제품 호스트 실행은 하지 않았습니다.
+
+| P4 산출물 | SHA-256 |
+|---|---|
+| `tests/.generated/2026-11-06T05-09-32.781Z-full-RIvPHe/summary.json` | `8cd6efd730cf1750ca2e77bf8cc2821b67511abd3f42ed1a34d5b33252a11c22` |
+| `tests/.generated/2026-11-06T05-09-35.886Z-isolated-4DXWLy/summary.json` | `3ff37e816e68747fc12b2302902c61e8a6786ac66ada0137adf9027b8b5ffee7` |
+| `tests/.generated/2026-11-06T05-09-32-855Z-local-security-vflTXE/summary.json` | `223186245096f3dde19e453a0abeb6c1df8917e1f0abb6537cdf55ae46501150` |
+
+문서 커밋 Q에 포함할 `f22bb60fd3f525f81af27820c3810873a5aca6260e67cbac5d17a94306d2adeb` QA 강화 patch도 소스만 검토했습니다. 후기·배송 클릭 전 navigation GET과 timeOrigin을 잡고 자동 GET200·새 문서·networkidle 뒤 영속 UI를 확인하며, 두 QA 수동 reload를 제거합니다. 기존 권한·감사·47개 검사는 유지되고 대기는 15초로 제한됩니다. 소스 리뷰 GO이며 **P4 독립 실행에 소급 포함하지 않습니다.** Q의 제품 diff0 확인·최종 full 및 운영 배포/도메인 확인은 root의 이후 증거로 구분합니다.
