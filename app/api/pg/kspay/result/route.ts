@@ -11,17 +11,26 @@ import {
   shouldStartKspayApproval,
 } from "@/lib/order-guard";
 import { NextResponse, type NextRequest } from "next/server";
+import { BoundedInputError, readBoundedPgForm, singlePgValue } from "@/lib/security/bounded-form";
 
 export const maxDuration = 30;
 
 const TX_OPTIONS = { maxWait: 5_000, timeout: 15_000 } as const;
 
 export async function POST(req: NextRequest) {
-  const form = await req.formData();
-  const orderId = String(form.get("a") ?? ""); // 패스스루 a = ShopOrder id
-  const reCommConId = String(form.get("reCommConId") ?? "");
-  const reCnclType = String(form.get("reCnclType") ?? "");
-  const resultToken = String(form.get("c") ?? "");
+  let orderId, reCommConId, reCnclType, resultToken;
+  try {
+    const form = await readBoundedPgForm(req);
+    orderId = singlePgValue(form, "a", 128);
+    if (orderId && !/^[A-Za-z0-9_-]+$/.test(orderId)) throw new BoundedInputError(400);
+    reCommConId = singlePgValue(form, "reCommConId", 1024);
+    reCnclType = singlePgValue(form, "reCnclType", 16);
+    resultToken = singlePgValue(form, "c", 128);
+    singlePgValue(form, "reHash", 4096);
+  } catch (error) {
+    if (!(error instanceof BoundedInputError)) throw error;
+    return NextResponse.json({ error: error.message }, { status: error.status, headers: { "Cache-Control": "no-store" } });
+  }
 
   const base = process.env.SHOP_APP_URL ?? new URL(req.url).origin;
   if (!orderId) return NextResponse.redirect(`${base}/`, 303);

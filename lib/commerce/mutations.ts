@@ -25,7 +25,7 @@ async function lockOrder(tx: Prisma.TransactionClient, orderId: string) {
 
 export async function createVerifiedReview(userId: string, input: unknown): Promise<CommerceActionState & { productId?: string }> {
   const parsed = reviewSchema.safeParse(input);
-  if (!parsed.success) return errorState(parsed.error.errors[0]?.message ?? "후기 내용을 확인해 주세요.");
+  if (!parsed.success) return errorState(parsed.error.issues[0]?.message ?? "후기 내용을 확인해 주세요.");
   if (!(await getCommerceReadiness()).ready) return errorState(COMMERCE_PREPARING_MESSAGE);
   try {
     return await prisma.$transaction(async (tx) => {
@@ -61,7 +61,7 @@ async function adminAndOrder(tx: Prisma.TransactionClient, actorUserId: string, 
 
 export async function recordShipment(actorUserId: string, input: unknown): Promise<CommerceActionState> {
   const parsed = shipmentSchema.safeParse(input);
-  if (!parsed.success) return errorState(parsed.error.errors[0]?.message ?? "배송 정보를 확인해 주세요.");
+  if (!parsed.success) return errorState(parsed.error.issues[0]?.message ?? "배송 정보를 확인해 주세요.");
   if (!(await getCommerceReadiness()).ready) return errorState(COMMERCE_PREPARING_MESSAGE);
   const data = parsed.data;
   try {

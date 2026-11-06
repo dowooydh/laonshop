@@ -9,17 +9,18 @@ import { getBoundaryWhitespaceTrimCandidate, normalizeEmail } from "@/lib/auth-i
 import { acquireTransactionLock } from "@/lib/order-guard";
 import { Prisma } from "@prisma/client";
 import { safeLoginReturnTarget } from "@/lib/auth-redirect";
+import { createSessionCredentialTag, isBoundedLoginPassword, isSupportedNewPassword } from "@/lib/session-security";
 
 export type AuthState = { error?: string };
 
 const registerSchema = z.object({
-  email: z.string().trim().transform(normalizeEmail).pipe(z.string().email("이메일 형식을 확인해 주세요.")),
-  password: z.string().min(8, "비밀번호는 8자 이상 입력해 주세요."),
+  email: z.string().trim().max(254).transform(normalizeEmail).pipe(z.string().email("이메일 형식을 확인해 주세요.")),
+  password: z.string().min(8, "비밀번호는 8자 이상 입력해 주세요.").max(72, "비밀번호는 UTF-8 기준 72바이트 이내로 입력해 주세요.").refine(isSupportedNewPassword, "비밀번호는 UTF-8 기준 72바이트 이내로 입력해 주세요."),
   name: z.string().trim().min(1, "이름을 입력해 주세요.").max(30),
   phone: z.union([z.string().trim().max(20), z.literal("")]).optional(),
   // 개인정보보호법 제15조 — 명시적 동의 (체크박스 미체크 시 서버에서도 거부)
-  agreeTerms: z.literal("on", { errorMap: () => ({ message: "이용약관에 동의해 주세요." }) }),
-  agreePrivacy: z.literal("on", { errorMap: () => ({ message: "개인정보 수집·이용에 동의해 주세요." }) }),
+  agreeTerms: z.literal("on", { error: "이용약관에 동의해 주세요." }),
+  agreePrivacy: z.literal("on", { error: "개인정보 수집·이용에 동의해 주세요." }),
 });
 
 export async function registerAction(_prev: AuthState, formData: FormData): Promise<AuthState> {
@@ -31,7 +32,7 @@ export async function registerAction(_prev: AuthState, formData: FormData): Prom
     agreeTerms: formData.get("agreeTerms"),
     agreePrivacy: formData.get("agreePrivacy"),
   });
-  if (!parsed.success) return { error: parsed.error.errors[0]?.message ?? "입력값을 확인해 주세요." };
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "입력값을 확인해 주세요." };
   const d = parsed.data;
 
   const passwordHash = await bcrypt.hash(d.password, 10);
@@ -62,6 +63,7 @@ export async function registerAction(_prev: AuthState, formData: FormData): Prom
   session.userId = user.id;
   session.email = user.email;
   session.name = user.name;
+  session.credentialTag = createSessionCredentialTag(user);
   await session.save();
   redirect("/");
 }
@@ -73,9 +75,10 @@ const LOGIN_LOCK_MS = 10 * 60 * 1000;
 const loginFails = new Map<string, { count: number; lockedUntil: number }>();
 
 export async function loginAction(_prev: AuthState, formData: FormData): Promise<AuthState> {
-  const email = normalizeEmail(String(formData.get("email") ?? ""));
-  const password = String(formData.get("password") ?? "");
-  if (!email || !password) return { error: "이메일과 비밀번호를 입력해 주세요." };
+  const rawEmail = formData.get("email"), rawPassword = formData.get("password");
+  if (typeof rawEmail !== "string" || rawEmail.length > 1024 || typeof rawPassword !== "string") return { error: "이메일과 비밀번호를 입력해 주세요." };
+  const email = normalizeEmail(rawEmail), password = rawPassword;
+  if (!email || email.length > 254 || !isBoundedLoginPassword(password)) return { error: "이메일과 비밀번호 입력값을 확인해 주세요." };
 
   const key = email;
   const fail = loginFails.get(key);
@@ -84,8 +87,8 @@ export async function loginAction(_prev: AuthState, formData: FormData): Promise
   }
 
   const user = await prisma.shopUser.findFirst({ where: { email: { equals: email, mode: "insensitive" } } });
-  const passwordMatches = user ? await bcrypt.compare(password, user.passwordHash) : false;
-  if (!passwordMatches && user) {
+  const passwordMatches = user && !user.deletedAt ? await bcrypt.compare(password, user.passwordHash) : false;
+  if (!passwordMatches && user && !user.deletedAt) {
     const trimCandidate = getBoundaryWhitespaceTrimCandidate(password);
     if (trimCandidate && (await bcrypt.compare(trimCandidate, user.passwordHash))) {
       return {
@@ -116,6 +119,7 @@ export async function loginAction(_prev: AuthState, formData: FormData): Promise
   session.userId = user.id;
   session.email = user.email;
   session.name = user.name;
+  session.credentialTag = createSessionCredentialTag(user);
   await session.save();
   redirect(safeLoginReturnTarget(formData.get("next")) ?? "/");
 }

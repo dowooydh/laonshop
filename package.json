@@ -17,6 +17,11 @@
     "test:billing:schema": "node tests/integration/run-laonpay-billing-schema-postgres.mjs",
     "validate:images": "node scripts/validate-detail-assets.mjs && node scripts/validate-new-product-assets.mjs",
     "typecheck": "tsc --noEmit",
+    "qa:harness": "node --test tests/qa/*.test.mjs",
+    "qa:local-security": "node scripts/qa/local-security.mjs",
+    "qa:security": "node scripts/qa/security.mjs",
+    "qa:isolated": "node scripts/qa/isolated.mjs",
+    "qa:full": "node scripts/qa/full.mjs",
     "billing:preflight": "tsx scripts/check-laonpay-billing-readiness.ts",
     "billing:schema:verify": "psql \"$DIRECT_URL\" --set=ON_ERROR_STOP=1 --file ops/laonpay-billing/sql/002_post_verify.sql",
     "postinstall": "prisma generate",
@@ -34,11 +39,11 @@
     "iron-session": "^8.0.4",
     "lenis": "^1.3.25",
     "motion": "^12.42.1",
-    "next": "^15.5.21",
+    "next": "^15.5.28",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "tailwind-merge": "^2.6.0",
-    "zod": "^3.25.0"
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.5",
@@ -47,10 +52,10 @@
     "@types/react-dom": "^19.0.0",
     "autoprefixer": "^10.4.20",
     "eslint": "^9.39.4",
-    "eslint-config-next": "^15.5.21",
+    "eslint-config-next": "^15.5.28",
     "postcss": "^8.5.23",
     "prisma": "^6.19.3",
-    "sharp": "0.35.3",
+    "sharp": "0.35.5",
     "tailwindcss": "^3.4.17",
     "tsx": "^4.19.0",
     "typescript": "^5.8.0"

@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/session";
+import { isSessionCredentialCurrent } from "@/lib/session-security";
 import { acquireTransactionLock } from "@/lib/order-guard";
 import {
   createLaonpayBillingClient,
@@ -47,7 +48,8 @@ function parseRegistrationCookie(value: string | undefined): { localId: string; 
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
-  if (!session.userId) {
+  const user = session.userId ? await prisma.shopUser.findUnique({ where: { id: session.userId } }) : null;
+  if (!user || user.deletedAt || !isSessionCredentialCurrent(session, user)) {
     const login = new URL("/login", request.url);
     login.searchParams.set(
       "next",
@@ -55,10 +57,7 @@ export async function GET(request: NextRequest) {
     );
     return NextResponse.redirect(login, 303);
   }
-  const user = await prisma.shopUser.findUnique({ where: { id: session.userId } });
   if (
-    !user ||
-    user.deletedAt ||
     !isBillingIntegrationAccount(user.email) ||
     !isLaonpayBillingReconciliationReady()
   ) {

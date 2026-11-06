@@ -29,3 +29,9 @@
 4. 시나리오 선정: happy path, 취소/뒤로가기, 중복 요청, 권한, 빈 상태, 에러 상태, 모바일
 5. 실행 및 증적 수집: 브라우저, API, DB 확인, 콘솔/서버 로그 확인
 6. 정리: 테스트 데이터 청소 원칙 준수, `handoff/latest.md` 갱신
+
+## 보안·통합 QA 기준 (2026-11-06)
+
+현재 기본 게이트는 [security-audit.md](security-audit.md)에 정의한다. `node scripts/qa/full.mjs`는 자격정보 없는 소스·의존성·비밀값 검사, QA 실행기 자체 시험, 전용 격리 환경의 제품 test·lint·typecheck·production build·HTTP/브라우저 검사를 묶는다. 기본 QA와 선택 PentAGI·Cloudflare 감사의 결과를 구분하고, 시작·종료 SHA·검사 누락·정리 실패를 확인한다.
+
+QA 담당은 정확한 제품 SHA·수용 조건·DEV 결과를 인계받고 독립 결과를 기록한다. DEV 자체 검사와 독립 소스 검토·실행 QA는 서로 다른 증거다. 과거 Neon 브랜치 지침이 현재 격리 실행을 운영 DB에 연결할 근거가 되지는 않는다. 신규 보안 검증은 운영 자격정보 없는 폐기 가능한 로컬 PostgreSQL만 사용한다.

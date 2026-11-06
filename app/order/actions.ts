@@ -72,7 +72,7 @@ async function requestKspayCancel(
 export async function requestCancelAction(input: { orderId: string; reason?: string }): Promise<CancelResult> {
   const user = await requireShopUser();
   const parsed = schema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: parsed.error.errors[0]?.message ?? "입력값을 확인해 주세요." };
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "입력값을 확인해 주세요." };
 
   const orderSnapshot = await prisma.shopOrder.findFirst({
     where: { id: parsed.data.orderId, userId: user.id, status: "PAID" },

@@ -36,3 +36,6 @@ yarn-error.log*
 /reference/
 .env*
 .playwright-mcp/
+
+# 격리 QA·보안 실행 증거 (검토 요약만 reports에 커밋)
+/tests/.generated/

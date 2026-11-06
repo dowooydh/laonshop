@@ -1,13 +1,14 @@
 import { prisma, type ShopUser } from "@/lib/db";
 import { notFound, redirect } from "next/navigation";
 import { getSession } from "./session";
+import { isSessionCredentialCurrent } from "./session-security";
 
 /** 로그인 필수 (주문/결제/마이페이지) — 미인증·탈퇴회원은 로그인으로 */
 export async function requireShopUser(): Promise<ShopUser> {
   const session = await getSession();
   if (!session.userId) redirect("/login");
   const user = await prisma.shopUser.findUnique({ where: { id: session.userId } });
-  if (!user || user.deletedAt) {
+  if (!user || user.deletedAt || !isSessionCredentialCurrent(session, user)) {
     // RSC 렌더 중에는 쿠키 수정이 금지라 destroy()가 throw할 수 있다(탈퇴회원 잔여 세션 등).
     // 쿠키 정리는 다음 로그인/로그아웃 액션에 맡기고 여기선 접근 차단만 보장한다.
     try {
@@ -35,7 +36,7 @@ export async function getShopUser(): Promise<ShopUser | null> {
     const session = await getSession();
     if (!session.userId) return null;
     const user = await prisma.shopUser.findUnique({ where: { id: session.userId } });
-    return user && !user.deletedAt ? user : null;
+    return user && !user.deletedAt && isSessionCredentialCurrent(session, user) ? user : null;
   } catch {
     return null;
   }

@@ -6,6 +6,15 @@ const nextConfig: NextConfig = {
   // 로컬 모바일 테스트(Android emulator) dev 접속 허용 — Next 15 future major 경고 제거.
   // dev server 전용이라 프로덕션 빌드에는 영향 없음. 10.0.2.2 = 에뮬레이터→호스트 루프백.
   allowedDevOrigins: ["127.0.0.1", "10.0.2.2"],
+  async headers() {
+    return [{
+      source: "/:path*",
+      headers: [
+        { key: "X-Content-Type-Options", value: "nosniff" },
+        { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+      ],
+    }];
+  },
   images: {
     localPatterns: [
       { pathname: "/products/new/20261104/**", search: "" },

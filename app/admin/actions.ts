@@ -37,14 +37,14 @@ const paidSchema = z.object({
   pgTrno: z.string().trim().min(1, "KSTA PG 거래번호를 입력해 주세요.").max(100, "PG 거래번호는 100자 이내로 입력해 주세요."),
   cardName: optionalText(50, "결제수단 표기는 50자 이내로 입력해 주세요."),
   reason: reasonSchema,
-  confirmed: z.literal("on", { errorMap: () => ({ message: "KSTA 대조 완료 항목을 확인해 주세요." }) }),
+  confirmed: z.literal("on", { error: "KSTA 대조 완료 항목을 확인해 주세요." }),
 });
 
 const failedSchema = z.object({
   orderId: orderIdSchema,
   confirmedMoid: z.string().trim().min(1, "주문번호를 다시 입력해 주세요.").max(100),
   reason: reasonSchema,
-  confirmed: z.literal("on", { errorMap: () => ({ message: "미승인 또는 취소 확인 항목을 확인해 주세요." }) }),
+  confirmed: z.literal("on", { error: "미승인 또는 취소 확인 항목을 확인해 주세요." }),
 });
 
 const TX_OPTIONS = { maxWait: 5_000, timeout: 15_000 } as const;
@@ -132,7 +132,7 @@ export async function confirmPaymentPaidAction(
     confirmed: formData.get("confirmed"),
   });
   if (!parsed.success) {
-    return { status: "error", message: parsed.error.errors[0]?.message ?? "입력값을 확인해 주세요." };
+    return { status: "error", message: parsed.error.issues[0]?.message ?? "입력값을 확인해 주세요." };
   }
 
   return resolvePayment(admin.id, parsed.data.orderId, {
@@ -157,7 +157,7 @@ export async function confirmPaymentFailedAction(
     confirmed: formData.get("confirmed"),
   });
   if (!parsed.success) {
-    return { status: "error", message: parsed.error.errors[0]?.message ?? "입력값을 확인해 주세요." };
+    return { status: "error", message: parsed.error.issues[0]?.message ?? "입력값을 확인해 주세요." };
   }
 
   return resolvePayment(

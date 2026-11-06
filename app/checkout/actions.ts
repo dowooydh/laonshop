@@ -434,7 +434,7 @@ async function markFirstBillingAttemptUnknown(
 export async function createOrderAction(input: CheckoutInput): Promise<CheckoutResult> {
   const user = await requireShopUser();
   const parsed = schema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: parsed.error.errors[0]?.message ?? "입력값을 확인해 주세요." };
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "입력값을 확인해 주세요." };
   const d = parsed.data;
   const manualPaymentMode = resolveManualPaymentMode(
     user.email,

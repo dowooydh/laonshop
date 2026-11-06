@@ -2,6 +2,7 @@
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 import { readFileSync, writeFileSync } from "node:fs";
+import { createSessionCredentialTag } from "../../lib/session-security.ts";
 const require = createRequire(import.meta.url);
 const { PrismaClient } = require("@prisma/client");
 const { sealData } = require("iron-session");
@@ -41,7 +42,7 @@ try {
   }
   const cookies = {};
   for (const [key, user] of Object.entries(users)) {
-    cookies[key] = await sealData({ userId: user.id, email: user.email, name: user.name }, { password: state.secret, ttl: 3600 });
+    cookies[key] = await sealData({ userId: user.id, email: user.email, name: user.name, credentialTag: createSessionCredentialTag(user, state.secret) }, { password: state.secret, ttl: 3600 });
   }
   state.fixtures = { productId: product.id, productName: product.name, users: Object.fromEntries(Object.entries(users).map(([key,u]) => [key, u.id])), orders, cookies };
   writeFileSync(statePath, JSON.stringify(state));

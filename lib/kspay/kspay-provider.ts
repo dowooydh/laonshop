@@ -11,6 +11,7 @@
  *      응답: 백틱(`) 구분 EUC-KR 문자열, authyn === 'O' 만 성공
  */
 import { sanitizePgParam } from "@/lib/format";
+import { readBoundedBody } from "@/lib/security/bounded-form";
 import type {
   AuthOrderRequest,
   AuthOrderResponse,
@@ -156,7 +157,7 @@ export class KspayProvider implements PgProvider {
       signal: AbortSignal.timeout(KSPAY_APPROVAL_TIMEOUT_MS),
     });
     if (!res.ok) throw new Error(`KSPAY approval HTTP ${res.status}`);
-    const buf = await res.arrayBuffer();
+    const buf = await readBoundedBody(res);
     // msg1/msg2 한글 — EUC-KR 디코딩 필수 (Node full-ICU 기본 내장)
     const text = new TextDecoder("euc-kr").decode(buf);
 
@@ -170,7 +171,15 @@ export class KspayProvider implements PgProvider {
     const r: Record<string, string> = {};
     RPARAMS.forEach((name, i) => (r[name] = (parts[i + 1] ?? "").trim()));
 
-    const success = r.authyn === "O"; // 유일한 성공 판정 기준 (대문자 O)
+    // KSNET V1.4 공식 result 샘플은 대문자 O/X만 정의한다. 의미가 불명확한 응답은
+    // 거절로 확정하지 않고 처리 마커/PENDING을 유지해 재승인을 막는다.
+    if (r.authyn !== "O" && r.authyn !== "X") throw new Error("KSPAY approval status invalid");
+    const success = r.authyn === "O";
+    const responseAmount = /^\d+$/.test(r.amt) ? Number(r.amt) : Number.NaN;
+    if (success && (!Number.isSafeInteger(responseAmount) || responseAmount <= 0)) {
+      // Missing/invalid provider amount is an unknown outcome; never fill it from the request.
+      throw new Error("KSPAY approval amount missing or invalid");
+    }
     return {
       success,
       moid: r.ordno,
@@ -178,7 +187,7 @@ export class KspayProvider implements PgProvider {
       pgTrno: r.trno, // 영수증/취소 Key (성공/실패 무관 유니크)
       cardName: success ? issuerName(r.isscd) : undefined, // cardLast4는 비저장 (cardno 미요청)
       installment: r.halbu ? Number(r.halbu) : undefined,
-      amount: Number(r.amt || amount),
+      amount: Number.isSafeInteger(responseAmount) ? responseAmount : 0,
       paidAt: success ? new Date() : undefined,
       failReason: success ? undefined : [r.msg1, r.msg2].filter(Boolean).join(" ") || "승인 거절",
       raw: r, // cardno는 RPARAMS에 미요청 — 카드정보 비저장 원칙

@@ -9,6 +9,7 @@ import { requireShopUser } from "@/lib/auth";
 import { getSession } from "@/lib/session";
 import { isBillingIntegrationAccount } from "@/lib/laonpay/billing-policy";
 import { acquireTransactionLock } from "@/lib/order-guard";
+import { createSessionCredentialTag, isBoundedLoginPassword, isSupportedNewPassword } from "@/lib/session-security";
 
 export type SettingsState = { error?: string; ok?: boolean };
 
@@ -29,7 +30,7 @@ export async function updateProfileAction(_prev: SettingsState, formData: FormDa
     address: formData.get("address"),
     addressDetail: formData.get("addressDetail"),
   });
-  if (!parsed.success) return { error: parsed.error.errors[0]?.message ?? "입력값을 확인해 주세요." };
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "입력값을 확인해 주세요." };
 
   await prisma.shopUser.update({
     where: { id: user.id },
@@ -46,8 +47,8 @@ export async function updateProfileAction(_prev: SettingsState, formData: FormDa
 }
 
 const passwordSchema = z.object({
-  current: z.string().min(1, "현재 비밀번호를 입력해 주세요."),
-  next: z.string().min(8, "새 비밀번호는 8자 이상 입력해 주세요."),
+  current: z.string().min(1, "현재 비밀번호를 입력해 주세요.").max(1024).refine(isBoundedLoginPassword, "현재 비밀번호 입력값을 확인해 주세요."),
+  next: z.string().min(8, "새 비밀번호는 8자 이상 입력해 주세요.").max(72, "새 비밀번호는 UTF-8 기준 72바이트 이내로 입력해 주세요.").refine(isSupportedNewPassword, "새 비밀번호는 UTF-8 기준 72바이트 이내로 입력해 주세요."),
 });
 
 export async function changePasswordAction(_prev: SettingsState, formData: FormData): Promise<SettingsState> {
@@ -56,7 +57,7 @@ export async function changePasswordAction(_prev: SettingsState, formData: FormD
     current: formData.get("current"),
     next: formData.get("next"),
   });
-  if (!parsed.success) return { error: parsed.error.errors[0]?.message ?? "입력값을 확인해 주세요." };
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "입력값을 확인해 주세요." };
 
   if (user.role === "ADMIN" && parsed.data.next.length < 12) {
     return { error: "관리자 계정의 새 비밀번호는 12자 이상 입력해 주세요." };
@@ -65,10 +66,15 @@ export async function changePasswordAction(_prev: SettingsState, formData: FormD
   if (!(await bcrypt.compare(parsed.data.current, user.passwordHash))) {
     return { error: "현재 비밀번호가 올바르지 않습니다." };
   }
-  await prisma.shopUser.update({
-    where: { id: user.id },
-    data: { passwordHash: await bcrypt.hash(parsed.data.next, user.role === "ADMIN" ? 12 : 10) },
+  const passwordHash = await bcrypt.hash(parsed.data.next, user.role === "ADMIN" ? 12 : 10);
+  const updated = await prisma.shopUser.updateMany({
+    where: { id: user.id, passwordHash: user.passwordHash, role: user.role, deletedAt: null },
+    data: { passwordHash },
   });
+  if (updated.count !== 1) return { error: "계정 또는 비밀번호가 변경되었습니다. 다시 로그인한 뒤 확인해 주세요." };
+  const session = await getSession();
+  session.credentialTag = createSessionCredentialTag({ id: user.id, passwordHash });
+  await session.save();
   return { ok: true };
 }
 
@@ -88,8 +94,8 @@ export async function deleteAccountAction(_prev: SettingsState, formData: FormDa
   if (user.role === "ADMIN") {
     return { error: "관리자 계정은 회원 탈퇴할 수 없습니다. 먼저 다른 관리자에게 권한을 이관해 주세요." };
   }
-  const password = String(formData.get("password") ?? "");
-  if (!password) return { error: "비밀번호를 입력해 주세요." };
+  const password = formData.get("password");
+  if (typeof password !== "string" || !isBoundedLoginPassword(password)) return { error: "비밀번호 입력값을 확인해 주세요." };
   if (!(await bcrypt.compare(password, user.passwordHash))) {
     return { error: "비밀번호가 올바르지 않습니다." };
   }

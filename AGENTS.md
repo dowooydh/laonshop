@@ -41,6 +41,13 @@ AWS 공식 Agent Toolkit을 사용할 때는 **[`docs/aws-agent-toolkit.md`](doc
 코드 변경이 끝나면 즉시: ① `git status`/`git diff` 분석 → ② [`.claude/rules/commit.md`](.claude/rules/commit.md) 규칙으로 한국어 Conventional Commits 메시지 작성(본문에 비개발자용 요약 권장) → ③ `git add` → `commit` → `push`.
 **푸시 전 반드시 빌드 검증**: `pnpm build`(또는 `next build`)로 타입·빌드 통과 확인. 실패 시 푸시 금지.
 
+### 보안·통합 QA (2026-11-06)
+
+- 제품 변경은 [tests/security-audit.md](tests/security-audit.md)의 기본 보안·회귀 검증과 `node scripts/qa/full.mjs`를 통과한 동일 SHA만 푸시한다. 깨끗한 SHA가 필요하면 검증 기준 로컬 커밋을 먼저 만들고, 검증 전에는 푸시하지 않는다.
+- 제품 test·lint·typecheck·production build·HTTP/브라우저는 운영 자격정보 없는 전용 격리 실행기를 사용한다. 호스트 `.env`나 운영 DB·PG를 읽어 실행하지 않는다. 외부 통신 차단·자원 제한·정리를 실제 확인하며 준비 실패·시간 초과·검사 누락은 PASS가 아니다.
+- PentAGI·Cloudflare는 선택 추가 감사다. 기본 QA에 포함됐다고 표시하지 않는다. 사용자가 추가 감사를 요청하면 `qa:full --security-evidence <dir>`의 동일 SHA·공식 검증기·독립 검토 증거를 요구하며, 미완료를 기본 QA 성공으로 대체하지 않는다. 안전 거절을 우회하지 않는다.
+- 운영 배포, 독립 QA, 실제 PG 연동 활성화는 별도 결과로 보고한다. 운영 데이터·스키마·환경·키·권한 변경은 별도 승인 범위를 확인한다.
+
 ### ⚠️ 예외 — 사용자 확인 필수
 
 `git push --force`, `git reset --hard`, 브랜치 삭제, secrets(`.env`·PG 상점키·세션 시크릿) 포함 커밋 등 되돌리기 어려운 작업.

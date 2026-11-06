@@ -5,6 +5,7 @@ export interface ShopSessionData {
   userId?: string;
   email?: string;
   name?: string;
+  credentialTag?: string;
 }
 
 export async function getSession(): Promise<IronSession<ShopSessionData>> {
@@ -16,6 +17,8 @@ export async function getSession(): Promise<IronSession<ShopSessionData>> {
     cookieName: "laonshop_session", // laonshop 독립 쿠키
     password: secret,
     cookieOptions: {
+      httpOnly: true,
+      path: "/",
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
     },
