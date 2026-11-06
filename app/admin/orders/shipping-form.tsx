@@ -1,7 +1,7 @@
 "use client";
-import { useActionState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useActionState, useEffect, useRef } from "react";
 import { saveShipment, completeShipment } from "@/app/admin/shipping-actions";
+import { refreshDocument, restoreDocumentPosition } from "@/lib/document-refresh";
 import { COMMERCE_CARRIERS } from "@/lib/commerce/policy";
 import { Button, Input, Label, Select } from "@/lib/ui";
 
@@ -18,11 +18,18 @@ export function ShippingForm({
   const [completed, complete, completing] = useActionState(completeShipment, {
     status: "idle",
   });
-  const router = useRouter();
+  const refreshedSaved = useRef<typeof saved | null>(null);
+  const refreshedCompleted = useRef<typeof completed | null>(null);
+  useEffect(() => { restoreDocumentPosition("admin-orders"); }, []);
   useEffect(() => {
-    if (saved.status === "success" || completed.status === "success")
-      router.refresh();
-  }, [saved, completed, router]);
+    if (saving || completing) return;
+    const savedChanged = saved.status === "success" && refreshedSaved.current !== saved;
+    const completedChanged = completed.status === "success" && refreshedCompleted.current !== completed;
+    if (!savedChanged && !completedChanged) return;
+    if (savedChanged) refreshedSaved.current = saved;
+    if (completedChanged) refreshedCompleted.current = completed;
+    refreshDocument("admin-orders");
+  }, [saved, completed, saving, completing]);
   return (
     <div className="space-y-4">
       {shipment?.status !== "DELIVERED" && (

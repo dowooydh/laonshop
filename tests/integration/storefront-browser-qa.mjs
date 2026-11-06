@@ -129,11 +129,22 @@ try {
     await form.getByRole("button", { name: "후기 등록", exact: true }).click();
     const submitted = await reviewResponse;
     assert.equal(submitted.status(), 200);
-    await submitted.finished();
+    // The Server Action stream may stay open after its HTTP200 and committed result.
     // A revalidated RSC response may replace the transient action message.
     // Assert the durable customer-visible result and the independently saved row.
     await buyerPage.locator("#reviews article").filter({ hasText: reviewContent }).waitFor();
     assert.equal(await db.shopProductReview.count({ where: { orderItemId: f.orders.browserReview.itemId } }), 1);
+    const savedReview = await db.shopProductReview.findUnique({ where: { orderItemId: f.orders.browserReview.itemId }, select: { content: true, productId: true, userId: true, orderId: true, orderItemId: true } });
+    assert.deepEqual(savedReview, { content: reviewContent, productId: f.productId, userId: f.users.buyer, orderId: f.orders.browserReview.id, orderItemId: f.orders.browserReview.itemId });
+    // Prove the action updates the current page before a reload can reset it.
+    assert.equal(await buyerPage.locator(`[name="orderItemId"] option[value="${f.orders.browserReview.itemId}"]`).count(), 0);
+    const reviewReady = await buyerPage.waitForFunction(() => {
+      const select = document.querySelector('#reviews [name="orderItemId"]');
+      if (!select) return true; // No reviewable items removes the completed form.
+      const button = [...select.form.querySelectorAll("button")].find(node => node.textContent.trim() === "후기 등록");
+      return Boolean(button && !button.disabled && button.getAttribute("aria-busy") !== "true");
+    }, undefined, { timeout: 15000 });
+    await reviewReady.dispose();
     await buyerPage.reload({ waitUntil: "networkidle" });
     assert.equal(await buyerPage.evaluate(() => window.qaInjected === true), false);
     assert.equal(await buyerPage.locator(`[name="orderItemId"] option[value="${f.orders.browserReview.itemId}"]`).count(), 0);
@@ -151,11 +162,40 @@ try {
     await go(adminPage, "/admin/orders");
     const article = adminPage.locator("article").filter({ hasText: f.orders.browserShipping.moid });
     const form = article.locator("form").filter({ has: adminPage.locator('[name="trackingNumber"]') });
+    const shipmentBeforeCorrection = await db.shopShipment.findUnique({ where: { orderId: f.orders.browserShipping.id }, include: { events: { orderBy: [{ createdAt: "asc" }, { id: "asc" }] } } });
+    assert.ok(shipmentBeforeCorrection);
+    assert.equal(shipmentBeforeCorrection.trackingNumber, "111122223333");
     await form.locator('[name="trackingNumber"]').fill("222233334444");
     await form.locator('[name="note"]').fill("격리 QA 송장 오입력 정정 확인");
     adminPage.on("request", req => { const h = req.headers(); if (req.method() === "POST" && h["next-action"]) shippingRequest = { url: req.url(), action: h["next-action"], contentType: h["content-type"], body: req.postDataBuffer() }; });
+    const shippingResponse = adminPage.waitForResponse(response => response.request().method() === "POST" && Boolean(response.request().headers()["next-action"]));
     await form.getByRole("button", { name: "송장 수정", exact: true }).click();
-    await article.getByText("송장 수정과 이력을 저장했습니다.", { exact: true }).waitFor();
+    const submittedShipping = await shippingResponse;
+    assert.equal(submittedShipping.status(), 200);
+    assert.equal(Boolean(submittedShipping.request().headers()["next-action"]), true);
+    // Pending must clear on this action page before reload can reset client state.
+    const shippingReady = await adminPage.waitForFunction(moid => {
+      const order = [...document.querySelectorAll("article")].find(node => node.textContent.includes(moid));
+      const button = order && [...order.querySelectorAll("button")].find(node => node.textContent.trim() === "송장 수정");
+      return Boolean(button && !button.disabled && button.getAttribute("aria-busy") !== "true");
+    }, f.orders.browserShipping.moid, { timeout: 15000 });
+    await shippingReady.dispose();
+    assert.equal(await form.getByRole("button", { name: "송장 수정", exact: true }).isEnabled(), true);
+    assert.notEqual(await form.getByRole("button", { name: "송장 수정", exact: true }).getAttribute("aria-busy"), "true");
+    const shipmentAfterCorrection = await db.shopShipment.findUnique({ where: { orderId: f.orders.browserShipping.id }, include: { events: { orderBy: [{ createdAt: "asc" }, { id: "asc" }] } } });
+    assert.ok(shipmentAfterCorrection);
+    assert.equal(shipmentAfterCorrection.events.length, shipmentBeforeCorrection.events.length + 1);
+    for (const previous of shipmentBeforeCorrection.events) assert.deepEqual(shipmentAfterCorrection.events.find(event => event.id === previous.id), previous);
+    const newEvents = shipmentAfterCorrection.events.filter(event => !shipmentBeforeCorrection.events.some(previous => previous.id === event.id));
+    assert.equal(newEvents.length, 1);
+    const corrected = newEvents[0];
+    assert.equal(corrected.actorUserId, f.users.admin);
+    assert.equal(corrected.action, "TRACKING_CORRECTED");
+    assert.equal(corrected.carrier, shipmentBeforeCorrection.carrier);
+    assert.equal(corrected.trackingNumber, "222233334444");
+    assert.equal(corrected.note, "격리 QA 송장 오입력 정정 확인");
+    await adminPage.reload({ waitUntil: "networkidle" });
+    assert.equal(await adminPage.locator("article").filter({ hasText: f.orders.browserShipping.moid }).locator('[name="trackingNumber"]').inputValue(), "222233334444");
     assert.equal((await db.shopShipment.findUnique({ where: { orderId: f.orders.browserShipping.id } })).trackingNumber, "222233334444");
     assert.ok(shippingRequest);
   });

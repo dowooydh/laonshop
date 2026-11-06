@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useActionState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
 import { submitProductReview } from "@/app/reviews/actions";
+import { refreshDocument, restoreDocumentPosition } from "@/lib/document-refresh";
 import { Button, Label, Select, Textarea } from "@/lib/ui";
 
 type Props = {
@@ -41,14 +41,16 @@ export function ProductReviews({
   const [state, action, pending] = useActionState(submitProductReview, {
     status: "idle",
   });
-  const router = useRouter();
   const form = useRef<HTMLFormElement>(null);
+  const refreshedState = useRef<typeof state | null>(null);
+  useEffect(() => { restoreDocumentPosition("product"); }, []);
   useEffect(() => {
-    if (state.status === "success") {
+    if (!pending && state.status === "success" && refreshedState.current !== state) {
+      refreshedState.current = state;
       form.current?.reset();
-      router.refresh();
+      refreshDocument("product");
     }
-  }, [state, router]);
+  }, [state, pending]);
   return (
     <section
       id="reviews"

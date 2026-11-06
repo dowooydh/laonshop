@@ -53,11 +53,22 @@ try {
     page.on("request", request => { if (request.method() === "POST" && request.headers()["next-action"]) captured = { url: request.url(), action: request.headers()["next-action"], type: request.headers()["content-type"], body: request.postDataBuffer() }; });
     await page.locator('[name="current"]').fill(originalPassword); await page.locator('[name="next"]').fill(nextPassword);
     const response = page.waitForResponse(r => r.request().method() === "POST" && Boolean(r.request().headers()["next-action"]));
-    await page.getByRole("button", { name: "비밀번호 변경", exact: true }).click(); const r = await response; assert.equal(r.status(), 200); await r.finished();
+    await page.getByRole("button", { name: "비밀번호 변경", exact: true }).click(); const r = await response; assert.equal(r.status(), 200); /* HTTP200 is followed by durable state and UI assertions. */
     const updated = await db.shopUser.findUnique({ where: { id: user.id } }); assert.ok(await bcrypt.compare(nextPassword, updated.passwordHash)); assert.notEqual(updated.passwordHash, user.passwordHash);
     const cookie = (await current.cookies()).find(c => c.name === "laonshop_session"); assert.ok(cookie); const payload = await unsealData(cookie.value, { password: state.secret });
     assert.equal(payload.credentialTag, createSessionCredentialTag(updated, state.secret)); assert.equal(payload.passwordHash, undefined);
-    await page.goto(`${base}/mypage`, { waitUntil: "networkidle" }); assert.equal(new URL(page.url()).pathname, "/mypage"); assert.ok(captured);
+    const passwordReady = await page.waitForFunction(() => {
+      const current = document.querySelector('[name="current"]');
+      const button = current && [...current.form.querySelectorAll("button")].find(node => node.textContent.trim() === "비밀번호 변경");
+      return Boolean(button && !button.disabled && button.getAttribute("aria-busy") !== "true");
+    }, undefined, { timeout: 15000 });
+    await passwordReady.dispose();
+    assert.equal(await page.getByRole("button", { name: "비밀번호 변경", exact: true }).isEnabled(), true);
+    assert.notEqual(await page.getByRole("button", { name: "비밀번호 변경", exact: true }).getAttribute("aria-busy"), "true");
+    const protectedResponse = await page.goto(`${base}/mypage`, { waitUntil: "networkidle" });
+    assert.equal(protectedResponse.status(), 200);
+    assert.equal(protectedResponse.request().method(), "GET");
+    assert.equal(new URL(page.url()).pathname, "/mypage"); assert.ok(captured);
   });
   await check("copied pre-change cookie and hosted return are rejected", async () => {
     const p = await stale.newPage(); await p.goto(`${base}/mypage`, { waitUntil: "networkidle" }); assert.equal(new URL(p.url()).pathname, "/login");
@@ -85,21 +96,27 @@ try {
       await p.goto(`${base}/login?next=/mypage`, { waitUntil: "networkidle" });
       await p.locator('[name="email"]').fill(user.email); await p.locator('[name="password"]').fill(originalPassword);
       const rejected = p.waitForResponse(r => r.request().method() === "POST" && Boolean(r.request().headers()["next-action"]));
-      await p.getByRole("button", { name: "로그인", exact: true }).click(); await (await rejected).finished();
+      await p.getByRole("button", { name: "로그인", exact: true }).click(); assert.equal((await rejected).status(), 200);
       assert.equal(new URL(p.url()).pathname, "/login"); assert.equal((await guest.cookies()).some(cookie => cookie.name === "laonshop_session"), false);
       await p.getByText("이메일 또는 비밀번호가 올바르지 않습니다.", { exact: true }).waitFor();
       await p.locator('[name="password"]').fill(nextPassword);
-      await p.getByRole("button", { name: "로그인", exact: true }).click(); await p.waitForURL(`${base}/mypage`);
+      await p.getByRole("button", { name: "로그인", exact: true }).click(); await p.waitForURL(`${base}/`);
       const cookie = (await guest.cookies()).find(cookie => cookie.name === "laonshop_session"); assert.ok(cookie);
       const payload = await unsealData(cookie.value, { password: state.secret });
       const account = await db.shopUser.findUnique({ where: { id: user.id } }); assert.equal(payload.credentialTag, createSessionCredentialTag(account, state.secret));
+      // /mypage is outside the login return-target allowlist and falls back to /.
+      const protectedResponse = await p.goto(`${base}/mypage`, { waitUntil: "networkidle" });
+      assert.equal(protectedResponse.status(), 200);
+      assert.equal(protectedResponse.request().method(), "GET");
+      assert.equal(new URL(p.url()).pathname, "/mypage");
     } finally { await guest.close(); }
   });
   await check("omitted legal consent is rejected by actual register action", async () => {
     const guest = await context(); const p = await guest.newPage();
     try {
       await p.goto(`${base}/register`, { waitUntil: "networkidle" }); await p.locator('[name="name"]').fill("합성 동의 미선택"); await p.locator('[name="email"]').fill("no-consent@example.test"); await p.locator('[name="password"]').fill("Synthetic-register-20261106!"); await p.locator("main form").evaluate(form => { form.noValidate = true; });
-      const response = p.waitForResponse(r => r.request().method() === "POST" && Boolean(r.request().headers()["next-action"])); await p.getByRole("button", { name: "가입하기", exact: true }).click(); const r = await response; assert.equal(r.status(), 200); await r.finished();
+      const response = p.waitForResponse(r => r.request().method() === "POST" && Boolean(r.request().headers()["next-action"])); await p.getByRole("button", { name: "가입하기", exact: true }).click(); const r = await response; assert.equal(r.status(), 200); /* HTTP200 is followed by durable state and UI assertions. */
+      await p.getByText("이용약관에 동의해 주세요.", { exact: true }).waitFor();
       assert.equal(await db.shopUser.count({ where: { email: "no-consent@example.test" } }), 0); assert.equal(new URL(p.url()).pathname, "/register");
     } finally { await guest.close(); }
   });
