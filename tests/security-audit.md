@@ -10,7 +10,7 @@ Node 22.x / pnpm 11.5.3을 사용한다. 운영 환경파일을 읽거나 애플
 node scripts/qa/full.mjs
 ```
 
-1. `local-security`: Git 추적 소스의 비밀값 검사·진입점/민감 연산 목록, 개발·선택 의존성을 포함한 pnpm audit 및 Trivy 취약점/비밀값 검사. pnpm audit에는 최소 manifest·lock·workspace만 전달하며 프로젝트 hooks·lifecycle·개인 npm 설정을 전달하지 않는다. 정규식 목록은 수동 소스 전수 감사 완료 증거가 아니다.
+1. `local-security`: Git 추적 소스의 비밀값 검사·진입점/민감 연산 목록, 개발·선택 의존성을 포함한 pnpm audit 및 Trivy 취약점/비밀값 검사. pnpm audit에는 최소 manifest·lock·workspace만 전달하며 프로젝트 hooks·lifecycle·개인 npm 설정을 전달하지 않는다. 별도 폐기 디렉터리의 비기능 canary가 Trivy 기본 github-pat 규칙에 탐지돼야 하며 이는 해당 규칙의 양성 대조일 뿐 전체 탐지 완전성 증거는 아니다. 정규식 목록은 수동 소스 전수 감사 완료 증거가 아니다.
 2. `qa-harness`: 판정기·증거·중단·누락·SHA·격리 조건의 부정 시험.
 3. `isolated`: 깨끗한 HEAD의 Git archive만 네트워크 없는 전용 컨테이너로 전달한다. 제품 test(이미지 게이트 포함), lint, typecheck, production build, 로컬 합성 PostgreSQL의 서비스/HTTP/브라우저 검사를 모두 수행한다. KSPAY·LAONPAY·Neon에 연결하지 않는다.
 
@@ -29,6 +29,10 @@ node scripts/qa/full.mjs
 ```
 
 `--prepare`만 공식 도구·고정 lock 의존성 다운로드를 허용한다. 앱 코드·운영 자격정보는 빌드 컨텍스트에 넣지 않는다. 이미지 fingerprint는 의존성·schema·폰트 명세·실행기를 결박한다. Next Google 폰트는 같은 명세의 기존 실제 WOFF2 자산을 오프라인 캐시로 사용하고 해시를 기록한다. 빈 폰트로 대체하거나 production 제품 설정을 바꾸지 않는다. `verifyDepsBeforeRun: error`로 pnpm run/exec의 묵시적 설치를 차단하며, 명시적 캐시 설치만 격리 준비 단계에 허용한다.
+
+폰트 캐시는 Next의 실제 추출기로 전체 9개·Latin preload2개와 WOFF2 magic/hash를 대조하며, 브라우저에서도 실제 두 family의 self-host 자산200·FontFace loaded를 확인한다. 브라우저 검사에는 고정 index·phase의 진행 기록과 탐색/액션/폰트/응답 대기 상한을 적용한다. `--init`으로 고아 자식을 회수하고, 유한 명령은 자기 process group의 종료를 확인한다. 의도된 PostgreSQL 서비스는 보존 모드로 시작한 뒤 마지막에 정리한다. 자원 상한을 올려서 실패를 통과시키지 않는다.
+
+Playwright가 Chromium을 별도 PGID로 실행하므로 유한 실행의 관측 자손도 PID/PPID/pgrp/starttime으로 추적·회수한다. 신호 직전 identity를 대조하며 외국/root·재사용 PID를 건드리지 않고, 관측·권한 오류 또는 생존 잔여는 실패다. Linux 지원·잔여0까지 필수 판정에 넣는다. 실제 도구 수명 정리를 위한 ordinary QA이며, poll 관측 전에 부모가 끝나는 임의 악성 탈출까지 완전 차단했다고 주장하지 않는다.
 
 제품 실행은 uid1000, readonly root/input, 쓰기 가능 `/scratch` 2GiB, network none, CPU2·메모리3584MiB·PID256·20분 wall timeout을 적용한다. scratch는 CLI·Prisma native 실행을 위해 exec이며 nosuid/nodev를 유지한다. 관리 소켓·홈·운영 env 부재와 실제 격리를 검사한다. 실행 후 자기 컨테이너·VM 임시 입력 삭제를 확인한 뒤에만 정리 PASS를 기록한다. 프로필·다른 컨테이너·운영 데이터는 삭제하지 않는다. 원시 테스트 출력·합성 비밀번호·쿠키·DB URL을 증거로 승격하지 않고 검사 이름·건수·해시·상태만 보관한다.
 

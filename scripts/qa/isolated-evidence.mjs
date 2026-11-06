@@ -41,6 +41,7 @@ export const expectedChecks = {
     "shipping rejects noteLength"
   ],
   "commerceBrowser": [
+    "self-hosted display and mono fonts are loaded",
     "search and category filters work",
     "product quantity and add-to-cart retain selected option",
     "anonymous protected routes redirect without private data",
@@ -115,7 +116,7 @@ export function summarizeEvidence(value, key) {
   const matchedRequiredChecks = expected.filter(name => checks.includes(name)).length;
   const exactChecks = checks.length === expected.length && new Set(checks).size === expected.length && matchedRequiredChecks === expected.length;
   const invariants = key === "commerceBrowser" ? {
-    noPageErrors: exactEmpty(value.pageErrors), noExternalWrites: exactEmpty(value.externalWrites), noAnchorOverlaps: exactEmpty(value.anchorOverlaps),
+    noPageErrors: exactEmpty(value.pageErrors), noExternalWrites: exactEmpty(value.externalWrites), noAnchorOverlaps: exactEmpty(value.anchorOverlaps), selfHostedFontsLoaded: value.selfHostedFontsLoaded === true,
   } : key === "securityBrowser" ? {
     noExternalWrites: exactEmpty(value.deniedExternalWrites), noProviderRequests: exactEmpty(value.deniedProviders), ledgerCountsUnchanged: value.ledgerCountsUnchanged === true,
   } : key === "securityPgRoute" ? {
@@ -129,7 +130,7 @@ export function validateEvidence(evidence) {
   for (const [key, expected] of Object.entries(expectedChecks)) {
     const value = evidence?.[key];
     if (value?.status !== "PASS" || value.count !== expected.length || value.expectedCount !== expected.length || value.matchedRequiredChecks !== expected.length || value.exactChecks !== true || !value.invariants || Object.values(value.invariants).some(passed => passed !== true)) throw new Error("REQUIRED_EVIDENCE_INVALID");
-    const required = key === "commerceBrowser" ? ["noPageErrors", "noExternalWrites", "noAnchorOverlaps"] : key === "securityBrowser" ? ["noExternalWrites", "noProviderRequests", "ledgerCountsUnchanged"] : key === "securityPgRoute" ? ["exactProviderStubCalls", "noUnexpectedFetches", "noRealProviderCalls", "ledgerCountsUnchanged", "ownFixturesCleaned"] : ["paymentLedgerInvariantChecked"];
+    const required = key === "commerceBrowser" ? ["noPageErrors", "noExternalWrites", "noAnchorOverlaps", "selfHostedFontsLoaded"] : key === "securityBrowser" ? ["noExternalWrites", "noProviderRequests", "ledgerCountsUnchanged"] : key === "securityPgRoute" ? ["exactProviderStubCalls", "noUnexpectedFetches", "noRealProviderCalls", "ledgerCountsUnchanged", "ownFixturesCleaned"] : ["paymentLedgerInvariantChecked"];
     if (required.some(name => value.invariants[name] !== true)) throw new Error("REQUIRED_EVIDENCE_INVALID");
   }
   return true;

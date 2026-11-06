@@ -1,6 +1,6 @@
 // Narrow, repeatable tracked-source/secret/dependency checks; not a full source audit.
 import { spawn } from "node:child_process";
-import { createHash } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { lstatSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -96,6 +96,13 @@ export function summarizeTrivy(raw, exitCode, checkedAt, versionText = "") {
   return { ...base, status: vulnerabilities.length || secrets.length ? "FAIL" : "PASS", exitCode, packageCount: packageIds.size, vulnerabilities, secrets };
 }
 
+export function summarizeSecretProbe(raw, exitCode) {
+  const findings = Array.isArray(raw?.Results) ? raw.Results.flatMap(result => result.Secrets ?? []) : [];
+  const success = exitCode === 1 && findings.length === 1 && findings[0].RuleID === "github-pat";
+  return { status: success ? "PASS" : "BLOCKED", detected: success, rule: success ? "github-pat" : null, exitCode,
+    scope: "Nonfunctional random canary in a separate disposable directory; verifies built-in rules remain enabled. No token or matched source text is retained." };
+}
+
 export function aggregateStatus(parts, { interrupted = false, sourceChanged = false } = {}) {
   if (interrupted) return "INTERRUPTED";
   if (parts.some(part => part.status === "FAIL")) return "FAIL";
@@ -169,7 +176,7 @@ export async function runLocalSecurity({ root = process.cwd(), output, run = run
   const sourceDigest = sha256(JSON.stringify(files.map(({ file, sha256: hash }) => ({ file, sha256: hash }))));
   const source = { sourceRef, dirty: Boolean(dirty.stdout.trim()), fingerprint: sourceDigest, trackedFiles: paths.length, scannedTextFiles: files.length, binaryFiles: binary.length, unread, manifest: files.map(({ file, sha256: hash, bytes }) => ({ file, sha256: hash, bytes })) };
   const patternSecrets = { status: secretFindings.length ? "FAIL" : unread.length ? "BLOCKED" : "PASS", findings: secretFindings, scope: "Tracked text plus forbidden tracked secret filenames; binary assets are inventoried but are not a complete binary secret analysis." };
-  let pnpm = { status: "BLOCKED", reason: "NOT_EXECUTED" }, trivy = { status: "BLOCKED", reason: "NOT_EXECUTED" };
+  let pnpm = { status: "BLOCKED", reason: "NOT_EXECUTED" }, trivy = { status: "BLOCKED", reason: "NOT_EXECUTED" }, secretProbe = { status: "BLOCKED", reason: "NOT_EXECUTED" };
   const scratch = mkdtempSync(join(output, "snapshot-"));
   const trivyCache = process.env.QA_TRIVY_CACHE_DIR ? resolve(process.env.QA_TRIVY_CACHE_DIR) : join(root, "tests/.generated/.trivy-cache");
   try {
@@ -181,6 +188,10 @@ export async function runLocalSecurity({ root = process.cwd(), output, run = run
       trivy.reason = pnpm.reason;
     } else if (!signal?.aborted) {
       const empty = join(scratch, "empty-config"); writeFileSync(empty, "", { mode: 0o600 });
+      // Empty YAML produces EOF in Trivy's secret decoder. An empty object keeps
+      // all built-in rules; npm/ignore files must remain separate and empty.
+      const scanConfig = join(scratch, "trivy.yaml"), secretConfig = join(scratch, "trivy-secret.yaml");
+      writeFileSync(scanConfig, "{}\n", { mode: 0o600 }); writeFileSync(secretConfig, "{}\n", { mode: 0o600 });
       const toolEnv = { ...env, HOME: join(scratch, "home"), XDG_CACHE_HOME: join(scratch, "cache"), XDG_CONFIG_HOME: join(scratch, "config"), npm_config_cache: join(scratch, "npm-cache"), npm_config_userconfig: empty, npm_config_globalconfig: empty, npm_config_ignore_scripts: "true" };
       mkdirSync(toolEnv.HOME, { mode: 0o700 });
       const auditInput = createAuditSnapshot(files, join(scratch, "audit-input"));
@@ -189,18 +200,26 @@ export async function runLocalSecurity({ root = process.cwd(), output, run = run
       if (audit.errorCode) pnpm.executionError = audit.errorCode;
       if (!signal?.aborted) {
         mkdirSync(trivyCache, { recursive: true, mode: 0o700 });
-        const scan = await run("trivy", ["fs", "--cache-dir", trivyCache, "--scanners", "vuln,secret", "--include-dev-deps", "--list-all-pkgs", "--format", "json", "--exit-code", "1", "--no-progress", "--timeout", "2m", "--config", empty, "--secret-config", empty, "--ignorefile", empty, "."], { cwd: snapshot, env: toolEnv, signal });
+        const scan = await run("trivy", ["fs", "--cache-dir", trivyCache, "--scanners", "vuln,secret", "--include-dev-deps", "--list-all-pkgs", "--format", "json", "--exit-code", "1", "--no-progress", "--timeout", "2m", "--config", scanConfig, "--secret-config", secretConfig, "--ignorefile", empty, "."], { cwd: snapshot, env: toolEnv, signal });
         const version = !signal?.aborted ? await run("trivy", ["--cache-dir", trivyCache, "--version"], { cwd: scratch, env: toolEnv, signal, timeout: 15000 }) : { stdout: "" };
         trivy = summarizeTrivy(parseJson(scan.stdout), scan.errorCode ? null : scan.code, new Date().toISOString(), version.stdout);
         if (scan.errorCode) trivy.executionError = scan.errorCode;
+        if (!signal?.aborted) {
+          const canary = join(scratch, "rule-probe"); mkdirSync(canary, { mode: 0o700 });
+          const alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+          const value = ["gh", "p_", [...randomBytes(36)].map(byte => alphabet[byte % alphabet.length]).join("")].join("");
+          writeFileSync(join(canary, "synthetic.txt"), `credential=${value}\n`, { mode: 0o600 });
+          const probe = await run("trivy", ["fs", "--scanners", "secret", "--format", "json", "--exit-code", "1", "--no-progress", "--timeout", "30s", "--config", scanConfig, "--secret-config", secretConfig, "--ignorefile", empty, "."], { cwd: canary, env: toolEnv, signal, timeout: 45000 });
+          secretProbe = summarizeSecretProbe(parseJson(probe.stdout), probe.errorCode ? null : probe.code);
+        }
       }
     }
   } finally { rmSync(scratch, { recursive: true, force: true }); }
   const endHead = !signal?.aborted ? await git(["rev-parse", "HEAD"]) : { code: null, stdout: "" };
   const endDirty = !signal?.aborted ? await git(["status", "--porcelain", "--untracked-files=no"]) : { code: null, stdout: "" };
   const changedDuringRun = endHead.code !== 0 || endDirty.code !== 0 || endHead.stdout.trim() !== sourceRef || endDirty.stdout !== dirty.stdout || files.some(file => { try { return sha256(readFileSync(join(root, file.file))) !== file.sha256; } catch { return true; } });
-  const status = aggregateStatus([patternSecrets, pnpm, trivy], { interrupted: signal?.aborted, sourceChanged: changedDuringRun || source.dirty });
-  const summary = { status, success: status === "PASS", startedAt, finishedAt: new Date().toISOString(), scope: "Known dependency advisories (runtime, development, optional), tracked-text secret candidates and lexical source inventory. Not a complete source audit, dynamic assessment, binary scan, ASVS conformance or deployment-image attestation.", source, sourceRef, sourceRefAtEnd: endHead.stdout.trim(), sourceChangedDuringRun: changedDuringRun, lockSha256: lock?.sha256 ?? null, sourceInventory: inventory, secretPatterns: patternSecrets, dependencies: { pnpm, trivy }, toolingExecution: "Trusted scanners inspect an isolated tracked-text copy; no product lifecycle scripts, application server, DB or PG call is executed by this checker." };
+  const status = aggregateStatus([patternSecrets, pnpm, trivy, secretProbe], { interrupted: signal?.aborted, sourceChanged: changedDuringRun || source.dirty });
+  const summary = { status, success: status === "PASS", startedAt, finishedAt: new Date().toISOString(), scope: "Known dependency advisories (runtime, development, optional), tracked-text secret candidates and lexical source inventory. Not a complete source audit, dynamic assessment, binary scan, ASVS conformance or deployment-image attestation.", source, sourceRef, sourceRefAtEnd: endHead.stdout.trim(), sourceChangedDuringRun: changedDuringRun, lockSha256: lock?.sha256 ?? null, sourceInventory: inventory, secretPatterns: patternSecrets, dependencies: { pnpm, trivy }, secretProbe, toolingExecution: "Trusted scanners inspect an isolated tracked-text copy; no product lifecycle scripts, application server, DB or PG call is executed by this checker." };
   return finish(summary);
 }
 

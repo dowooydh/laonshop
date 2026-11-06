@@ -3,28 +3,34 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import { createRequire } from "node:module";
 import { createSessionCredentialTag } from "../../lib/session-security.ts";
+import { createBrowserHarness, requestDisposition } from "./browser-qa-support.mjs";
 const state = JSON.parse(fs.readFileSync(process.env.QA_STATE_FILE, "utf8"));
 const target = new URL(state.databaseUrl);
 assert.equal(target.hostname, "127.0.0.1"); assert.equal(target.pathname, "/laonshop_qa");
 const require = createRequire(import.meta.url);
 const { PrismaClient } = require("@prisma/client"), bcrypt = require("bcryptjs"), { sealData, unsealData } = require("iron-session");
 const db = new PrismaClient({ datasources: { db: { url: state.databaseUrl } } });
-const { chromium } = await import(process.env.QA_PLAYWRIGHT_MODULE);
-const browser = await chromium.launch({ headless: true, executablePath: process.env.QA_BROWSER_EXECUTABLE, args: ["--no-sandbox", "--disable-dev-shm-usage"] });
-const base = `http://localhost:${state.appPort}`, checks = [], deniedExternalWrites = [], deniedProviders = [];
 const output = process.env.QA_OUTPUT_DIR;
+const harness = createBrowserHarness({ suite: "security", output });
+const { chromium } = await import(process.env.QA_PLAYWRIGHT_MODULE);
+const browser = harness.wrap(await harness.operation("setup", () => chromium.launch({ headless: true, executablePath: process.env.QA_BROWSER_EXECUTABLE, timeout: 15000, args: ["--no-sandbox", "--disable-dev-shm-usage"] })));
+const base = `http://localhost:${state.appPort}`, checks = [], deniedExternalWrites = [], deniedProviders = [];
+const contexts = new Set();
+let externalRequests = 0;
 const originalPassword = "Synthetic-current-20261106!", nextPassword = "Synthetic-next-20261106!";
 const user = await db.shopUser.create({ data: { id: "qa-security-credential-user", email: "credential-user@example.test", name: "격리 보안 사용자", passwordHash: await bcrypt.hash(originalPassword, 10) } });
 const sessionValue = async (data = {}, account = user) => sealData({ userId: account.id, email: account.email, name: account.name, credentialTag: createSessionCredentialTag(account, state.secret), ...data }, { password: state.secret, ttl: 3600 });
 const oldCookie = await sessionValue();
 async function context(cookie) {
-  const context = await browser.newContext({ viewport: { width: 1280, height: 1000 }, reducedMotion: "reduce" });
+  const context = await harness.configure(await browser.newContext({ viewport: { width: 1280, height: 1000 }, reducedMotion: "reduce" }));
+  contexts.add(context);
   if (cookie) await context.addCookies([{ name: "laonshop_session", value: cookie, url: base, httpOnly: true, sameSite: "Lax" }]);
   await context.route("**/*", route => {
-    const request = route.request(), url = new URL(request.url());
-    if (/ksnet|kspay|laonpay|baum/.test(url.hostname)) { deniedProviders.push(url.hostname); return route.abort(); }
-    if (!["localhost", "127.0.0.1"].includes(url.hostname)) {
-      if (request.method() !== "GET") deniedExternalWrites.push({ host: url.hostname, method: request.method() });
+    const request = route.request(), disposition = requestDisposition(request.url(), request.method());
+    if (!disposition.local) {
+      externalRequests += 1;
+      if (disposition.provider) deniedProviders.push("provider");
+      if (disposition.externalWrite) deniedExternalWrites.push("external-write");
       return route.abort();
     }
     return route.continue();
@@ -32,7 +38,7 @@ async function context(cookie) {
   return context;
 }
 let activeCheck = "";
-async function check(name, action) { activeCheck = name; await action(); checks.push(name); }
+async function check(name, action) { activeCheck = name; return harness.check(name, action, checks); }
 const current = await context(oldCookie), stale = await context(oldCookie), legacy = await context(await sealData({ userId: user.id }, { password: state.secret, ttl: 3600 }));
 const page = await current.newPage(); let captured;
 try {
@@ -99,28 +105,34 @@ try {
   });
   for (const endpoint of ["callback", "result"]) {
     await check(`PG ${endpoint} oversized body rejected before any ledger effect`, async () => {
-      const r = await fetch(`${base}/api/pg/kspay/${endpoint}`, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: "padding=" + "x".repeat(32769) }); assert.equal(r.status, 413);
+      const r = await harness.nativeFetch(`${base}/api/pg/kspay/${endpoint}`, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: "padding=" + "x".repeat(32769) }); assert.equal(r.status, 413);
     });
     await check(`PG ${endpoint} chunked oversized body rejected without Content-Length`, async () => {
       const body = new ReadableStream({ start(controller) { controller.enqueue(new TextEncoder().encode("padding=" + "x".repeat(32769))); controller.close(); } });
-      const r = await fetch(`${base}/api/pg/kspay/${endpoint}`, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body, duplex: "half" }); assert.equal(r.status, 413);
+      const r = await harness.nativeFetch(`${base}/api/pg/kspay/${endpoint}`, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body, duplex: "half" }); assert.equal(r.status, 413);
     });
     await check(`PG ${endpoint} duplicate scalar rejected`, async () => {
       const field = endpoint === "result" ? "a" : "reCommConId"; const body = new URLSearchParams([[field, "synthetic-one"], [field, "synthetic-two"]]);
-      const r = await fetch(`${base}/api/pg/kspay/${endpoint}`, { method: "POST", body }); assert.equal(r.status, 400);
+      const r = await harness.nativeFetch(`${base}/api/pg/kspay/${endpoint}`, { method: "POST", body }); assert.equal(r.status, 400);
     });
     await check(`PG ${endpoint} file value rejected`, async () => {
       const body = new FormData(); body.set(endpoint === "result" ? "a" : "reCommConId", new Blob(["synthetic"]), "not-a-key.txt");
-      const r = await fetch(`${base}/api/pg/kspay/${endpoint}`, { method: "POST", body }); assert.equal(r.status, 400);
+      const r = await harness.nativeFetch(`${base}/api/pg/kspay/${endpoint}`, { method: "POST", body }); assert.equal(r.status, 400);
     });
   }
   await check("invalid PG inputs and credential actions preserve order review and product ledgers", async () => {
     assert.deepEqual({ orders: await db.shopOrder.count(), reviews: await db.shopProductReview.count(), products: await db.product.count() }, before);
     assert.equal(deniedExternalWrites.length, 0); assert.equal(deniedProviders.length, 0);
   });
-  fs.writeFileSync(`${output}/security-browser-results.json`, JSON.stringify({ status: "PASS", count: checks.length, checks, deniedExternalWrites, deniedProviders, ledgerCountsUnchanged: true }, null, 2));
+  fs.writeFileSync(`${output}/security-browser-results.json`, JSON.stringify({ status: "PASS", count: checks.length, checks, deniedExternalWrites, deniedProviders, externalRequests, ledgerCountsUnchanged: true }, null, 2));
+  harness.progress("finish");
   console.log(JSON.stringify({ status: "PASS", count: checks.length, ledgerCountsUnchanged: true }));
 } catch (error) {
+  harness.progress("failed");
   fs.writeFileSync(`${output}/security-browser-results.json`, JSON.stringify({ status: "FAIL", count: checks.length, checks, failure: { check: activeCheck, kind: error.name, code: error.code ?? null }, deniedExternalWrites, deniedProviders }, null, 2));
   throw error;
-} finally { await current.close(); await stale.close(); await legacy.close(); await browser.close(); await db.$disconnect(); }
+} finally {
+  const closed = await Promise.allSettled([...contexts].map(ctx => ctx.close()));
+  const remaining = await Promise.allSettled([browser.close(), harness.operation("close", () => db.$disconnect())]);
+  assert.ok([...closed, ...remaining].every(result => result.status === "fulfilled"), "QA_OWNED_RESOURCE_CLOSE_FAILED");
+}

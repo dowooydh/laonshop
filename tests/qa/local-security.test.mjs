@@ -3,13 +3,21 @@ import { mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { aggregateStatus, createAuditSnapshot, inventorySource, runLocalSecurity, scanTextSecrets, summarizePnpmAudit, summarizeTrivy } from "../../scripts/qa/local-security.mjs";
+import { aggregateStatus, createAuditSnapshot, inventorySource, runLocalSecurity, scanTextSecrets, summarizePnpmAudit, summarizeSecretProbe, summarizeTrivy } from "../../scripts/qa/local-security.mjs";
 
 const checkedAt = "2026-11-06T00:00:00.000Z";
 const cleanAudit = () => ({ advisories: {}, metadata: { vulnerabilities: { info: 0, low: 0, moderate: 0, high: 0, critical: 0 }, dependencies: 10, devDependencies: 20, optionalDependencies: 3, totalDependencies: 33 } });
 const advisory = severity => ({ module_name: "fixture-package", severity, vulnerable_versions: "<2", patched_versions: ">=2", url: "https://github.com/advisories/GHSA-abcd-1234-efgh", findings: [{ version: "1", dev: true }] });
 const version = "Version: 0.74.0\nVulnerability DB:\n  UpdatedAt: 2026-11-06 00:00:00 +0000 UTC";
 const trivy = () => ({ Results: [{ Target: "pnpm-lock.yaml", Packages: [{ Name: "fixture-package", Version: "1" }] }] });
+
+test("실제 secret 양성 canary를 탐지하지 못한 엔진은 source finding0이어도 BLOCKED다", () => {
+  const positive = { Results: [{ Secrets: [{ RuleID: "github-pat", Match: "must-not-be-retained" }] }] };
+  assert.equal(summarizeSecretProbe(positive, 1).status, "PASS");
+  for (const [raw, code] of [[{ Results: [] }, 0], [positive, 0], [null, 1], [{ Results: [{ Secrets: [{ RuleID: "other" }] }] }, 1]])
+    assert.equal(summarizeSecretProbe(raw, code).status, "BLOCKED");
+  assert.ok(!JSON.stringify(summarizeSecretProbe(positive, 1)).includes("must-not-be-retained"));
+});
 
 test("registry audit는 project npmrc·pnpmfile·scripts·package 감사 제외 설정을 반입하지 않는다", () => {
   const root = mkdtempSync(join(tmpdir(), "laonshop-audit-input-"));

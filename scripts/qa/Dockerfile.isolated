@@ -7,7 +7,7 @@ COPY prisma/schema.prisma ./prisma/schema.prisma
 RUN pnpm install --store-dir /scratch/pnpm-store --frozen-lockfile --ignore-scripts && node -e 'const p=require("path");require(p.join(p.dirname(require.resolve("@prisma/engines/package.json",{paths:[p.dirname(require.resolve("prisma/package.json"))]})),"scripts/postinstall.js"))' && DATABASE_URL=postgresql://qa_owner@127.0.0.1:55432/laonshop_qa DIRECT_URL=postgresql://qa_owner@127.0.0.1:55432/laonshop_qa pnpm exec prisma generate && mkdir -p /opt/deps && mv node_modules /opt/deps/node_modules && mv /scratch/pnpm-store /opt/pnpm-store && cp package.json pnpm-lock.yaml pnpm-workspace.yaml /opt/deps/ && rm -rf /scratch/source && mv /root/.cache/pnpm /opt/pnpm-cache && chmod -R a+rX /opt/pnpm-cache
 COPY tools /opt/qa/tools
 COPY fonts /opt/qa/fonts
-RUN chmod -R a+rX /opt/qa/fonts /opt/qa/tools && mkdir -p /scratch && chown node:node /scratch
+RUN chmod -R a+rX /opt/qa/fonts /opt/qa/tools && node /opt/qa/tools/isolated-fonts.mjs && mkdir -p /scratch && chown node:node /scratch
 USER node
 WORKDIR /scratch
 ENTRYPOINT ["/usr/bin/env", "-i", "PATH=/usr/local/bin:/usr/bin:/bin:/usr/lib/postgresql/15/bin", "HOME=/scratch/home", "TMPDIR=/scratch/tmp", "XDG_CACHE_HOME=/scratch/cache", "NODE_ENV=test", "CI=1", "NO_COLOR=1", "NEXT_TELEMETRY_DISABLED=1", "node", "/opt/qa/tools/isolated-runtime.mjs"]

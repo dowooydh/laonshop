@@ -33,6 +33,22 @@ pnpm의 registry 메타데이터 캐시 부재에 따른 조회 시도도 networ
 
 최종 도구 사전검사는 offline install0·tsx 실행0·registry 조회 시도0, 준비 scratch 1,209,487,360바이트로 확인됐다. 실제 scratch mount option을 child/parent 양쪽에서 검사하도록 보강했고 최종 하니스는 59/59(skip0) 통과했다. 최종 이미지 export에서도 이전 image layer의 중복으로 ENOSPC가 다시 발생해 이번 전용 image/cache만 정리했으며, 이 준비 실패 역시 제품 테스트와 구분한다.
 
+### 첫 독립 전체 실행: `871ffef`
+
+2026-11-06 02:33:25~02:48:48 UTC, `qa:full`은 **INTERRUPTED/exit130**이며 전체 PASS가 아니다. 소스 SHA 전후 동일·dirty0, pnpm audit는 개발/선택 포함487개 취약점0, 하니스 exit0였다. 서비스37·실제 result route/DB stub5는 별도 결과 파일로 부분 PASS를 확인했다. 최종 runtime receipt가 없어 unit 정확수치·lint·typecheck·build는 미확인, 브라우저46·보안16은 미완료로 보존한다. 컨테이너와 VM 임시 입력 부재·cleanup PASS를 독립 담당자가 재확인했다. 상세 summary는 `tests/.generated/2026-11-06T02-33-25.840Z-full-pevcWG/summary.json`이다.
+
+확인한 검사 설정 FAIL과 실행기 대기 공백 때문에 DEV 판단으로 중단했다. 사용자가 작업을 중단한 것으로 표시하지 않는다. `.env.example`의 두 연결 문자열은 USER/PASSWORD 예시였으며 실제 credential 유출로 판정하지 않는다. 예외/ignore를 추가하는 대신 빈 연결값과 입력 안내로 바꿨다. 실제 `.env`·운영 환경은 수정하지 않았다.
+
+Trivy는 빈 secret YAML의 EOF 오류를 합성 디렉터리로 재현했다. 명시적인 `{}` YAML로 수정하고, 별도 임시 디렉터리의 비기능 랜덤 canary를 실제 기본 `github-pat` 규칙이 탐지하는지도 필수 검사로 추가했다. 토큰·매치 원문은 저장하지 않으며 미탐지는 BLOCKED다. 양성 실측1건·판정 부정 시험을 통과했다. 기본 규칙이나 심각도 검사를 끄지 않았다.
+
+추가로 Next 내부 추출기의 `src: url(...)` 형식과 오프라인 minified CSS의 불일치, 상한 없는 폰트/응답 대기, PID1의 자식 회수 공백을 발견했다. 폰트 실추출·로딩 확인, 고정 index 진행 메타데이터·명시적 대기 상한, init/process group 정리를 보완한 새 SHA에서 전체 재실행한다. 현재 제품의 실제 운영 오류로 단정하지 않고 QA 실행기 문제와 구분한다.
+
+검사기 수정 후 02:58 UTC 부분 진단에서 pnpm/Trivy 각각487개·취약점0, tracked secret0, 기본 github-pat 양성 대조 PASS를 확인했다. 그러나 수정 중 dirty source이므로 전체는 BLOCKED/exit2다. 최종 clean SHA의 QA 성공으로 인용하지 않는다. 증거: `tests/.generated/2026-11-06T02-58-14-183Z-local-security-geCJn0/summary.json`.
+
+실행기 보완 후 실제 Next 추출기에서 수정 전0→9개·Latin preload2개, WOFF2 magic/hash를 확인했다. Linux에서 init·기존 격리/자원 조건 그대로 TERM을 무시하는 자식/손자 종료·의도된 daemon 보존 후 정리·zombie0의 도구 probe3개를 통과했다. DEV 부모 하니스는 이 시점73/73(skip0)이다. commerce 기존46개를 보존하고 실제 self-host 폰트1개를 추가해47개, 보안 HTTP16개·서비스37개·PG route5개를 필수로 유지한다. 실제 제품 build·브라우저의 재실행 결과로 해석하지 않는다.
+
+실제 Playwright가 Chromium을 detached 새 PGID로 실행하는 경계를 추가 확인해 관측 자손 identity 추적·회수를 보완했다. 03:27 UTC 최종 준비 image `7eb870a2ce4db588742c`에서 about:blank Chromium의 별도 PGID를 먼저 확인한 뒤 200ms 제어 deadline(AbortSignal 경로)을 걸었다. 원 Node SIGKILL·자손9개 회수·remaining0, 독립 PID/starttime 집합 시작2→종료2·SHA256동일·미관측 잔여0·zombie0를 확인했다. 내부 wall timer 경로는 별도 자식/손자 probe·회귀 시험으로 구분한다. 부모 전체 하니스88/88(skip0)·구문·diff 검증도 통과했다. 이는 DEV 도구 준비 증거이며 실제 제품 build·브라우저47/16 전체 성공 증거는 아니다. 증거: `tests/.generated/2026-11-06T03-27-34.195Z-isolated-0DoHxq/summary.json`.
+
 ## 배포 시 영향·남는 범위
 
 - 기존 로그인 쿠키는 새 credentialTag가 없어 배포 후 한 번 다시 로그인해야 한다. 비밀번호 변경 후 복사한 이전 쿠키는 거절된다.

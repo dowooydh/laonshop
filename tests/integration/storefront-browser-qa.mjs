@@ -2,33 +2,55 @@
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 import { readFileSync, writeFileSync } from "node:fs";
+import { createBrowserHarness, requestDisposition, verifySelfHostedFonts } from "./browser-qa-support.mjs";
 const require = createRequire(import.meta.url);
 const state = JSON.parse(readFileSync(process.env.QA_STATE_FILE, "utf8"));
 assert.equal(new URL(state.databaseUrl).hostname, "127.0.0.1");
 const { PrismaClient } = require("@prisma/client");
 const db = new PrismaClient({ datasources: { db: { url: state.databaseUrl } } });
+const output = process.env.QA_OUTPUT_DIR || `${process.cwd()}/tests/reports/2026-11-04-shop-upgrade`;
+const harness = createBrowserHarness({ suite: "commerce", output });
 const { chromium } = await import(process.env.QA_PLAYWRIGHT_MODULE);
-const browser = await chromium.launch({ executablePath: process.env.QA_CHROME_EXECUTABLE, headless: true, args: ["--no-sandbox"] });
+const browser = harness.wrap(await harness.operation("setup", () => chromium.launch({ executablePath: process.env.QA_CHROME_EXECUTABLE, headless: true, timeout: 15000, args: ["--no-sandbox"] })));
 const base = `http://localhost:${state.appPort}`;
 const f = state.fixtures;
-const output = process.env.QA_OUTPUT_DIR || `${process.cwd()}/tests/reports/2026-11-04-shop-upgrade`;
 const checks = [], consoleErrors = [], pageErrors = [], externalWrites = [], overlaps = [];
-async function check(name, fn) { await fn(); checks.push(name); }
+let externalRequests = 0, selfHostedFontsLoaded = false;
+const deniedProviders = [], contexts = new Set();
+const check = (name, fn) => harness.check(name, fn, checks);
 async function context(role) {
-  const ctx = await browser.newContext({ viewport: { width: 1280, height: 960 }, reducedMotion: "reduce" });
+  const ctx = await harness.configure(await browser.newContext({ viewport: { width: 1280, height: 960 }, reducedMotion: "reduce" }));
+  contexts.add(ctx);
   if (role) await ctx.addCookies([{ name: "laonshop_session", value: f.cookies[role], url: base, httpOnly: true, sameSite: "Lax" }]);
-  await ctx.route(/https?:\/\/.*(?:ksnet|laonpay|baum)/i, route => route.abort());
-  ctx.on("request", req => { const u = new URL(req.url()); if (req.method() !== "GET" && !["localhost", "127.0.0.1"].includes(u.hostname)) externalWrites.push({ method: req.method(), host: u.hostname }); });
+  await ctx.route("**/*", route => {
+    const request = route.request(), disposition = requestDisposition(request.url(), request.method());
+    if (!disposition.local) {
+      externalRequests += 1;
+      if (disposition.provider) deniedProviders.push("provider");
+      if (disposition.externalWrite) externalWrites.push("external-write");
+      return route.abort();
+    }
+    return route.continue();
+  });
   return ctx;
 }
 function collect(page) { page.on("pageerror", e => pageErrors.push(e.message)); page.on("console", m => { if (m.type() === "error") consoleErrors.push(m.text()); }); }
-async function go(page, path) { const response = await page.goto(`${base}${path}`, { waitUntil: "networkidle" }); assert.ok(response && response.status() < 400, `${path}: ${response?.status()}`); await page.evaluate(() => document.fonts.ready); }
+async function go(page, path) { const response = await page.goto(`${base}${path}`, { waitUntil: "networkidle" }); assert.ok(response && response.status() < 400, `${path}: ${response?.status()}`); await harness.fontsReady(page); }
 async function replay(ctx, captured) {
   return ctx.request.post(captured.url, { headers: { "Next-Action": captured.action, "Content-Type": captured.contentType, Origin: base }, data: captured.body });
 }
 try {
   const guest = await context();
   const page = await guest.newPage(); collect(page);
+  const fontResponses = [];
+  page.on("response", response => {
+    const url = new URL(response.url());
+    if (url.origin === base && /^\/_next\/static\/media\/[^/]+\.woff2$/.test(url.pathname)) fontResponses.push({ url: url.href, status: response.status() });
+  });
+  await check("self-hosted display and mono fonts are loaded", async () => {
+    await go(page, "/");
+    selfHostedFontsLoaded = await verifySelfHostedFonts(page, harness, fontResponses, base);
+  });
   const routes = ["/", "/shop/men", "/shop/women", "/search?q=%EB%8B%88%ED%8A%B8", `/product/${f.productId}`, "/support"];
   if (!process.env.QA_SKIP_PUBLIC) for (const width of [320, 390, 1280]) for (const scale of [1, 2]) for (const path of routes) {
     await check(`public ${width}px ${scale * 100}% ${path.split("?")[0]}`, async () => {
@@ -167,12 +189,20 @@ try {
   });
   await buyer.close(); await other.close(); await admin.close();
   assert.deepEqual(externalWrites, []);
+  assert.deepEqual(deniedProviders, []);
+  assert.equal(selfHostedFontsLoaded, true);
   assert.deepEqual(pageErrors, []);
   assert.deepEqual(overlaps, [], `review anchor hidden: ${JSON.stringify(overlaps)}`);
-  const report = { status: "PASS", count: checks.length, checks, pageErrors, consoleErrors, externalWrites, anchorOverlaps: overlaps };
+  const report = { status: "PASS", count: checks.length, checks, pageErrors, consoleErrors, externalWrites, deniedProviders, externalRequests, selfHostedFontsLoaded, anchorOverlaps: overlaps };
   writeFileSync(`${output}/${process.env.QA_SKIP_PUBLIC ? "browser-auth-results" : "browser-results"}.json`, JSON.stringify(report, null, 2));
-  console.log(JSON.stringify({ status: "PASS", count: checks.length, consoleErrors: consoleErrors.length }));
+  harness.progress("finish");
+  console.log(JSON.stringify({ status: "PASS", count: checks.length, consoleErrors: consoleErrors.length, selfHostedFontsLoaded }));
 } catch (error) {
+  harness.progress("failed");
   writeFileSync(`${output}/browser-partial.json`, JSON.stringify({ status: "FAIL", checks, error: String(error), pageErrors, consoleErrors, externalWrites, anchorOverlaps: overlaps }, null, 2));
   throw error;
-} finally { await browser.close(); await db.$disconnect(); }
+} finally {
+  const closed = await Promise.allSettled([...contexts].map(ctx => ctx.close()));
+  const remaining = await Promise.allSettled([browser.close(), harness.operation("close", () => db.$disconnect())]);
+  assert.ok([...closed, ...remaining].every(result => result.status === "fulfilled"), "QA_OWNED_RESOURCE_CLOSE_FAILED");
+}
